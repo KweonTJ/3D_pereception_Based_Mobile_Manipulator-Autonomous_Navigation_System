@@ -1,0 +1,45 @@
+hybrid_single_target_tracker:
+  ros__parameters:
+  # 1.Camera topics
+    color_topic: /camera/color/image_raw
+    depth_topic: /camera/depth/image_raw
+    camera_info_topic: /camera/depth/camera_info
+
+  # 2. Output topics
+    position_topic: /object/fruit_1/position
+    size_topic: /object/fruit_1/size
+    depth_debug_topic: /object/fruit_1/depth_comp
+    valid_topic: /object/fruit_1/valid
+    raw_view_topic: /object/picking_view
+    debug_view_topic: /object/close_range_view
+
+  # 3. Display and tracking parameters
+    publish_raw_view: true
+    publish_debug_image: true
+    fixed_target_id: 1
+
+  # 4. Tracker parameters
+    tracking_scale: 0.5
+    tracker_skip: 3
+    detection_interval: 20
+    max_missing_frames: 60
+    sync_queue_size: 10
+    sync_age_penalty: 0.5
+
+  # 5. Depth and detection parameters
+    min_depth_trust_m: 0.46
+    min_detect_depth_m: 0.2
+    max_detect_depth_m: 1.2
+    max_valid_depth_m: 3.0
+    min_contour_area_px: 500.0
+    center_roi_ratio: 0.2
+    visual_override_margin_m: 0.08
+    visual_override_ratio: 0.20
+    close_range_hysteresis_m: 0.10
+    close_range_spike_margin_m: 0.12
+
+  # 6. Hybrid tracking parameters
+    default_real_width_m: 0.08
+    default_real_height_m: 0.08
+    learned_size_min_m: 0.03
+    learned_size_max_m: 0.30
