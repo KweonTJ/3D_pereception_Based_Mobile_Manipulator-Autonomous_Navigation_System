@@ -1,0 +1,26 @@
+csrt_ibvs_node:
+  ros__parameters:
+    image_topic: /image_raw
+    camera_info_topic: /camera_info
+    init_bbox_topic: /target/init_bbox
+    cmd_vel_topic: /cmd_vel
+
+    use_depth: false
+    use_area_fallback: true
+    enable_cmd_vel: true
+    enable_arm_twist: false
+    publish_debug_image: true
+    stop_when_lost: true
+    allow_reverse: false
+
+    desired_u_ratio: 0.5
+    desired_v_ratio: 0.5
+    desired_area_ratio: 0.06
+
+    yaw_gain: 1.15
+    area_gain: 1.0
+    x_deadband_norm: 0.04
+    area_deadband_ratio: 0.01
+    approach_yaw_gate_norm: 0.25
+    max_linear_x: 0.08
+    max_angular_z: 0.40
