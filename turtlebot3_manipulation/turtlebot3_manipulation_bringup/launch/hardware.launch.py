@@ -74,6 +74,7 @@ def generate_launch_description():
     use_fake_hardware = LaunchConfiguration('use_fake_hardware')
     use_camera_driver_tf = LaunchConfiguration('use_camera_driver_tf')
     start_camera = LaunchConfiguration('start_camera')
+    move_to_stay_pose = LaunchConfiguration('move_to_stay_pose')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -102,6 +103,11 @@ def generate_launch_description():
             description='Whether to launch the Astra Mini camera driver.'),
 
         DeclareLaunchArgument(
+            'move_to_stay_pose',
+            default_value='true',
+            description='Move the manipulator to the saved stay pose after the arm controller starts.'),
+
+        DeclareLaunchArgument(
             'start_lidar',
             default_value='false',
             description='Whether to launch a lidar driver alongside the robot bringup.'),
@@ -123,6 +129,7 @@ def generate_launch_description():
                 'prefix': prefix,
                 'use_fake_hardware': use_fake_hardware,
                 'use_camera_driver_tf': use_camera_driver_tf,
+                'move_to_stay_pose': move_to_stay_pose,
             }.items(),
         ),
 
