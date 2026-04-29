@@ -185,5 +185,3 @@ turtlebot3_ws/src
 - 최종적으로 Leader Robot은 객체를 인식하고 조작하며, Follower Robot은 Leader Robot을 추종하여 협업 운반을 수행하는 구조를 구현한다.
 # License
 - This project is licensed under the Apache License 2.0.
-
-test auto push
