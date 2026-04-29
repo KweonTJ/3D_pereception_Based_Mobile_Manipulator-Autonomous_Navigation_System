@@ -87,6 +87,7 @@ private:
   std::string depth_topic_;
   std::string camera_info_topic_;
   std::string init_bbox_topic_;
+  std::string tracked_bbox_topic_;
   std::string cmd_vel_topic_;
   std::string arm_twist_topic_;
   std::string debug_image_topic_;
@@ -141,6 +142,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr arm_twist_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr debug_image_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr tracked_bbox_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::TimerBase::SharedPtr watchdog_timer_;
 
