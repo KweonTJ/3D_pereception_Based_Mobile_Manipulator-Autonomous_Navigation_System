@@ -113,7 +113,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'eef_usb_camera_xyz',
-            default_value='0.0 0.0 0.04',
+            default_value='0.0 0.0 0.065',
             description='End-effector USB camera translation relative to eef_usb_camera_parent.'),
 
         DeclareLaunchArgument(
