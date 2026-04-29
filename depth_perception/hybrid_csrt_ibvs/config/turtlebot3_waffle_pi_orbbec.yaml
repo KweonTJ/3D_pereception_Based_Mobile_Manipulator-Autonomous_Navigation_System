@@ -7,6 +7,7 @@ csrt_ibvs_node:
 
     # A bbox message is Float32MultiArray: [x, y, width, height] in RGB image pixels.
     init_bbox_topic: /target/init_bbox
+    tracked_bbox_topic: /target/tracked_bbox
 
     # TurtleBot3 base command.
     cmd_vel_topic: /cmd_vel
