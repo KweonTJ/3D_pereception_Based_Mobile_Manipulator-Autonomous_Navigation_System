@@ -16,7 +16,10 @@
 #include <std_msgs/msg/string.hpp>
 
 #include <opencv2/core.hpp>
+
+#ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
 #include <opencv2/tracking.hpp>
+#endif
 
 namespace hybrid_csrt_ibvs
 {
@@ -60,6 +63,10 @@ private:
 
   void readParameters();
   bool initializeTracker(const cv::Mat & frame, const cv::Rect & bbox);
+  bool updateTracker(const cv::Mat & frame, cv::Rect & bbox);
+  bool hasTracker() const;
+  void resetTracker();
+  const char * trackerBackendName() const;
   std::optional<cv::Rect> sanitizeBox(const cv::Rect & bbox, const cv::Size & image_size) const;
   IbvsResult computeIbvsCommand(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp);
   std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
@@ -137,7 +144,13 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::TimerBase::SharedPtr watchdog_timer_;
 
+#ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
   cv::Ptr<cv::TrackerCSRT> tracker_;
+#else
+  cv::Mat tracker_hist_;
+  cv::Rect tracker_window_;
+  bool tracker_initialized_{false};
+#endif
   TrackerState state_{TrackerState::WAITING_FOR_BBOX};
   int lost_count_{0};
   rclcpp::Time last_track_stamp_;
