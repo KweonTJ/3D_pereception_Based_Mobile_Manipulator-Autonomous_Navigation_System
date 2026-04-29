@@ -9,6 +9,10 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc.hpp>
 
+#ifndef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
+#include <opencv2/video/tracking.hpp>
+#endif
+
 namespace hybrid_csrt_ibvs
 {
 namespace
@@ -207,7 +211,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
     initializeTracker(frame, *bbox_for_init);
   }
 
-  if (state_ != TrackerState::TRACKING || !tracker_) {
+  if (state_ != TrackerState::TRACKING || !hasTracker()) {
     if (stop_when_lost_) {
       publishStop();
     }
@@ -217,7 +221,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   cv::Rect tracked_box;
   bool tracking_ok = false;
   try {
-    tracking_ok = tracker_->update(frame, tracked_box);
+    tracking_ok = updateTracker(frame, tracked_box);
   } catch (const cv::Exception & ex) {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1500, "CSRT update failed: %s", ex.what());
     tracking_ok = false;
@@ -229,7 +233,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
     publishStatus("tracker uncertain; lost_count=" + std::to_string(lost_count_));
 
     if (lost_count_ >= loss_frame_limit_) {
-      tracker_.release();
+      resetTracker();
       state_ = TrackerState::LOST;
       if (stop_when_lost_) {
         publishStop(true);
@@ -276,21 +280,114 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
 bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbox)
 {
   try {
+#ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
     tracker_ = cv::TrackerCSRT::create();
     tracker_->init(frame, bbox);
+#else
+    cv::Mat hsv;
+    cv::Mat mask;
+    cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
+    cv::inRange(hsv, cv::Scalar(0, 30, 20), cv::Scalar(180, 255, 255), mask);
+
+    const cv::Mat roi = hsv(bbox);
+    const cv::Mat roi_mask = mask(bbox);
+    const int channels[] = {0, 1};
+    const int hist_size[] = {30, 32};
+    const float h_range[] = {0.0F, 180.0F};
+    const float s_range[] = {0.0F, 256.0F};
+    const float * ranges[] = {h_range, s_range};
+
+    cv::calcHist(&roi, 1, channels, roi_mask, tracker_hist_, 2, hist_size, ranges);
+    if (cv::countNonZero(tracker_hist_) == 0) {
+      throw cv::Exception(cv::Error::StsBadArg, "empty CamShift histogram", __func__, __FILE__, __LINE__);
+    }
+    cv::normalize(tracker_hist_, tracker_hist_, 0.0, 255.0, cv::NORM_MINMAX);
+    tracker_window_ = bbox;
+    tracker_initialized_ = true;
+#endif
     lost_count_ = 0;
     state_ = TrackerState::TRACKING;
     last_track_stamp_ = now();
-    publishStatus("CSRT initialized", true);
+    publishStatus(std::string(trackerBackendName()) + " initialized", true);
     return true;
   } catch (const cv::Exception & ex) {
-    tracker_.release();
+    resetTracker();
     state_ = TrackerState::LOST;
     publishStop(true);
-    RCLCPP_ERROR(get_logger(), "CSRT initialization failed: %s", ex.what());
-    publishStatus("CSRT initialization failed", true);
+    RCLCPP_ERROR(get_logger(), "%s initialization failed: %s", trackerBackendName(), ex.what());
+    publishStatus(std::string(trackerBackendName()) + " initialization failed", true);
     return false;
   }
+}
+
+bool CsrtIbvsNode::updateTracker(const cv::Mat & frame, cv::Rect & bbox)
+{
+#ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
+  return tracker_ && tracker_->update(frame, bbox);
+#else
+  if (!tracker_initialized_ || tracker_hist_.empty() || tracker_window_.empty()) {
+    return false;
+  }
+
+  cv::Mat hsv;
+  cv::Mat mask;
+  cv::Mat back_project;
+  cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
+  cv::inRange(hsv, cv::Scalar(0, 30, 20), cv::Scalar(180, 255, 255), mask);
+
+  const int channels[] = {0, 1};
+  const float h_range[] = {0.0F, 180.0F};
+  const float s_range[] = {0.0F, 256.0F};
+  const float * ranges[] = {h_range, s_range};
+  cv::calcBackProject(&hsv, 1, channels, tracker_hist_, back_project, ranges);
+  cv::bitwise_and(back_project, mask, back_project);
+
+  const cv::Rect image_bounds(0, 0, frame.cols, frame.rows);
+  tracker_window_ = tracker_window_ & image_bounds;
+  if (tracker_window_.empty()) {
+    return false;
+  }
+
+  const auto criteria = cv::TermCriteria(
+    cv::TermCriteria::EPS | cv::TermCriteria::COUNT, 10, 1.0);
+  const cv::RotatedRect tracked = cv::CamShift(back_project, tracker_window_, criteria);
+  const cv::Rect tracked_box = tracked.boundingRect() & image_bounds;
+  if (tracked_box.empty()) {
+    return false;
+  }
+
+  bbox = tracked_box;
+  return true;
+#endif
+}
+
+bool CsrtIbvsNode::hasTracker() const
+{
+#ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
+  return static_cast<bool>(tracker_);
+#else
+  return tracker_initialized_;
+#endif
+}
+
+void CsrtIbvsNode::resetTracker()
+{
+#ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
+  tracker_.release();
+#else
+  tracker_hist_.release();
+  tracker_window_ = cv::Rect();
+  tracker_initialized_ = false;
+#endif
+}
+
+const char * CsrtIbvsNode::trackerBackendName() const
+{
+#ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
+  return "CSRT";
+#else
+  return "CamShift fallback";
+#endif
 }
 
 std::optional<cv::Rect> CsrtIbvsNode::sanitizeBox(const cv::Rect & bbox, const cv::Size & image_size) const
