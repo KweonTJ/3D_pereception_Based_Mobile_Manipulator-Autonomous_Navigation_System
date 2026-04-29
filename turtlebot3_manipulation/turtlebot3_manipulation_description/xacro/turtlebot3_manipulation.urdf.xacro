@@ -7,7 +7,8 @@
   <xacro:arg name="fake_sensor_commands" default="false" />
   <xacro:arg name="use_camera_driver_tf" default="false" />
   <xacro:arg name="use_eef_usb_camera" default="true" />
-  <xacro:arg name="eef_usb_camera_xyz" default="0.0 0.0 0.05" />
+  <xacro:arg name="eef_usb_camera_parent" default="link5" />
+  <xacro:arg name="eef_usb_camera_xyz" default="0.06 0.0 0.10" />
   <xacro:arg name="eef_usb_camera_rpy" default="0.0 0.0 0.0" />
 
   <xacro:include filename="$(find turtlebot3_manipulation_description)/gazebo/materials.xacro" />
@@ -106,7 +107,7 @@
 
   <xacro:if value="$(arg use_eef_usb_camera)">
     <joint name="$(arg prefix)eef_usb_camera_joint" type="fixed">
-      <parent link="$(arg prefix)end_effector_link"/>
+      <parent link="$(arg prefix)$(arg eef_usb_camera_parent)"/>
       <child link="$(arg prefix)eef_usb_camera_link"/>
       <origin xyz="$(arg eef_usb_camera_xyz)" rpy="$(arg eef_usb_camera_rpy)"/>
     </joint>
