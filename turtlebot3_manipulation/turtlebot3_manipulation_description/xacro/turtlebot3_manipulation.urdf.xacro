@@ -8,7 +8,7 @@
   <xacro:arg name="use_camera_driver_tf" default="false" />
   <xacro:arg name="use_eef_usb_camera" default="true" />
   <xacro:arg name="eef_usb_camera_parent" default="dummy_mimic_fix" />
-  <xacro:arg name="eef_usb_camera_xyz" default="0.0 0.0 0.065" />
+  <xacro:arg name="eef_usb_camera_xyz" default="0.02 0.0 0.065" />
   <xacro:arg name="eef_usb_camera_rpy" default="0.0 0.0 0.0" />
 
   <xacro:include filename="$(find turtlebot3_manipulation_description)/gazebo/materials.xacro" />
