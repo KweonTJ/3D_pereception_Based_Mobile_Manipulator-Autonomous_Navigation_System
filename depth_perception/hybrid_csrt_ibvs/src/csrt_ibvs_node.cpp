@@ -46,6 +46,8 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
     init_bbox_topic_, default_qos,
     [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onInitBbox(msg); });
 
+  tracked_bbox_pub_ = create_publisher<std_msgs::msg::Float32MultiArray>(tracked_bbox_topic_, default_qos);
+
   if (enable_cmd_vel_) {
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_, default_qos);
   }
@@ -75,6 +77,7 @@ void CsrtIbvsNode::readParameters()
   depth_topic_ = declare_parameter<std::string>("depth_topic", "/camera/depth/image_raw");
   camera_info_topic_ = declare_parameter<std::string>("camera_info_topic", "/camera/color/camera_info");
   init_bbox_topic_ = declare_parameter<std::string>("init_bbox_topic", "/target/init_bbox");
+  tracked_bbox_topic_ = declare_parameter<std::string>("tracked_bbox_topic", "/target/tracked_bbox");
   cmd_vel_topic_ = declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
   arm_twist_topic_ = declare_parameter<std::string>("arm_twist_topic", "/servo_node/delta_twist_cmds");
   arm_command_frame_id_ = declare_parameter<std::string>("arm_command_frame_id", "camera_color_optical_frame");
@@ -258,6 +261,16 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
 
   if (enable_arm_twist_ && arm_twist_pub_) {
     arm_twist_pub_->publish(ibvs.arm_cmd);
+  }
+
+  if (tracked_bbox_pub_) {
+    std_msgs::msg::Float32MultiArray bbox_msg;
+    bbox_msg.data = {
+      static_cast<float>(clipped_box->x),
+      static_cast<float>(clipped_box->y),
+      static_cast<float>(clipped_box->width),
+      static_cast<float>(clipped_box->height)};
+    tracked_bbox_pub_->publish(bbox_msg);
   }
 
   if (publish_debug_image_) {
