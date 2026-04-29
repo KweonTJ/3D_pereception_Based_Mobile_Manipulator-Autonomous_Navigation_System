@@ -95,15 +95,15 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             'eef_usb_camera_parent',
-            default_value='link5',
-            description='Parent link for the end-effector USB camera frame.'
+            default_value='dummy_mimic_fix',
+            description='Parent link for the end-effector USB camera frame. Use the full link name.'
         )
     )
 
     declared_arguments.append(
         DeclareLaunchArgument(
             'eef_usb_camera_xyz',
-            default_value='0.06 0.0 0.10',
+            default_value='0.0 0.0 0.04',
             description='End-effector USB camera translation relative to eef_usb_camera_parent.'
         )
     )
