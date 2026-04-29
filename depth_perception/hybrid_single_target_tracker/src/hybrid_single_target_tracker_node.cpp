@@ -335,9 +335,39 @@ private:
       if (!std::isfinite(target_.learned_real_h_m) || target_.learned_real_h_m <= 0.0) target_.learned_real_h_m = 0.08;
     }
 
-    target_.tracker = cv::TrackerCSRT::create();
     cv::resize(color_bgr, tracker_work_buffer_, cv::Size(), p_.tracking_scale, p_.tracking_scale, cv::INTER_LINEAR);
-    target_.tracker->init(tracker_work_buffer_, scaleRect(target_.tracker_bbox, p_.tracking_scale));
+    const cv::Rect scaled_bbox = clampRect(scaleRect(target_.tracker_bbox, p_.tracking_scale), tracker_work_buffer_.size());
+    if (scaled_bbox.empty()) {
+      target_ = TargetState{};
+      return;
+    }
+
+#ifdef HYBRID_SINGLE_TARGET_TRACKER_HAS_OPENCV_TRACKING
+    target_.tracker = cv::TrackerCSRT::create();
+    target_.tracker->init(tracker_work_buffer_, scaled_bbox);
+#else
+    cv::Mat hsv;
+    cv::Mat mask;
+    cv::cvtColor(tracker_work_buffer_, hsv, cv::COLOR_BGR2HSV);
+    cv::inRange(hsv, cv::Scalar(0, 30, 20), cv::Scalar(180, 255, 255), mask);
+
+    const cv::Mat roi = hsv(scaled_bbox);
+    const cv::Mat roi_mask = mask(scaled_bbox);
+    const int channels[] = {0, 1};
+    const int hist_size[] = {30, 32};
+    const float h_range[] = {0.0F, 180.0F};
+    const float s_range[] = {0.0F, 256.0F};
+    const float * ranges[] = {h_range, s_range};
+
+    cv::calcHist(&roi, 1, channels, roi_mask, target_.tracker_hist, 2, hist_size, ranges);
+    if (cv::countNonZero(target_.tracker_hist) == 0) {
+      target_ = TargetState{};
+      return;
+    }
+    cv::normalize(target_.tracker_hist, target_.tracker_hist, 0.0, 255.0, cv::NORM_MINMAX);
+    target_.tracker_window = scaled_bbox;
+    target_.tracker_initialized = true;
+#endif
 
     RCLCPP_INFO(get_logger(), "Target initialized: bbox=(%d,%d,%d,%d), z=%.3f m, learned_w=%.3f m",
       target_.bbox.x, target_.bbox.y, target_.bbox.width, target_.bbox.height, target_.z_m, target_.learned_real_w_m);
@@ -345,12 +375,43 @@ private:
 
   bool updateTracker(const cv::Mat & color_bgr)
   {
-    if (!target_.active || !target_.tracker) return false;
+    if (!target_.active) return false;
+#ifdef HYBRID_SINGLE_TARGET_TRACKER_HAS_OPENCV_TRACKING
+    if (!target_.tracker) return false;
+#else
+    if (!target_.tracker_initialized || target_.tracker_hist.empty()) return false;
+#endif
     if ((frame_count_ % p_.tracker_skip) == 0) {
       cv::resize(color_bgr, tracker_work_buffer_, cv::Size(), p_.tracking_scale, p_.tracking_scale, cv::INTER_LINEAR);
+#ifdef HYBRID_SINGLE_TARGET_TRACKER_HAS_OPENCV_TRACKING
       cv::Rect small_bbox = scaleRect(target_.tracker_bbox, p_.tracking_scale);
       const bool ok = target_.tracker->update(tracker_work_buffer_, small_bbox);
       if (ok) target_.tracker_bbox = scaleRect(small_bbox, 1.0 / p_.tracking_scale);
+#else
+      cv::Mat hsv;
+      cv::Mat mask;
+      cv::Mat back_project;
+      cv::cvtColor(tracker_work_buffer_, hsv, cv::COLOR_BGR2HSV);
+      cv::inRange(hsv, cv::Scalar(0, 30, 20), cv::Scalar(180, 255, 255), mask);
+
+      const int channels[] = {0, 1};
+      const float h_range[] = {0.0F, 180.0F};
+      const float s_range[] = {0.0F, 256.0F};
+      const float * ranges[] = {h_range, s_range};
+      cv::calcBackProject(&hsv, 1, channels, target_.tracker_hist, back_project, ranges);
+      cv::bitwise_and(back_project, mask, back_project);
+
+      const cv::Rect image_bounds(0, 0, tracker_work_buffer_.cols, tracker_work_buffer_.rows);
+      target_.tracker_window = target_.tracker_window & image_bounds;
+      if (target_.tracker_window.empty()) return false;
+
+      const auto criteria = cv::TermCriteria(
+        cv::TermCriteria::EPS | cv::TermCriteria::COUNT, 10, 1.0);
+      const cv::RotatedRect tracked = cv::CamShift(back_project, target_.tracker_window, criteria);
+      const cv::Rect tracked_box = tracked.boundingRect() & image_bounds;
+      if (tracked_box.empty()) return false;
+      target_.tracker_bbox = scaleRect(tracked_box, 1.0 / p_.tracking_scale);
+#endif
     }
 
     const double tcx = target_.tracker_bbox.x + target_.tracker_bbox.width * 0.5;
