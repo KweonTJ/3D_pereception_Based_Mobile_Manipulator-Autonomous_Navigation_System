@@ -223,7 +223,9 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   try {
     tracking_ok = updateTracker(frame, tracked_box);
   } catch (const cv::Exception & ex) {
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1500, "CSRT update failed: %s", ex.what());
+    RCLCPP_WARN_THROTTLE(
+      get_logger(), *get_clock(), 1500, "%s update failed: %s",
+      trackerBackendName(), ex.what());
     tracking_ok = false;
   }
 

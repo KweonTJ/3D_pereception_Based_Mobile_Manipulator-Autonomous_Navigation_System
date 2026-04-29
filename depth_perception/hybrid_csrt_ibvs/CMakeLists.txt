@@ -34,6 +34,8 @@ target_include_directories(csrt_ibvs_node PUBLIC
 target_link_libraries(csrt_ibvs_node ${OpenCV_LIBS})
 if(OpenCV_tracking_FOUND AND NOT HYBRID_CSRT_IBVS_FORCE_CAMSHIFT)
   target_compile_definitions(csrt_ibvs_node PRIVATE HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING=1)
+elseif(HYBRID_CSRT_IBVS_FORCE_CAMSHIFT)
+  message(WARNING "Building hybrid_csrt_ibvs with the forced CamShift fallback; CSRT is disabled for this build.")
 else()
   message(WARNING "OpenCV tracking module was not found. Building hybrid_csrt_ibvs with a CamShift fallback; install libopencv-contrib-dev for CSRT.")
 endif()
