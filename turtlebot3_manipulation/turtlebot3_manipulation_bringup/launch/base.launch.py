@@ -158,10 +158,14 @@ def generate_launch_description():
             use_eef_usb_camera,
             ' ',
             'eef_usb_camera_xyz:=',
+            '"',
             eef_usb_camera_xyz,
+            '"',
             ' ',
             'eef_usb_camera_rpy:=',
+            '"',
             eef_usb_camera_rpy,
+            '"',
         ]
     )
 
