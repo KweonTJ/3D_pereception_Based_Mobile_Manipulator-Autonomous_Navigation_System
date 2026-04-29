@@ -41,7 +41,6 @@
 # 세부 프로젝트 구성
 - 본 프로젝트는 다음 3개의 소형 프로젝트로 나누어 진행한다.
 ## 1. 3차원 비전 기반 객체 인지 시스템
-[[1. 3D Vision Based Object Perception System]]
 - Depth Camera와 RGB Camera를 활용하여 물체를 인식하고, 카메라 좌표계 기준 3차원 위치 추정
 - **주요 기능**
 	- RGB-D 기능 수신
@@ -56,7 +55,6 @@
 		- astra_mini_calibration
 		- hybrid_single_target_tracker
 ## 2. 3D 공간 좌표 기반 매니퓰레이터 정밀 제어
-[[2. 3D Spatial Coordinate-Based Manipulator Precision Control]]
 - 인식된 객체의 3D 좌표를 로봇 기준 좌표계로 변환한 뒤, Open Manipulator-X를 이용하여 Pick & Place 작업 수행
 - **주요 기능**
 	- Camera TF - Robot TF 좌표 변환
@@ -67,7 +65,6 @@
 - **관련 패키지**
 	- 
 ## 3. 플래투닝 및 협업 기반 객체 전달 시스템
-[[3. Autonomous Platooning and Cooperative Object Transfer System]]
 - 작업 로봇이 물체를 인식하고 조작한 뒤, 별도의 이동 로봇이 협업하여 물체를 운반하는 구조 구현
 - **주요 기능**
 	- Leader-Follower 기반 플래투닝
