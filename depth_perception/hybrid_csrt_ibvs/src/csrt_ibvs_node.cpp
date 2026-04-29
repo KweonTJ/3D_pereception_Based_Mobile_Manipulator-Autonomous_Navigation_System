@@ -660,7 +660,7 @@ void CsrtIbvsNode::watchdog()
 
   const double age_s = (now() - last_track_stamp_).seconds();
   if (age_s > watchdog_timeout_s_) {
-    tracker_.release();
+    resetTracker();
     state_ = TrackerState::LOST;
     if (stop_when_lost_) {
       publishStop(true);
