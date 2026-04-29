@@ -75,6 +75,9 @@ def generate_launch_description():
     use_camera_driver_tf = LaunchConfiguration('use_camera_driver_tf')
     start_camera = LaunchConfiguration('start_camera')
     move_to_stay_pose = LaunchConfiguration('move_to_stay_pose')
+    use_eef_usb_camera = LaunchConfiguration('use_eef_usb_camera')
+    eef_usb_camera_xyz = LaunchConfiguration('eef_usb_camera_xyz')
+    eef_usb_camera_rpy = LaunchConfiguration('eef_usb_camera_rpy')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -96,6 +99,21 @@ def generate_launch_description():
             'use_camera_driver_tf',
             default_value='true',
             description='Let the external camera driver publish camera internal TF frames.'),
+
+        DeclareLaunchArgument(
+            'use_eef_usb_camera',
+            default_value='true',
+            description='Attach the end-effector USB camera frames to robot_description.'),
+
+        DeclareLaunchArgument(
+            'eef_usb_camera_xyz',
+            default_value='0.0 0.0 0.05',
+            description='End-effector USB camera translation relative to end_effector_link.'),
+
+        DeclareLaunchArgument(
+            'eef_usb_camera_rpy',
+            default_value='0.0 0.0 0.0',
+            description='End-effector USB camera rotation relative to end_effector_link.'),
 
         DeclareLaunchArgument(
             'start_camera',
@@ -129,6 +147,9 @@ def generate_launch_description():
                 'prefix': prefix,
                 'use_fake_hardware': use_fake_hardware,
                 'use_camera_driver_tf': use_camera_driver_tf,
+                'use_eef_usb_camera': use_eef_usb_camera,
+                'eef_usb_camera_xyz': eef_usb_camera_xyz,
+                'eef_usb_camera_rpy': eef_usb_camera_rpy,
                 'move_to_stay_pose': move_to_stay_pose,
             }.items(),
         ),
