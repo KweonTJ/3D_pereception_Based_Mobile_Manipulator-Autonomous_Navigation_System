@@ -11,7 +11,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc tracking)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc video OPTIONAL_COMPONENTS tracking)
 
 add_executable(csrt_ibvs_node
   src/csrt_ibvs_main.cpp
@@ -25,6 +25,11 @@ target_include_directories(csrt_ibvs_node PUBLIC
   ${OpenCV_INCLUDE_DIRS}
 )
 target_link_libraries(csrt_ibvs_node ${OpenCV_LIBS})
+if(OpenCV_tracking_FOUND)
+  target_compile_definitions(csrt_ibvs_node PRIVATE HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING=1)
+else()
+  message(WARNING "OpenCV tracking module was not found. Building hybrid_csrt_ibvs with a CamShift fallback; install libopencv-contrib-dev for CSRT.")
+endif()
 ament_target_dependencies(csrt_ibvs_node
   rclcpp
   sensor_msgs
