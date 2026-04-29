@@ -6,10 +6,23 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 option(HYBRID_CSRT_IBVS_FORCE_CAMSHIFT "Build with the CamShift fallback even when OpenCV tracking is available" OFF)
+option(HYBRID_CSRT_IBVS_PREFER_ROS_OPENCV "Prefer the Ubuntu/ROS OpenCV package over custom /usr/local OpenCV builds" ON)
 
 set(opencv_optional_components tracking)
 if(HYBRID_CSRT_IBVS_FORCE_CAMSHIFT)
   set(opencv_optional_components)
+endif()
+
+if(HYBRID_CSRT_IBVS_PREFER_ROS_OPENCV)
+  foreach(opencv_config_dir
+    "/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/opencv4"
+    "/usr/lib/x86_64-linux-gnu/cmake/opencv4"
+  )
+    if(EXISTS "${opencv_config_dir}/OpenCVConfig.cmake")
+      set(OpenCV_DIR "${opencv_config_dir}" CACHE PATH "OpenCV config directory" FORCE)
+      break()
+    endif()
+  endforeach()
 endif()
 
 find_package(ament_cmake REQUIRED)
@@ -19,6 +32,7 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc video OPTIONAL_COMPONENTS ${opencv_optional_components})
+message(STATUS "hybrid_csrt_ibvs using OpenCV ${OpenCV_VERSION} from ${OpenCV_DIR}")
 
 add_executable(csrt_ibvs_node
   src/csrt_ibvs_main.cpp
