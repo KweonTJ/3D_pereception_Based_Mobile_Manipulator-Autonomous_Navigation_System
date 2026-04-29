@@ -12,7 +12,13 @@
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+
+#ifdef HYBRID_SINGLE_TARGET_TRACKER_HAS_OPENCV_TRACKING
 #include <opencv2/tracking.hpp>
+#else
+#include <opencv2/video/tracking.hpp>
+#endif
+
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
@@ -49,7 +55,13 @@ struct TargetState {
   bool active{false};
   int learned_count{1};
   cv::Rect tracker_bbox, bbox;
+#ifdef HYBRID_SINGLE_TARGET_TRACKER_HAS_OPENCV_TRACKING
   cv::Ptr<cv::TrackerCSRT> tracker;
+#else
+  cv::Mat tracker_hist;
+  cv::Rect tracker_window;
+  bool tracker_initialized{false};
+#endif
   LowPassFilter fx{0.4}, fy{0.4}, fz{0.6}, fw{0.3}, fh{0.3};
   double z_m{0.0}, last_valid_z_m{0.0};
   double learned_real_w_m{0.08}, learned_real_h_m{0.08};
