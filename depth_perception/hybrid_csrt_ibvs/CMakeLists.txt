@@ -5,13 +5,20 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+option(HYBRID_CSRT_IBVS_FORCE_CAMSHIFT "Build with the CamShift fallback even when OpenCV tracking is available" OFF)
+
+set(opencv_optional_components tracking)
+if(HYBRID_CSRT_IBVS_FORCE_CAMSHIFT)
+  set(opencv_optional_components)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc video OPTIONAL_COMPONENTS tracking)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc video OPTIONAL_COMPONENTS ${opencv_optional_components})
 
 add_executable(csrt_ibvs_node
   src/csrt_ibvs_main.cpp
@@ -25,7 +32,7 @@ target_include_directories(csrt_ibvs_node PUBLIC
   ${OpenCV_INCLUDE_DIRS}
 )
 target_link_libraries(csrt_ibvs_node ${OpenCV_LIBS})
-if(OpenCV_tracking_FOUND)
+if(OpenCV_tracking_FOUND AND NOT HYBRID_CSRT_IBVS_FORCE_CAMSHIFT)
   target_compile_definitions(csrt_ibvs_node PRIVATE HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING=1)
 else()
   message(WARNING "OpenCV tracking module was not found. Building hybrid_csrt_ibvs with a CamShift fallback; install libopencv-contrib-dev for CSRT.")
