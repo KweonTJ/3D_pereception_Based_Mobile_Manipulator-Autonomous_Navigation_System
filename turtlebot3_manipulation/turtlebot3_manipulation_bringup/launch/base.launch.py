@@ -18,7 +18,9 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.actions import ExecuteProcess
 from launch.actions import RegisterEventHandler
+from launch.actions import TimerAction
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.event_handlers import OnProcessExit
@@ -82,12 +84,21 @@ def generate_launch_description():
         )
     )
 
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'move_to_stay_pose',
+            default_value='true',
+            description='Move the manipulator to the saved stay pose after the arm controller starts.'
+        )
+    )
+
     start_rviz = LaunchConfiguration('start_rviz')
     prefix = LaunchConfiguration('prefix')
     use_sim = LaunchConfiguration('use_sim')
     use_fake_hardware = LaunchConfiguration('use_fake_hardware')
     fake_sensor_commands = LaunchConfiguration('fake_sensor_commands')
     use_camera_driver_tf = LaunchConfiguration('use_camera_driver_tf')
+    move_to_stay_pose = LaunchConfiguration('move_to_stay_pose')
 
     urdf_file = Command(
         [
@@ -199,6 +210,26 @@ def generate_launch_description():
         output='screen',
     )
 
+    stay_pose_msg = (
+        '{joint_names: [joint1, joint2, joint3, joint4], '
+        'points: [{positions: [0.104311, 0.027612, -0.001534, -1.638291], '
+        'time_from_start: {sec: 2}}]}'
+    )
+
+    move_arm_to_stay_pose = ExecuteProcess(
+        cmd=[
+            FindExecutable(name='ros2'),
+            'topic',
+            'pub',
+            '--once',
+            '/arm_controller/joint_trajectory',
+            'trajectory_msgs/msg/JointTrajectory',
+            stay_pose_msg,
+        ],
+        output='screen',
+        condition=IfCondition(move_to_stay_pose),
+    )
+
     delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
@@ -238,6 +269,19 @@ def generate_launch_description():
             )
         )
 
+    delay_stay_pose_after_arm_controller_spawner = \
+        RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=arm_controller_spawner,
+                on_exit=[
+                    TimerAction(
+                        period=1.0,
+                        actions=[move_arm_to_stay_pose],
+                    )
+                ],
+            )
+        )
+
     nodes = [
         control_node,
         robot_state_pub_node,
@@ -247,6 +291,7 @@ def generate_launch_description():
         delay_imu_broadcaster_spawner_after_joint_state_broadcaster_spawner,
         delay_arm_controller_spawner_after_joint_state_broadcaster_spawner,
         delay_gripper_controller_spawner_after_joint_state_broadcaster_spawner,
+        delay_stay_pose_after_arm_controller_spawner,
     ]
 
     return LaunchDescription(declared_arguments + nodes)
