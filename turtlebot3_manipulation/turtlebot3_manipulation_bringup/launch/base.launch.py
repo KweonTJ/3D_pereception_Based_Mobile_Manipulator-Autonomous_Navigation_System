@@ -86,6 +86,30 @@ def generate_launch_description():
 
     declared_arguments.append(
         DeclareLaunchArgument(
+            'use_eef_usb_camera',
+            default_value='true',
+            description='Attach the end-effector USB camera frames to robot_description.'
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'eef_usb_camera_xyz',
+            default_value='0.0 0.0 0.05',
+            description='End-effector USB camera translation relative to end_effector_link.'
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'eef_usb_camera_rpy',
+            default_value='0.0 0.0 0.0',
+            description='End-effector USB camera rotation relative to end_effector_link.'
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
             'move_to_stay_pose',
             default_value='true',
             description='Move the manipulator to the saved stay pose after the arm controller starts.'
@@ -98,6 +122,9 @@ def generate_launch_description():
     use_fake_hardware = LaunchConfiguration('use_fake_hardware')
     fake_sensor_commands = LaunchConfiguration('fake_sensor_commands')
     use_camera_driver_tf = LaunchConfiguration('use_camera_driver_tf')
+    use_eef_usb_camera = LaunchConfiguration('use_eef_usb_camera')
+    eef_usb_camera_xyz = LaunchConfiguration('eef_usb_camera_xyz')
+    eef_usb_camera_rpy = LaunchConfiguration('eef_usb_camera_rpy')
     move_to_stay_pose = LaunchConfiguration('move_to_stay_pose')
 
     urdf_file = Command(
@@ -126,6 +153,15 @@ def generate_launch_description():
             ' ',
             'use_camera_driver_tf:=',
             use_camera_driver_tf,
+            ' ',
+            'use_eef_usb_camera:=',
+            use_eef_usb_camera,
+            ' ',
+            'eef_usb_camera_xyz:=',
+            eef_usb_camera_xyz,
+            ' ',
+            'eef_usb_camera_rpy:=',
+            eef_usb_camera_rpy,
         ]
     )
 
