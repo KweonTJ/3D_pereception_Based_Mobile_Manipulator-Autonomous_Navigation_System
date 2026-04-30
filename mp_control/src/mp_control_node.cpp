@@ -21,6 +21,7 @@
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -46,6 +47,7 @@ class MpControlNode final : public rclcpp::Node
 public:
   using GripperCommand = control_msgs::action::GripperCommand;
   using GripperGoalHandle = rclcpp_action::ClientGoalHandle<GripperCommand>;
+  using Trigger = std_srvs::srv::Trigger;
 
   MpControlNode()
   : Node("mp_control_node"),
@@ -56,6 +58,7 @@ public:
 
     const auto sensor_qos = rclcpp::SensorDataQoS();
     const auto default_qos = rclcpp::QoS(rclcpp::KeepLast(10));
+    const auto status_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local();
 
     bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
       bbox_topic_, default_qos,
@@ -85,8 +88,9 @@ public:
       });
 
     twist_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(twist_topic_, default_qos);
-    status_pub_ = create_publisher<std_msgs::msg::String>(status_topic_, default_qos);
+    status_pub_ = create_publisher<std_msgs::msg::String>(status_topic_, status_qos);
     gripper_client_ = rclcpp_action::create_client<GripperCommand>(this, gripper_action_name_);
+    servo_start_client_ = create_client<Trigger>("/servo_node/start_servo");
 
     if (auto_start_) {
       startSequence();
@@ -96,6 +100,13 @@ public:
     timer_ = create_wall_timer(
       std::chrono::duration_cast<std::chrono::milliseconds>(period),
       [this]() { update(); });
+
+    RCLCPP_INFO(
+      get_logger(),
+      "mp_control started: bbox=%s depth=%s camera_info=%s twist=%s target_frame=%s eef_frame=%s auto_start_on_bbox=%s",
+      bbox_topic_.c_str(), depth_topic_.c_str(), camera_info_topic_.c_str(),
+      twist_topic_.c_str(), target_frame_.c_str(), end_effector_frame_.c_str(),
+      auto_start_on_bbox_ ? "true" : "false");
 
     publishStatus("ready; publish std_msgs/Bool true to " + start_topic_ + " to start grasping", true);
   }
@@ -137,6 +148,8 @@ private:
     camera_frame_override_ = declare_parameter<std::string>("camera_frame_override", "");
 
     auto_start_ = declare_parameter<bool>("auto_start", false);
+    auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
+    start_servo_on_start_ = declare_parameter<bool>("start_servo_on_start", true);
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
@@ -174,13 +187,21 @@ private:
       return;
     }
 
-    std::lock_guard<std::mutex> lock(data_mutex_);
-    latest_bbox_ = Bbox{
-      static_cast<double>(msg->data[0]),
-      static_cast<double>(msg->data[1]),
-      width,
-      height,
-      now()};
+    bool should_auto_start = false;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      latest_bbox_ = Bbox{
+        static_cast<double>(msg->data[0]),
+        static_cast<double>(msg->data[1]),
+        width,
+        height,
+        now()};
+      should_auto_start = auto_start_on_bbox_ && !active_ && !done_;
+    }
+
+    if (should_auto_start) {
+      startSequence();
+    }
   }
 
   void onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg)
@@ -217,6 +238,9 @@ private:
     if (open_gripper_on_start_) {
       sendGripper(gripper_open_position_);
       open_sent_ = true;
+    }
+    if (start_servo_on_start_) {
+      startMoveItServo();
     }
     publishStatus("grasp sequence started", true);
   }
@@ -429,6 +453,28 @@ private:
     gripper_client_->async_send_goal(goal, options);
   }
 
+  void startMoveItServo()
+  {
+    if (!servo_start_client_->wait_for_service(std::chrono::milliseconds(100))) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "MoveIt Servo start service unavailable: /servo_node/start_servo");
+      return;
+    }
+
+    auto future = servo_start_client_->async_send_request(std::make_shared<Trigger::Request>());
+    const auto result = future.wait_for(std::chrono::seconds(1));
+    if (result != std::future_status::ready) {
+      RCLCPP_WARN(get_logger(), "MoveIt Servo start service call timed out");
+      return;
+    }
+
+    const auto response = future.get();
+    if (!response->success) {
+      RCLCPP_WARN(get_logger(), "MoveIt Servo start request returned false: %s", response->message.c_str());
+    }
+  }
+
   void publishStop()
   {
     geometry_msgs::msg::TwistStamped stop;
@@ -464,6 +510,8 @@ private:
   std::string camera_frame_override_;
 
   bool auto_start_{false};
+  bool auto_start_on_bbox_{false};
+  bool start_servo_on_start_{true};
   bool open_gripper_on_start_{true};
   bool close_gripper_on_arrival_{true};
   double command_rate_hz_{20.0};
@@ -492,6 +540,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
+  rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   tf2_ros::Buffer tf_buffer_;
