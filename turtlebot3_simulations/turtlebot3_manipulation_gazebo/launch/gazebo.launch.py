@@ -184,6 +184,8 @@ def generate_launch_description():
                 'camera/color/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
                 'camera/depth/image_raw@sensor_msgs/msg/Image@gz.msgs.Image',
                 'camera/depth/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
+                'eef_camera/image_raw@sensor_msgs/msg/Image@gz.msgs.Image',
+                'eef_camera/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
             ],
             output='screen',
             condition=IfCondition(start_depth_camera),
