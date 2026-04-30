@@ -51,9 +51,9 @@ def generate_launch_description():
             default_value=PathJoinSubstitution([
                 FindPackageShare("turtlebot3_manipulation_gazebo"),
                 "worlds",
-                "grasp_test.world",
+                "grasp_far_test.world",
             ]),
-            description="Gazebo world containing the red pick object.",
+            description="Gazebo world containing the far red pick object.",
         ),
         DeclareLaunchArgument(
             "gz_args",
