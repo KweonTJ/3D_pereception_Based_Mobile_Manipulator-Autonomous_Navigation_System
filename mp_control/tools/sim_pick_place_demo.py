@@ -13,6 +13,7 @@ import time
 import rclpy
 from builtin_interfaces.msg import Duration
 from control_msgs.action import GripperCommand
+from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -39,19 +40,29 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("bbox", [264.0, 91.0, 112.0, 146.0])
         self.declare_parameter("bbox_topic", "/target/init_bbox")
         self.declare_parameter("trajectory_topic", "/arm_controller/joint_trajectory")
+        self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("marker_topic", "/mp_control/pick_place_markers")
         self.declare_parameter("status_topic", "/mp_control/pick_place_status")
         self.declare_parameter("gripper_action_name", "/gripper_controller/gripper_cmd")
         self.declare_parameter("start_delay_s", 4.0)
-        self.declare_parameter("object_xyz", [0.40, 0.0, 0.115])
-        self.declare_parameter("place_xyz", [0.18, 0.28, 0.115])
+        self.declare_parameter("object_frame", "odom")
+        self.declare_parameter("place_frame", "odom")
+        self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
+        self.declare_parameter("place_xyz", [1.08, 0.28, 0.115])
+        self.declare_parameter("approach_distance_m", 0.90)
+        self.declare_parameter("approach_speed_mps", 0.12)
 
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
+        self.object_frame = str(self.get_parameter("object_frame").value)
+        self.place_frame = str(self.get_parameter("place_frame").value)
         self.object_xyz = [float(v) for v in self.get_parameter("object_xyz").value]
         self.place_xyz = [float(v) for v in self.get_parameter("place_xyz").value]
+        self.status_text = "READY"
 
         self.bbox_pub = self.create_publisher(
             Float32MultiArray, self.get_parameter("bbox_topic").value, 10)
+        self.cmd_vel_pub = self.create_publisher(
+            Twist, self.get_parameter("cmd_vel_topic").value, 10)
         self.traj_pub = self.create_publisher(
             JointTrajectory, self.get_parameter("trajectory_topic").value, 10)
         self.marker_pub = self.create_publisher(
@@ -63,9 +74,17 @@ class SimPickPlaceDemo(Node):
 
     def run(self):
         self._sleep(float(self.get_parameter("start_delay_s").value))
-        self._status("DETECTED: publishing target bbox and object marker")
-        self._publish_bbox(repeats=10)
+        self._status("DETECTED: far object marker published in odom")
         self._publish_markers(attached=False, placed=False)
+        self._sleep(1.5)
+
+        self._status("BASE_APPROACH: driving robot close to object")
+        self._drive_base(
+            float(self.get_parameter("approach_distance_m").value),
+            float(self.get_parameter("approach_speed_mps").value),
+        )
+        self._status("BASE_ALIGNED: object is within manipulator reach; publishing bbox")
+        self._publish_bbox(repeats=10)
 
         self._status("APPROACH: moving arm to pre-grasp pose")
         self._send_gripper(0.019)
@@ -107,6 +126,7 @@ class SimPickPlaceDemo(Node):
             rclpy.spin_once(self, timeout_sec=0.1)
 
     def _status(self, text):
+        self.status_text = text
         msg = String()
         msg.data = text
         self.status_pub.publish(msg)
@@ -119,6 +139,35 @@ class SimPickPlaceDemo(Node):
             self.bbox_pub.publish(msg)
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.1)
+
+    def _drive_base(self, distance_m, speed_mps):
+        speed = abs(speed_mps)
+        if speed < 0.01:
+            speed = 0.10
+        direction = 1.0 if distance_m >= 0.0 else -1.0
+        duration_s = abs(distance_m) / speed
+
+        while self.cmd_vel_pub.get_subscription_count() == 0 and rclpy.ok():
+            self._publish_markers()
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        end = time.monotonic() + duration_s
+        while rclpy.ok() and time.monotonic() < end:
+            msg = Twist()
+            msg.linear.x = direction * speed
+            self.cmd_vel_pub.publish(msg)
+            self._publish_markers()
+            rclpy.spin_once(self, timeout_sec=0.05)
+            time.sleep(0.05)
+        self._stop_base()
+
+    def _stop_base(self):
+        stop = Twist()
+        for _ in range(10):
+            self.cmd_vel_pub.publish(stop)
+            self._publish_markers()
+            rclpy.spin_once(self, timeout_sec=0.03)
+            time.sleep(0.03)
 
     def _send_trajectory(self, points):
         msg = JointTrajectory()
@@ -180,7 +229,7 @@ class SimPickPlaceDemo(Node):
             marker.pose.position.y = 0.0
             marker.pose.position.z = 0.0
         else:
-            marker.header.frame_id = "base_link"
+            marker.header.frame_id = self.place_frame if placed else self.object_frame
             xyz = self.place_xyz if placed else self.object_xyz
             marker.pose.position.x = xyz[0]
             marker.pose.position.y = xyz[1]
@@ -191,7 +240,7 @@ class SimPickPlaceDemo(Node):
     def _place_marker(self):
         marker = Marker()
         marker.header.stamp = self.get_clock().now().to_msg()
-        marker.header.frame_id = "base_link"
+        marker.header.frame_id = self.place_frame
         marker.ns = "pick_place_demo"
         marker.id = 2
         marker.type = Marker.CUBE
@@ -226,12 +275,7 @@ class SimPickPlaceDemo(Node):
         marker.color.g = 1.0
         marker.color.b = 1.0
         marker.color.a = 1.0
-        if attached:
-            marker.text = "PICK: object attached to gripper"
-        elif placed:
-            marker.text = "PLACE: object released"
-        else:
-            marker.text = "DETECTED: target bbox initialized"
+        marker.text = self.status_text
         return marker
 
 
