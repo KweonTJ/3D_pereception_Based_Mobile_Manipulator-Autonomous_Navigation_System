@@ -579,10 +579,29 @@ class SimPickPlaceDemo(Node):
         except TransformException:
             return None
         translation = transform.transform.translation
+        rotation = transform.transform.rotation
+        offset = self._rotate_vector(rotation, [0.08, 0.0, 0.0])
         return [
-            translation.x + 0.08,
-            translation.y,
-            translation.z,
+            translation.x + offset[0],
+            translation.y + offset[1],
+            translation.z + offset[2],
+        ]
+
+    def _rotate_vector(self, quaternion, vector):
+        x = quaternion.x
+        y = quaternion.y
+        z = quaternion.z
+        w = quaternion.w
+        vx, vy, vz = vector
+
+        tx = 2.0 * (y * vz - z * vy)
+        ty = 2.0 * (z * vx - x * vz)
+        tz = 2.0 * (x * vy - y * vx)
+
+        return [
+            vx + w * tx + (y * tz - z * ty),
+            vy + w * ty + (z * tx - x * tz),
+            vz + w * tz + (x * ty - y * tx),
         ]
 
 
