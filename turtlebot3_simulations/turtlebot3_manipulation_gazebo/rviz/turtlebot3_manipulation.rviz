@@ -355,6 +355,18 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /odom
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: PickPlaceMarkers
+      Namespaces:
+        pick_place_demo: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mp_control/pick_place_markers
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:

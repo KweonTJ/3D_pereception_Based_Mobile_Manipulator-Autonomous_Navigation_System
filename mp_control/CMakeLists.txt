@@ -45,6 +45,11 @@ install(TARGETS mp_control_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  tools/sim_pick_place_demo.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 install(DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
 )
