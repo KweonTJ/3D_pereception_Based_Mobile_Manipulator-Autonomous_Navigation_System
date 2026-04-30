@@ -78,10 +78,15 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("return_to_stow", False)
         self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
-        self.declare_parameter("place_xyz", [1.20, 0.20, 0.115])
+        self.declare_parameter("place_xyz", [0.72, -0.14, 0.115])
         self.declare_parameter("approach_distance_m", 1.00)
         self.declare_parameter("approach_speed_mps", 0.12)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
+        self.declare_parameter("sync_gazebo_object", True)
+        self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
+        self.declare_parameter("gazebo_object_entity_name", "grasp_test_cube")
+        self.declare_parameter("gazebo_world_origin_xyz", [-2.0, -0.5, 0.0])
+        self.declare_parameter("gazebo_pose_update_period_s", 0.10)
 
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
         self.eef_bbox = [float(v) for v in self.get_parameter("eef_bbox").value]
@@ -94,6 +99,8 @@ class SimPickPlaceDemo(Node):
             self.get_parameter("publish_demo_joint_states").value)
         self.object_xyz = [float(v) for v in self.get_parameter("object_xyz").value]
         self.place_xyz = [float(v) for v in self.get_parameter("place_xyz").value]
+        self.gazebo_world_origin_xyz = [
+            float(v) for v in self.get_parameter("gazebo_world_origin_xyz").value]
         self.status_text = "READY"
         self.cargo_id = ""
         self.cargo_sequence = int(self.get_parameter("cargo_sequence_start").value)
@@ -103,8 +110,12 @@ class SimPickPlaceDemo(Node):
         self.arm_positions = [0.0, 0.10, 0.02, -0.80]
         self.gripper_position = 0.019
         self.active_trajectory = None
+        self.last_gazebo_pose_update = 0.0
+        self.warned_gazebo_pose_unavailable = False
 
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         self.bbox_pub = self.create_publisher(
             Float32MultiArray, self.get_parameter("bbox_topic").value, 10)
         self.eef_bbox_pub = self.create_publisher(
@@ -130,6 +141,13 @@ class SimPickPlaceDemo(Node):
             String, self.get_parameter("cargo_current_id_topic").value, current_id_qos)
         self.gripper = ActionClient(
             self, GripperCommand, self.get_parameter("gripper_action_name").value)
+        self.gazebo_pose_client = None
+        if bool(self.get_parameter("sync_gazebo_object").value) and SetEntityPose is not None:
+            self.gazebo_pose_client = self.create_client(
+                SetEntityPose, str(self.get_parameter("gazebo_set_pose_service").value))
+        elif bool(self.get_parameter("sync_gazebo_object").value):
+            self.get_logger().warn(
+                "ros_gz_interfaces is not available; Gazebo object pose sync disabled")
 
     def run(self):
         self._sleep(float(self.get_parameter("start_delay_s").value))
