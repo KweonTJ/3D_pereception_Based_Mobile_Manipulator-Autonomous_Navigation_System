@@ -77,7 +77,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("return_to_stow", False)
         self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
-        self.declare_parameter("place_xyz", [0.72, -0.14, 0.115])
+        self.declare_parameter("place_xyz", [0.72, 0.0, 0.115])
         self.declare_parameter("approach_distance_m", 1.00)
         self.declare_parameter("approach_speed_mps", 0.12)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
@@ -185,8 +185,8 @@ class SimPickPlaceDemo(Node):
         self._status("PLACE: lifting and moving to rear place pose")
         self._send_trajectory([
             ([0.0, 0.82, -0.58, -0.35], 1.6),
-            ([-2.65, 0.82, -0.58, -0.35], 4.2),
-            ([-2.65, 1.32, -0.94, -0.23], 6.2),
+            ([-3.141592653589793, 0.82, -0.58, -0.35], 4.2),
+            ([-3.141592653589793, 1.32, -0.94, -0.23], 6.2),
         ])
         self._sleep(6.4)
         self._status("PLACE_REACH: arm fully extended behind robot")
@@ -201,7 +201,7 @@ class SimPickPlaceDemo(Node):
         self._status("DONE: object placed; holding fully extended pose")
         if bool(self.get_parameter("return_to_stow").value):
             self._send_trajectory([
-                ([-2.65, 0.82, -0.58, -0.35], 1.6),
+                ([-3.141592653589793, 0.82, -0.58, -0.35], 1.6),
                 ([0.0, 0.10, 0.02, -0.80], 4.0),
             ])
 

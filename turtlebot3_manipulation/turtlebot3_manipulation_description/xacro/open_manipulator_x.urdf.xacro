@@ -42,7 +42,7 @@ https://github.com/ROBOTIS-GIT/open_manipulator/blob/kinetic-devel/open_manipula
       <child link="${prefix}link2"/>
       <origin xyz="0.012 0.0 0.017" rpy="0 0 0"/>
       <axis xyz="0 0 1"/>
-      <limit velocity="4.8" effort="1" lower="${-pi*0.9}" upper="${pi*0.9}" />
+      <limit velocity="4.8" effort="1" lower="${-pi}" upper="${pi}" />
       <dynamics damping="0.1"/>
     </joint>
 
