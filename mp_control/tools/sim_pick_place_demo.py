@@ -49,6 +49,10 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("marker_topic", "/mp_control/pick_place_markers")
         self.declare_parameter("status_topic", "/mp_control/pick_place_status")
+        self.declare_parameter("cargo_event_topic", "/cargo/events")
+        self.declare_parameter("cargo_current_id_topic", "/cargo/current_id")
+        self.declare_parameter("cargo_id_prefix", "PKG")
+        self.declare_parameter("cargo_sequence_start", 1)
         self.declare_parameter("gripper_action_name", "/gripper_controller/gripper_cmd")
         self.declare_parameter("start_delay_s", 4.0)
         self.declare_parameter("object_frame", "odom")
@@ -76,6 +80,8 @@ class SimPickPlaceDemo(Node):
         self.object_xyz = [float(v) for v in self.get_parameter("object_xyz").value]
         self.place_xyz = [float(v) for v in self.get_parameter("place_xyz").value]
         self.status_text = "READY"
+        self.cargo_id = ""
+        self.cargo_sequence = int(self.get_parameter("cargo_sequence_start").value)
         self.base_x = 0.0
         self.wheel_left = 0.0
         self.wheel_right = 0.0
@@ -98,12 +104,18 @@ class SimPickPlaceDemo(Node):
             MarkerArray, self.get_parameter("marker_topic").value, 10)
         self.status_pub = self.create_publisher(
             String, self.get_parameter("status_topic").value, 10)
+        self.cargo_event_pub = self.create_publisher(
+            String, self.get_parameter("cargo_event_topic").value, 10)
+        self.cargo_current_id_pub = self.create_publisher(
+            String, self.get_parameter("cargo_current_id_topic").value, 1)
         self.gripper = ActionClient(
             self, GripperCommand, self.get_parameter("gripper_action_name").value)
 
     def run(self):
         self._sleep(float(self.get_parameter("start_delay_s").value))
+        self._assign_cargo_id()
         self._status("DETECTED: far object marker published in odom")
+        self._publish_cargo_event("assigned")
         self._publish_markers(attached=False, placed=False)
         self._sleep(1.5)
 
@@ -129,6 +141,7 @@ class SimPickPlaceDemo(Node):
 
         self._status("PICK: closing gripper and attaching object marker")
         self._send_gripper(-0.015)
+        self._publish_cargo_event("picked")
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
 
@@ -144,6 +157,7 @@ class SimPickPlaceDemo(Node):
 
         self._status("RELEASE: opening gripper at place target")
         self._send_gripper(0.019)
+        self._publish_cargo_event("placed")
         self._publish_markers(attached=False, placed=True)
         self._sleep(1.2)
 
@@ -167,6 +181,27 @@ class SimPickPlaceDemo(Node):
         msg.data = text
         self.status_pub.publish(msg)
         self.get_logger().info(text)
+
+    def _assign_cargo_id(self):
+        prefix = str(self.get_parameter("cargo_id_prefix").value)
+        self.cargo_id = "{}-{:06d}".format(prefix, self.cargo_sequence)
+        self.cargo_sequence += 1
+        msg = String()
+        msg.data = self.cargo_id
+        self.cargo_current_id_pub.publish(msg)
+
+    def _publish_cargo_event(self, event):
+        if not self.cargo_id:
+            self._assign_cargo_id()
+        msg = String()
+        stamp = self.get_clock().now().to_msg()
+        msg.data = (
+            '{{"cargo_id":"{}","event":"{}","stamp":{{"sec":{},"nanosec":{}}}}}'
+        ).format(self.cargo_id, event, stamp.sec, stamp.nanosec)
+        self.cargo_event_pub.publish(msg)
+        current = String()
+        current.data = self.cargo_id
+        self.cargo_current_id_pub.publish(current)
 
     def _publish_bbox(self, repeats=1):
         msg = Float32MultiArray()
@@ -354,6 +389,7 @@ class SimPickPlaceDemo(Node):
         markers.markers.append(self._object_marker(attached, placed))
         markers.markers.append(self._place_marker())
         markers.markers.append(self._text_marker(attached, placed))
+        markers.markers.append(self._cargo_id_marker(attached, placed))
         self.marker_pub.publish(markers)
 
     def _object_marker(self, attached, placed):
@@ -425,6 +461,34 @@ class SimPickPlaceDemo(Node):
         marker.color.b = 1.0
         marker.color.a = 1.0
         marker.text = self.status_text
+        return marker
+
+    def _cargo_id_marker(self, attached, placed):
+        marker = Marker()
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.ns = "pick_place_demo"
+        marker.id = 4
+        marker.type = Marker.TEXT_VIEW_FACING
+        marker.action = Marker.ADD
+        if attached:
+            marker.header.frame_id = "end_effector_link"
+            marker.frame_locked = True
+            marker.pose.position.x = 0.08
+            marker.pose.position.y = 0.0
+            marker.pose.position.z = 0.10
+        else:
+            marker.header.frame_id = self.place_frame if placed else self.object_frame
+            xyz = self.place_xyz if placed else self.object_xyz
+            marker.pose.position.x = xyz[0]
+            marker.pose.position.y = xyz[1]
+            marker.pose.position.z = xyz[2] + 0.12
+        marker.pose.orientation.w = 1.0
+        marker.scale.z = 0.05
+        marker.color.r = 1.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+        marker.text = self.cargo_id if self.cargo_id else "UNASSIGNED"
         return marker
 
 
