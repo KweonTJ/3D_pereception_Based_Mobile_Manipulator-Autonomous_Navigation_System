@@ -14,6 +14,7 @@ def generate_launch_description():
     gz_args = LaunchConfiguration("gz_args")
     world = LaunchConfiguration("world")
     demo_start_delay = LaunchConfiguration("demo_start_delay")
+    return_to_stow = LaunchConfiguration("return_to_stow")
 
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -42,6 +43,7 @@ def generate_launch_description():
         parameters=[
             {"use_sim_time": True},
             {"start_delay_s": demo_start_delay},
+            {"return_to_stow": return_to_stow},
         ],
     )
 
@@ -69,6 +71,11 @@ def generate_launch_description():
             "demo_start_delay",
             default_value="10.0",
             description="Seconds to wait before publishing bbox and executing the demo trajectory.",
+        ),
+        DeclareLaunchArgument(
+            "return_to_stow",
+            default_value="false",
+            description="Return the arm to the stow pose after the demo. False keeps the final extended pose visible.",
         ),
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
