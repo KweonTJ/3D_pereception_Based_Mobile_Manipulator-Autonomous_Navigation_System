@@ -16,6 +16,8 @@ mp_control_node:
     camera_frame_override: ""
 
     auto_start: false
+    auto_start_on_bbox: true
+    start_servo_on_start: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
 
