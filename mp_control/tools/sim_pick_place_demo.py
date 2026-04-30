@@ -19,6 +19,7 @@ from rclpy.action import ActionClient
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy._rclpy_pybind11 import RCLError
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
 from tf2_ros import TransformBroadcaster
@@ -41,6 +42,7 @@ class SimPickPlaceDemo(Node):
         super().__init__("sim_pick_place_demo")
         self.declare_parameter("bbox", [264.0, 91.0, 112.0, 146.0])
         self.declare_parameter("bbox_topic", "/target/init_bbox")
+        self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("trajectory_topic", "/arm_controller/joint_trajectory")
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("marker_topic", "/mp_control/pick_place_markers")
@@ -52,6 +54,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("odom_frame", "odom")
         self.declare_parameter("base_frame", "base_footprint")
         self.declare_parameter("publish_demo_base_tf", True)
+        self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
         self.declare_parameter("place_xyz", [1.08, 0.28, 0.115])
         self.declare_parameter("approach_distance_m", 0.90)
@@ -63,14 +66,23 @@ class SimPickPlaceDemo(Node):
         self.odom_frame = str(self.get_parameter("odom_frame").value)
         self.base_frame = str(self.get_parameter("base_frame").value)
         self.publish_demo_base_tf = bool(self.get_parameter("publish_demo_base_tf").value)
+        self.publish_demo_joint_states = bool(
+            self.get_parameter("publish_demo_joint_states").value)
         self.object_xyz = [float(v) for v in self.get_parameter("object_xyz").value]
         self.place_xyz = [float(v) for v in self.get_parameter("place_xyz").value]
         self.status_text = "READY"
         self.base_x = 0.0
+        self.wheel_left = 0.0
+        self.wheel_right = 0.0
+        self.arm_positions = [0.0, 0.10, 0.02, -0.80]
+        self.gripper_position = 0.019
+        self.active_trajectory = None
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.bbox_pub = self.create_publisher(
             Float32MultiArray, self.get_parameter("bbox_topic").value, 10)
+        self.joint_state_pub = self.create_publisher(
+            JointState, self.get_parameter("joint_state_topic").value, 10)
         self.cmd_vel_pub = self.create_publisher(
             Twist, self.get_parameter("cmd_vel_topic").value, 10)
         self.traj_pub = self.create_publisher(
@@ -132,7 +144,7 @@ class SimPickPlaceDemo(Node):
     def _sleep(self, seconds):
         end = time.monotonic() + seconds
         while rclpy.ok() and time.monotonic() < end:
-            self._publish_base_tf()
+            self._publish_demo_state()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.1)
 
@@ -164,7 +176,7 @@ class SimPickPlaceDemo(Node):
             and rclpy.ok()
             and time.monotonic() < wait_until
         ):
-            self._publish_base_tf()
+            self._publish_demo_state()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.1)
         if self.cmd_vel_pub.get_subscription_count() == 0:
@@ -178,10 +190,12 @@ class SimPickPlaceDemo(Node):
             dt = now - last
             last = now
             self.base_x += direction * speed * dt
+            self.wheel_left += direction * speed * dt / 0.033
+            self.wheel_right += direction * speed * dt / 0.033
             msg = Twist()
             msg.linear.x = direction * speed
             self.cmd_vel_pub.publish(msg)
-            self._publish_base_tf()
+            self._publish_demo_state()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.05)
@@ -191,10 +205,14 @@ class SimPickPlaceDemo(Node):
         stop = Twist()
         for _ in range(10):
             self.cmd_vel_pub.publish(stop)
-            self._publish_base_tf()
+            self._publish_demo_state()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.03)
             time.sleep(0.03)
+
+    def _publish_demo_state(self):
+        self._publish_base_tf()
+        self._publish_demo_joint_states()
 
     def _publish_base_tf(self):
         if not self.publish_demo_base_tf:
@@ -209,6 +227,62 @@ class SimPickPlaceDemo(Node):
         transform.transform.rotation.w = 1.0
         self.tf_broadcaster.sendTransform(transform)
 
+    def _publish_demo_joint_states(self):
+        if not self.publish_demo_joint_states:
+            return
+        self._update_demo_trajectory()
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "base_link"
+        msg.name = [
+            "wheel_right_joint",
+            "joint2",
+            "wheel_left_joint",
+            "joint1",
+            "joint4",
+            "gripper_left_joint",
+            "gripper_right_joint",
+            "joint3",
+        ]
+        msg.position = [
+            self.wheel_right,
+            self.arm_positions[1],
+            self.wheel_left,
+            self.arm_positions[0],
+            self.arm_positions[3],
+            self.gripper_position,
+            self.gripper_position,
+            self.arm_positions[2],
+        ]
+        self.joint_state_pub.publish(msg)
+
+    def _update_demo_trajectory(self):
+        if self.active_trajectory is None:
+            return
+        elapsed = time.monotonic() - self.active_trajectory["start_time"]
+        prev_t = 0.0
+        prev_positions = self.active_trajectory["start_positions"]
+        for positions, target_t in self.active_trajectory["points"]:
+            if elapsed <= target_t:
+                span = max(target_t - prev_t, 0.001)
+                ratio = min(max((elapsed - prev_t) / span, 0.0), 1.0)
+                self.arm_positions = [
+                    start + (end - start) * ratio
+                    for start, end in zip(prev_positions, positions)
+                ]
+                return
+            prev_t = target_t
+            prev_positions = positions
+        self.arm_positions = list(self.active_trajectory["points"][-1][0])
+        self.active_trajectory = None
+
+    def _start_demo_trajectory(self, points):
+        self.active_trajectory = {
+            "start_time": time.monotonic(),
+            "start_positions": list(self.arm_positions),
+            "points": [(list(positions), float(t)) for positions, t in points],
+        }
+
     def _send_trajectory(self, points):
         msg = JointTrajectory()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -219,11 +293,23 @@ class SimPickPlaceDemo(Node):
             point.time_from_start = duration(float(t))
             msg.points.append(point)
 
-        while self.traj_pub.get_subscription_count() == 0 and rclpy.ok():
+        wait_until = time.monotonic() + 2.0
+        while (
+            self.traj_pub.get_subscription_count() == 0
+            and rclpy.ok()
+            and time.monotonic() < wait_until
+        ):
+            self._publish_demo_state()
             rclpy.spin_once(self, timeout_sec=0.1)
-        self.traj_pub.publish(msg)
+        if self.traj_pub.get_subscription_count() > 0:
+            self.traj_pub.publish(msg)
+        else:
+            self.get_logger().warn(
+                "arm trajectory subscriber is not available; using RViz demo joint states")
+        self._start_demo_trajectory(points)
 
     def _send_gripper(self, position):
+        self.gripper_position = float(position)
         if not self.gripper.wait_for_server(timeout_sec=1.0):
             self.get_logger().warn("gripper action server is not available")
             return
@@ -234,7 +320,7 @@ class SimPickPlaceDemo(Node):
         self.gripper.send_goal_async(goal)
 
     def _publish_markers(self, attached=None, placed=None):
-        self._publish_base_tf()
+        self._publish_demo_state()
         if attached is not None:
             self.attached = attached
         if placed is not None:
