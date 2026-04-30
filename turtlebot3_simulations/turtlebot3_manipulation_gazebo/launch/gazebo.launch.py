@@ -55,6 +55,7 @@ def generate_launch_description():
     use_sim = LaunchConfiguration('use_sim')
 
     world = LaunchConfiguration('world')
+    gz_args = LaunchConfiguration('gz_args')
 
     pose = {'x': LaunchConfiguration('x_pose', default='-2.00'),
             'y': LaunchConfiguration('y_pose', default='-0.50'),
@@ -105,6 +106,11 @@ def generate_launch_description():
             'world',
             default_value='empty.sdf',
             description='Ignition Gazebo 6 world file or resource name'),
+
+        DeclareLaunchArgument(
+            'gz_args',
+            default_value=['-r ', world],
+            description='Arguments passed to Gazebo Sim'),
 
         DeclareLaunchArgument(
             'x_pose',
@@ -158,7 +164,7 @@ def generate_launch_description():
                 ]
             ),
             launch_arguments={
-                'gz_args': ['-r ', world],
+                'gz_args': gz_args,
                 'gz_version': '6',
             }.items(),
         ),

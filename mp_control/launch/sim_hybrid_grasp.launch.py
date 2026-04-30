@@ -10,6 +10,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     world = LaunchConfiguration("world")
+    gz_args = LaunchConfiguration("gz_args")
     start_rviz = LaunchConfiguration("start_rviz")
     start_depth_camera = LaunchConfiguration("start_depth_camera")
     hybrid_config_file = LaunchConfiguration("hybrid_config_file")
@@ -33,6 +34,7 @@ def generate_launch_description():
             "start_depth_camera": start_depth_camera,
             "use_sim": "true",
             "world": world,
+            "gz_args": gz_args,
             "x_pose": "-2.00",
             "y_pose": "-0.50",
             "z_pose": "0.01",
@@ -70,6 +72,11 @@ def generate_launch_description():
                 "grasp_test.world",
             ]),
             description="Gazebo world containing a simple grasp target.",
+        ),
+        DeclareLaunchArgument(
+            "gz_args",
+            default_value=["-r --headless-rendering ", world],
+            description="Arguments passed to Gazebo Sim. Use '-r -s --headless-rendering <world>' for server-only tests.",
         ),
         DeclareLaunchArgument(
             "start_rviz",
