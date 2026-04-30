@@ -121,6 +121,12 @@ public:
   }
 
 private:
+  enum class GraspStage
+  {
+    DEPTH_APPROACH,
+    EEF_REFINE
+  };
+
   struct Bbox
   {
     double x{0.0};
@@ -669,8 +675,10 @@ private:
 
   std::string bbox_topic_;
   std::string fallback_bbox_topic_;
+  std::string eef_bbox_topic_;
   std::string depth_topic_;
   std::string camera_info_topic_;
+  std::string eef_camera_info_topic_;
   std::string twist_topic_;
   std::string start_topic_;
   std::string cancel_topic_;
@@ -679,12 +687,14 @@ private:
   std::string target_frame_;
   std::string end_effector_frame_;
   std::string camera_frame_override_;
+  std::string eef_camera_frame_override_;
 
   bool auto_start_{false};
   bool auto_start_on_bbox_{false};
   bool start_servo_on_start_{true};
   bool open_gripper_on_start_{true};
   bool close_gripper_on_arrival_{true};
+  bool use_eef_refinement_{true};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -698,14 +708,23 @@ private:
   double grasp_offset_x_{0.0};
   double grasp_offset_y_{0.0};
   double grasp_offset_z_{0.0};
+  double eef_refinement_switch_distance_m_{0.12};
+  double eef_final_depth_m_{0.08};
+  double eef_center_tolerance_px_{18.0};
+  double eef_depth_tolerance_m_{0.018};
+  double eef_refine_lateral_gain_{0.8};
+  double eef_refine_depth_gain_{0.5};
+  double eef_refine_max_linear_speed_{0.012};
   double gripper_open_position_{0.025};
   double gripper_close_position_{-0.015};
   double gripper_max_effort_{-1.0};
 
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr bbox_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr init_bbox_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr eef_bbox_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr eef_camera_info_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
@@ -719,13 +738,16 @@ private:
 
   std::mutex data_mutex_;
   std::optional<Bbox> latest_bbox_;
+  std::optional<Bbox> latest_eef_bbox_;
   std::optional<CameraInfo> latest_camera_info_;
+  std::optional<CameraInfo> latest_eef_camera_info_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
 
   bool active_{false};
   bool done_{false};
   bool open_sent_{false};
   bool close_sent_{false};
+  GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
   rclcpp::Time last_status_stamp_;
 };
