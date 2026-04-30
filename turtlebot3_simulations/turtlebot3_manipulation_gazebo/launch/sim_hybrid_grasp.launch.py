@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
+from launch.actions import TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
@@ -8,6 +9,62 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    world = LaunchConfiguration("world")
+    gz_args = LaunchConfiguration("gz_args")
+    start_rviz = LaunchConfiguration("start_rviz")
+    start_depth_camera = LaunchConfiguration("start_depth_camera")
+    hybrid_config_file = LaunchConfiguration("hybrid_config_file")
+    eef_hybrid_config_file = LaunchConfiguration("eef_hybrid_config_file")
+    mp_control_config_file = LaunchConfiguration("mp_control_config_file")
+    start_tracker = LaunchConfiguration("start_tracker")
+    start_eef_tracker = LaunchConfiguration("start_eef_tracker")
+    start_servo = LaunchConfiguration("start_servo")
+    start_mp_control = LaunchConfiguration("start_mp_control")
+    control_start_delay = LaunchConfiguration("control_start_delay")
+
+    gazebo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("turtlebot3_manipulation_gazebo"),
+                "launch",
+                "gazebo.launch.py",
+            ])
+        ]),
+        launch_arguments={
+            "start_rviz": start_rviz,
+            "start_depth_camera": start_depth_camera,
+            "use_sim": "true",
+            "world": world,
+            "gz_args": gz_args,
+            "x_pose": "-2.00",
+            "y_pose": "-0.50",
+            "z_pose": "0.01",
+            "roll": "0.00",
+            "pitch": "0.00",
+            "yaw": "0.00",
+        }.items(),
+    )
+
+    grasp_stack_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("mp_control"),
+                "launch",
+                "hybrid_grasp.launch.py",
+            ])
+        ]),
+        launch_arguments={
+            "use_sim": "true",
+            "hybrid_config_file": hybrid_config_file,
+            "eef_hybrid_config_file": eef_hybrid_config_file,
+            "mp_control_config_file": mp_control_config_file,
+            "start_tracker": start_tracker,
+            "start_eef_tracker": start_eef_tracker,
+            "start_servo": start_servo,
+            "start_mp_control": start_mp_control,
+        }.items(),
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument(
             "world",
@@ -20,8 +77,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "gz_args",
-            default_value=["-r --headless-rendering ", LaunchConfiguration("world")],
-            description="Arguments passed to Gazebo Sim.",
+            default_value=["-r --headless-rendering ", world],
+            description="Arguments passed to Gazebo Sim. Use '-r -s --headless-rendering <world>' for server-only tests.",
         ),
         DeclareLaunchArgument(
             "start_rviz",
@@ -85,27 +142,9 @@ def generate_launch_description():
             default_value="6.0",
             description="Seconds to wait before starting Servo, trackers, and mp_control.",
         ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                PathJoinSubstitution([
-                    FindPackageShare("turtlebot3_manipulation_gazebo"),
-                    "launch",
-                    "sim_hybrid_grasp.launch.py",
-                ])
-            ]),
-            launch_arguments={
-                "world": LaunchConfiguration("world"),
-                "gz_args": LaunchConfiguration("gz_args"),
-                "start_rviz": LaunchConfiguration("start_rviz"),
-                "start_depth_camera": LaunchConfiguration("start_depth_camera"),
-                "hybrid_config_file": LaunchConfiguration("hybrid_config_file"),
-                "eef_hybrid_config_file": LaunchConfiguration("eef_hybrid_config_file"),
-                "mp_control_config_file": LaunchConfiguration("mp_control_config_file"),
-                "start_tracker": LaunchConfiguration("start_tracker"),
-                "start_eef_tracker": LaunchConfiguration("start_eef_tracker"),
-                "start_servo": LaunchConfiguration("start_servo"),
-                "start_mp_control": LaunchConfiguration("start_mp_control"),
-                "control_start_delay": LaunchConfiguration("control_start_delay"),
-            }.items(),
+        gazebo_launch,
+        TimerAction(
+            period=control_start_delay,
+            actions=[grasp_stack_launch],
         ),
     ])
