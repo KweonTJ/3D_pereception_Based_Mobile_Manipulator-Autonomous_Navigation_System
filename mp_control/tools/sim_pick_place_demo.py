@@ -55,6 +55,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("base_frame", "base_footprint")
         self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("publish_demo_joint_states", True)
+        self.declare_parameter("return_to_stow", False)
         self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
         self.declare_parameter("place_xyz", [1.20, 0.20, 0.115])
         self.declare_parameter("approach_distance_m", 1.00)
@@ -139,11 +140,12 @@ class SimPickPlaceDemo(Node):
         self._publish_markers(attached=False, placed=True)
         self._sleep(1.2)
 
-        self._status("DONE: pick-and-place RViz demo complete")
-        self._send_trajectory([
-            ([0.78, 0.82, -0.58, -0.35], 1.6),
-            ([0.0, 0.10, 0.02, -0.80], 3.2),
-        ])
+        self._status("DONE: object placed; holding fully extended pose")
+        if bool(self.get_parameter("return_to_stow").value):
+            self._send_trajectory([
+                ([0.78, 0.82, -0.58, -0.35], 1.6),
+                ([0.0, 0.10, 0.02, -0.80], 3.2),
+            ])
 
     def _sleep(self, seconds):
         end = time.monotonic() + seconds
