@@ -27,6 +27,7 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
 
   const auto sensor_qos = rclcpp::SensorDataQoS();
   const auto default_qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  const auto status_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local();
 
   image_sub_ = create_subscription<sensor_msgs::msg::Image>(
     image_topic_, sensor_qos,
@@ -60,13 +61,20 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
     debug_image_pub_ = create_publisher<sensor_msgs::msg::Image>(debug_image_topic_, default_qos);
   }
 
-  status_pub_ = create_publisher<std_msgs::msg::String>(status_topic_, default_qos);
+  status_pub_ = create_publisher<std_msgs::msg::String>(status_topic_, status_qos);
 
   last_track_stamp_ = now();
   last_status_stamp_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
 
   watchdog_timer_ = create_wall_timer(
     std::chrono::milliseconds(100), [this]() { watchdog(); });
+
+  RCLCPP_INFO(
+    get_logger(),
+    "hybrid_csrt_ibvs started: image=%s depth=%s camera_info=%s init_bbox=%s tracked_bbox=%s status=%s cmd_vel=%s",
+    image_topic_.c_str(), depth_topic_.c_str(), camera_info_topic_.c_str(),
+    init_bbox_topic_.c_str(), tracked_bbox_topic_.c_str(), status_topic_.c_str(),
+    enable_cmd_vel_ ? cmd_vel_topic_.c_str() : "disabled");
 
   publishStatus("ready; publish bbox [x, y, w, h] to " + init_bbox_topic_, true);
 }
