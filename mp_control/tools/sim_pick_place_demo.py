@@ -13,6 +13,7 @@ import time
 import rclpy
 from builtin_interfaces.msg import Duration
 from control_msgs.action import GripperCommand
+from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient
 from rclpy.executors import ExternalShutdownException
@@ -20,6 +21,7 @@ from rclpy.node import Node
 from rclpy._rclpy_pybind11 import RCLError
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
+from tf2_ros import TransformBroadcaster
 from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 from visualization_msgs.msg import Marker
@@ -47,6 +49,9 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("start_delay_s", 4.0)
         self.declare_parameter("object_frame", "odom")
         self.declare_parameter("place_frame", "odom")
+        self.declare_parameter("odom_frame", "odom")
+        self.declare_parameter("base_frame", "base_footprint")
+        self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
         self.declare_parameter("place_xyz", [1.08, 0.28, 0.115])
         self.declare_parameter("approach_distance_m", 0.90)
@@ -55,10 +60,15 @@ class SimPickPlaceDemo(Node):
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
         self.object_frame = str(self.get_parameter("object_frame").value)
         self.place_frame = str(self.get_parameter("place_frame").value)
+        self.odom_frame = str(self.get_parameter("odom_frame").value)
+        self.base_frame = str(self.get_parameter("base_frame").value)
+        self.publish_demo_base_tf = bool(self.get_parameter("publish_demo_base_tf").value)
         self.object_xyz = [float(v) for v in self.get_parameter("object_xyz").value]
         self.place_xyz = [float(v) for v in self.get_parameter("place_xyz").value]
         self.status_text = "READY"
+        self.base_x = 0.0
 
+        self.tf_broadcaster = TransformBroadcaster(self)
         self.bbox_pub = self.create_publisher(
             Float32MultiArray, self.get_parameter("bbox_topic").value, 10)
         self.cmd_vel_pub = self.create_publisher(
@@ -122,6 +132,7 @@ class SimPickPlaceDemo(Node):
     def _sleep(self, seconds):
         end = time.monotonic() + seconds
         while rclpy.ok() and time.monotonic() < end:
+            self._publish_base_tf()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.1)
 
@@ -147,15 +158,30 @@ class SimPickPlaceDemo(Node):
         direction = 1.0 if distance_m >= 0.0 else -1.0
         duration_s = abs(distance_m) / speed
 
-        while self.cmd_vel_pub.get_subscription_count() == 0 and rclpy.ok():
+        wait_until = time.monotonic() + 1.0
+        while (
+            self.cmd_vel_pub.get_subscription_count() == 0
+            and rclpy.ok()
+            and time.monotonic() < wait_until
+        ):
+            self._publish_base_tf()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.1)
+        if self.cmd_vel_pub.get_subscription_count() == 0:
+            self.get_logger().warn(
+                "no /cmd_vel subscriber; publishing RViz demo TF for base approach")
 
         end = time.monotonic() + duration_s
+        last = time.monotonic()
         while rclpy.ok() and time.monotonic() < end:
+            now = time.monotonic()
+            dt = now - last
+            last = now
+            self.base_x += direction * speed * dt
             msg = Twist()
             msg.linear.x = direction * speed
             self.cmd_vel_pub.publish(msg)
+            self._publish_base_tf()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.05)
@@ -165,9 +191,23 @@ class SimPickPlaceDemo(Node):
         stop = Twist()
         for _ in range(10):
             self.cmd_vel_pub.publish(stop)
+            self._publish_base_tf()
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.03)
             time.sleep(0.03)
+
+    def _publish_base_tf(self):
+        if not self.publish_demo_base_tf:
+            return
+        transform = TransformStamped()
+        transform.header.stamp = self.get_clock().now().to_msg()
+        transform.header.frame_id = self.odom_frame
+        transform.child_frame_id = self.base_frame
+        transform.transform.translation.x = self.base_x
+        transform.transform.translation.y = 0.0
+        transform.transform.translation.z = 0.0
+        transform.transform.rotation.w = 1.0
+        self.tf_broadcaster.sendTransform(transform)
 
     def _send_trajectory(self, points):
         msg = JointTrajectory()
@@ -194,6 +234,7 @@ class SimPickPlaceDemo(Node):
         self.gripper.send_goal_async(goal)
 
     def _publish_markers(self, attached=None, placed=None):
+        self._publish_base_tf()
         if attached is not None:
             self.attached = attached
         if placed is not None:
