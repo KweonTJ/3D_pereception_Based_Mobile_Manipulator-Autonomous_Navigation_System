@@ -67,12 +67,18 @@ public:
     init_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
       fallback_bbox_topic_, default_qos,
       [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onBbox(msg); });
+    eef_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
+      eef_bbox_topic_, default_qos,
+      [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onEefBbox(msg); });
     depth_sub_ = create_subscription<sensor_msgs::msg::Image>(
       depth_topic_, sensor_qos,
       [this](const sensor_msgs::msg::Image::ConstSharedPtr msg) { onDepth(msg); });
     camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
       camera_info_topic_, sensor_qos,
       [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onCameraInfo(msg); });
+    eef_camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
+      eef_camera_info_topic_, sensor_qos,
+      [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onEefCameraInfo(msg); });
     start_sub_ = create_subscription<std_msgs::msg::Bool>(
       start_topic_, default_qos,
       [this](const std_msgs::msg::Bool::ConstSharedPtr msg) {
@@ -104,10 +110,12 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "mp_control started: bbox=%s depth=%s camera_info=%s twist=%s target_frame=%s eef_frame=%s auto_start_on_bbox=%s",
+      "mp_control started: bbox=%s depth=%s camera_info=%s eef_bbox=%s eef_camera_info=%s twist=%s target_frame=%s eef_frame=%s auto_start_on_bbox=%s eef_refinement=%s",
       bbox_topic_.c_str(), depth_topic_.c_str(), camera_info_topic_.c_str(),
-      twist_topic_.c_str(), target_frame_.c_str(), end_effector_frame_.c_str(),
-      auto_start_on_bbox_ ? "true" : "false");
+      eef_bbox_topic_.c_str(), eef_camera_info_topic_.c_str(), twist_topic_.c_str(),
+      target_frame_.c_str(), end_effector_frame_.c_str(),
+      auto_start_on_bbox_ ? "true" : "false",
+      use_eef_refinement_ ? "true" : "false");
 
     publishStatus("ready; publish std_msgs/Bool true to " + start_topic_ + " to start grasping", true);
   }
@@ -137,8 +145,10 @@ private:
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
     fallback_bbox_topic_ = declare_parameter<std::string>("fallback_bbox_topic", "/target/init_bbox");
+    eef_bbox_topic_ = declare_parameter<std::string>("eef_bbox_topic", "/target/eef_tracked_bbox");
     depth_topic_ = declare_parameter<std::string>("depth_topic", "/camera/depth/image_raw");
     camera_info_topic_ = declare_parameter<std::string>("camera_info_topic", "/camera/color/camera_info");
+    eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
     twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
     start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
@@ -147,12 +157,15 @@ private:
     target_frame_ = declare_parameter<std::string>("target_frame", "base_link");
     end_effector_frame_ = declare_parameter<std::string>("end_effector_frame", "end_effector_link");
     camera_frame_override_ = declare_parameter<std::string>("camera_frame_override", "");
+    eef_camera_frame_override_ =
+      declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
 
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
     start_servo_on_start_ = declare_parameter<bool>("start_servo_on_start", true);
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
+    use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -166,6 +179,13 @@ private:
     grasp_offset_x_ = declare_parameter<double>("grasp_offset_x", 0.0);
     grasp_offset_y_ = declare_parameter<double>("grasp_offset_y", 0.0);
     grasp_offset_z_ = declare_parameter<double>("grasp_offset_z", 0.0);
+    eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
+    eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
+    eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
+    eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
+    eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
+    eef_refine_depth_gain_ = declare_parameter<double>("eef_refine_depth_gain", 0.5);
+    eef_refine_max_linear_speed_ = declare_parameter<double>("eef_refine_max_linear_speed", 0.012);
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
@@ -175,6 +195,11 @@ private:
     position_tolerance_m_ = std::max(0.005, position_tolerance_m_);
     close_after_stable_cycles_ = std::max(1, close_after_stable_cycles_);
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
+    eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
+    eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
+    eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
+    eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
+    eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
   }
 
   void onBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
@@ -211,6 +236,26 @@ private:
     latest_depth_ = msg;
   }
 
+  void onEefBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
+  {
+    if (msg->data.size() < 4) {
+      return;
+    }
+    const double width = msg->data[2];
+    const double height = msg->data[3];
+    if (width <= 1.0 || height <= 1.0) {
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_eef_bbox_ = Bbox{
+      static_cast<double>(msg->data[0]),
+      static_cast<double>(msg->data[1]),
+      width,
+      height,
+      now()};
+  }
+
   void onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
   {
     CameraInfo info;
@@ -229,6 +274,24 @@ private:
     latest_camera_info_ = info;
   }
 
+  void onEefCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
+  {
+    CameraInfo info;
+    info.fx = msg->k[0];
+    info.fy = msg->k[4];
+    info.cx = msg->k[2];
+    info.cy = msg->k[5];
+    info.width = msg->width;
+    info.height = msg->height;
+    info.frame_id = msg->header.frame_id;
+    if (info.fx <= 1.0 || info.fy <= 1.0) {
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_eef_camera_info_ = info;
+  }
+
   void startSequence()
   {
     active_ = true;
@@ -236,6 +299,7 @@ private:
     close_sent_ = false;
     open_sent_ = false;
     stable_cycles_ = 0;
+    stage_ = GraspStage::DEPTH_APPROACH;
     if (open_gripper_on_start_) {
       sendGripper(gripper_open_position_);
       open_sent_ = true;
@@ -251,6 +315,7 @@ private:
     active_ = false;
     done_ = false;
     stable_cycles_ = 0;
+    stage_ = GraspStage::DEPTH_APPROACH;
     publishStop();
     publishStatus(reason, true);
   }
@@ -278,6 +343,12 @@ private:
     }
 
     const auto & object = *maybe_object;
+
+    if (stage_ == GraspStage::EEF_REFINE) {
+      updateEefRefinement(object);
+      return;
+    }
+
     const double goal_x = object.point.x + grasp_offset_x_;
     const double goal_y = object.point.y + grasp_offset_y_;
     const double goal_z = object.point.z + grasp_offset_z_;
@@ -290,6 +361,14 @@ private:
     const double err_y = goal_y - eef_y;
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
+
+    if (use_eef_refinement_ && err_norm <= eef_refinement_switch_distance_m_) {
+      stage_ = GraspStage::EEF_REFINE;
+      stable_cycles_ = 0;
+      publishStatus("switching to end-effector camera refinement", true);
+      updateEefRefinement(object);
+      return;
+    }
 
     if (err_norm <= position_tolerance_m_) {
       stable_cycles_ += 1;
@@ -320,6 +399,97 @@ private:
     std::ostringstream status;
     status << "approach err=(" << err_x << ", " << err_y << ", " << err_z
            << ") norm=" << err_norm;
+    publishStatus(status.str());
+  }
+
+  void updateEefRefinement(const geometry_msgs::msg::PointStamped & object_in_target)
+  {
+    Bbox bbox;
+    CameraInfo info;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_eef_bbox_ || !latest_eef_camera_info_) {
+        publishStop();
+        publishStatus("waiting for end-effector camera bbox or camera info");
+        return;
+      }
+      bbox = *latest_eef_bbox_;
+      info = *latest_eef_camera_info_;
+    }
+
+    if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
+      publishStop();
+      publishStatus("waiting for fresh end-effector camera bbox");
+      return;
+    }
+
+    const std::string eef_camera_frame =
+      eef_camera_frame_override_.empty() ? info.frame_id : eef_camera_frame_override_;
+
+    geometry_msgs::msg::PointStamped object_latest = object_in_target;
+    object_latest.header.stamp = rclcpp::Time(0, 0, get_clock()->get_clock_type()).to_msg();
+
+    geometry_msgs::msg::PointStamped object_in_eef_camera;
+    try {
+      object_in_eef_camera = tf_buffer_.transform(object_latest, eef_camera_frame);
+    } catch (const tf2::TransformException & ex) {
+      publishStop();
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "end-effector camera refinement TF unavailable: %s", ex.what());
+      return;
+    }
+
+    const double u = bbox.x + 0.5 * bbox.width;
+    const double v = bbox.y + 0.5 * bbox.height;
+    const double err_u_px = u - info.cx;
+    const double err_v_px = v - info.cy;
+    const double z_m = std::max(eef_final_depth_m_, object_in_eef_camera.point.z);
+    const double lateral_m = err_u_px * z_m / info.fx;
+    const double vertical_m = err_v_px * z_m / info.fy;
+    const double depth_error_m = object_in_eef_camera.point.z - eef_final_depth_m_;
+
+    const bool centered =
+      std::abs(err_u_px) <= eef_center_tolerance_px_ &&
+      std::abs(err_v_px) <= eef_center_tolerance_px_;
+    const bool at_depth = std::abs(depth_error_m) <= eef_depth_tolerance_m_;
+
+    if (centered && at_depth) {
+      stable_cycles_ += 1;
+      publishStop();
+      if (stable_cycles_ >= close_after_stable_cycles_) {
+        if (close_gripper_on_arrival_ && !close_sent_) {
+          sendGripper(gripper_close_position_);
+          close_sent_ = true;
+        }
+        done_ = true;
+        active_ = false;
+        publishStatus("eef camera refined grasp reached; gripper close command sent", true);
+      } else {
+        publishStatus("eef camera aligned; holding before closing");
+      }
+      return;
+    }
+
+    stable_cycles_ = 0;
+    geometry_msgs::msg::TwistStamped cmd;
+    cmd.header.stamp = now();
+    cmd.header.frame_id = eef_camera_frame;
+    cmd.twist.linear.x = clampValue(
+      eef_refine_lateral_gain_ * lateral_m,
+      -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
+    cmd.twist.linear.y = clampValue(
+      eef_refine_lateral_gain_ * vertical_m,
+      -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
+    cmd.twist.linear.z = clampValue(
+      eef_refine_depth_gain_ * depth_error_m,
+      -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
+    twist_pub_->publish(cmd);
+
+    std::ostringstream status;
+    status << "eef refine pixel_err=(" << err_u_px << ", " << err_v_px
+           << ") depth_err=" << depth_error_m
+           << " cmd_frame=" << eef_camera_frame;
     publishStatus(status.str());
   }
 
