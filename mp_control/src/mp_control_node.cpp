@@ -216,6 +216,7 @@ private:
     eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
+    cargo_sequence_next_ = std::max(1, cargo_sequence_next_);
   }
 
   void onBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
@@ -707,12 +708,13 @@ private:
     }
 
     const auto stamp = now();
+    const auto stamp_ns = stamp.nanoseconds();
     std_msgs::msg::String msg;
     std::ostringstream event_json;
     event_json << "{\"cargo_id\":\"" << current_cargo_id_
                << "\",\"event\":\"" << event
-               << "\",\"stamp\":{\"sec\":" << stamp.seconds()
-               << ",\"nanosec\":" << stamp.nanoseconds() % 1000000000LL
+               << "\",\"stamp\":{\"sec\":" << stamp_ns / 1000000000LL
+               << ",\"nanosec\":" << stamp_ns % 1000000000LL
                << "}}";
     msg.data = event_json.str();
     cargo_event_pub_->publish(msg);
