@@ -14,7 +14,9 @@ import rclpy
 from builtin_interfaces.msg import Duration
 from control_msgs.action import GripperCommand
 from rclpy.action import ActionClient
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy._rclpy_pybind11 import RCLError
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
 from trajectory_msgs.msg import JointTrajectory
@@ -241,11 +243,15 @@ def main():
         while rclpy.ok():
             node._publish_markers()
             rclpy.spin_once(node, timeout_sec=0.2)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException, RCLError):
         pass
     finally:
-        node.destroy_node()
-        rclpy.shutdown()
+        try:
+            node.destroy_node()
+        except RCLError:
+            pass
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
