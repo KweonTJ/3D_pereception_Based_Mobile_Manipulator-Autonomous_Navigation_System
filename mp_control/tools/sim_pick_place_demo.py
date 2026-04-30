@@ -7,7 +7,6 @@ joint trajectory, and publishes RViz markers so the object is visible while it
 is picked and placed.
 """
 
-import math
 import time
 
 import rclpy
