@@ -2,7 +2,7 @@ mp_control_node:
   ros__parameters:
     use_sim_time: true
 
-    bbox_topic: /target/tracked_bbox
+    bbox_topic: /target/init_bbox
     fallback_bbox_topic: /target/init_bbox
     eef_bbox_topic: /target/eef_tracked_bbox
     depth_topic: /camera/depth/image_raw
@@ -31,9 +31,9 @@ mp_control_node:
     use_eef_refinement: false
 
     command_rate_hz: 20.0
-    max_target_age_s: 0.8
+    max_target_age_s: 30.0
     linear_gain: 0.9
-    max_linear_speed: 0.025
+    max_linear_speed: 0.15
     position_tolerance_m: 0.035
     close_after_stable_cycles: 8
 
