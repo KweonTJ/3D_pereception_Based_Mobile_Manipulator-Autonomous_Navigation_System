@@ -169,8 +169,7 @@ def generate_launch_description():
         package='controller_manager',
         executable='spawner',
         arguments=['diff_drive_controller', '-c', '/controller_manager'],
-        output='screen',
-        condition=UnlessCondition(use_sim)
+        output='screen'
     )
 
     imu_broadcaster_spawner = Node(

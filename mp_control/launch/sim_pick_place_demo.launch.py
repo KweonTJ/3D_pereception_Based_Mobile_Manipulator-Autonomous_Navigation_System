@@ -44,6 +44,9 @@ def generate_launch_description():
             {"use_sim_time": True},
             {"start_delay_s": demo_start_delay},
             {"return_to_stow": return_to_stow},
+            {"cmd_vel_topic": "/diff_drive_controller/cmd_vel_unstamped"},
+            {"publish_demo_base_tf": False},
+            {"publish_demo_joint_states": False},
         ],
     )
 
