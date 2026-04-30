@@ -14,6 +14,10 @@ mp_control_node:
     start_topic: /mp_control/start
     cancel_topic: /mp_control/cancel
     status_topic: /mp_control/status
+    cargo_event_topic: /cargo/events
+    cargo_current_id_topic: /cargo/current_id
+    cargo_id_prefix: SIM-PKG
+    cargo_sequence_start: 1
 
     target_frame: base_link
     end_effector_frame: end_effector_link
