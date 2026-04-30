@@ -183,14 +183,14 @@ class SimPickPlaceDemo(Node):
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
 
-        self._status("PLACE: lifting and moving to place pose")
+        self._status("PLACE: lifting and moving to rear place pose")
         self._send_trajectory([
             ([0.0, 0.82, -0.58, -0.35], 1.6),
-            ([0.78, 0.82, -0.58, -0.35], 3.2),
-            ([0.78, 1.32, -0.94, -0.23], 5.2),
+            ([-2.65, 0.82, -0.58, -0.35], 4.2),
+            ([-2.65, 1.32, -0.94, -0.23], 6.2),
         ])
-        self._sleep(5.4)
-        self._status("PLACE_REACH: arm fully extended at place target")
+        self._sleep(6.4)
+        self._status("PLACE_REACH: arm fully extended behind robot")
         self._sleep(2.0)
 
         self._status("RELEASE: opening gripper at place target")
@@ -202,8 +202,8 @@ class SimPickPlaceDemo(Node):
         self._status("DONE: object placed; holding fully extended pose")
         if bool(self.get_parameter("return_to_stow").value):
             self._send_trajectory([
-                ([0.78, 0.82, -0.58, -0.35], 1.6),
-                ([0.0, 0.10, 0.02, -0.80], 3.2),
+                ([-2.65, 0.82, -0.58, -0.35], 1.6),
+                ([0.0, 0.10, 0.02, -0.80], 4.0),
             ])
 
     def _sleep(self, seconds):
