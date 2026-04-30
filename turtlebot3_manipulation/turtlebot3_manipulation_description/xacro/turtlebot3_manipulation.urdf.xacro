@@ -142,6 +142,19 @@
     </joint>
 
     <link name="$(arg prefix)eef_usb_camera_optical_frame"/>
+
+    <xacro:if value="$(arg use_sim)">
+      <xacro:include filename="$(find turtlebot3_manipulation_description)/xacro/gz_sensor.urdf.xacro" ns="gz_sensor" />
+      <xacro:gz_sensor.camera
+        reference="$(arg prefix)eef_usb_camera_link"
+        name="$(arg prefix)eef_usb_camera"
+        topic="eef_camera/image_raw"
+        frame_id="$(arg prefix)eef_usb_camera_optical_frame"
+        frequency="30"
+        width="640"
+        height="480"
+        fov="${60.0/180.0*pi}" />
+    </xacro:if>
   </xacro:if>
 
   <xacro:turtlebot3_manipulation_system
