@@ -19,6 +19,7 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import RegisterEventHandler
+from launch.actions import TimerAction
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.event_handlers import OnProcessExit
@@ -197,7 +198,14 @@ def generate_launch_description():
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
             on_exit=[rviz_node],
-        )
+        ),
+        condition=UnlessCondition(use_sim),
+    )
+
+    delay_rviz_for_sim = TimerAction(
+        period=3.0,
+        actions=[rviz_node],
+        condition=IfCondition(use_sim),
     )
 
     delay_diff_drive_controller_spawner_after_joint_state_broadcaster_spawner = \
@@ -237,6 +245,7 @@ def generate_launch_description():
         robot_state_pub_node,
         joint_state_broadcaster_spawner,
         delay_rviz_after_joint_state_broadcaster_spawner,
+        delay_rviz_for_sim,
         delay_diff_drive_controller_spawner_after_joint_state_broadcaster_spawner,
         delay_imu_broadcaster_spawner_after_joint_state_broadcaster_spawner,
         delay_arm_controller_spawner_after_joint_state_broadcaster_spawner,
