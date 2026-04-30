@@ -56,8 +56,8 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
-        self.declare_parameter("place_xyz", [1.08, 0.28, 0.115])
-        self.declare_parameter("approach_distance_m", 0.90)
+        self.declare_parameter("place_xyz", [1.20, 0.20, 0.115])
+        self.declare_parameter("approach_distance_m", 1.00)
         self.declare_parameter("approach_speed_mps", 0.12)
 
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
@@ -112,8 +112,8 @@ class SimPickPlaceDemo(Node):
         self._send_gripper(0.019)
         self._send_trajectory([
             ([0.0, 0.10, 0.02, -0.80], 1.5),
-            ([0.0, 0.42, -0.20, -1.05], 3.5),
-            ([0.0, 0.66, -0.46, -0.86], 5.5),
+            ([0.0, 0.82, -0.58, -0.35], 3.5),
+            ([0.0, 1.32, -0.94, -0.23], 5.5),
         ])
         self._sleep(5.8)
 
@@ -124,9 +124,9 @@ class SimPickPlaceDemo(Node):
 
         self._status("PLACE: lifting and moving to place pose")
         self._send_trajectory([
-            ([0.0, 0.24, -0.20, -1.15], 1.6),
-            ([0.78, 0.24, -0.20, -1.15], 3.2),
-            ([0.78, 0.58, -0.42, -0.90], 5.2),
+            ([0.0, 0.82, -0.58, -0.35], 1.6),
+            ([0.78, 0.82, -0.58, -0.35], 3.2),
+            ([0.78, 1.32, -0.94, -0.23], 5.2),
         ])
         self._sleep(5.4)
 
@@ -137,7 +137,7 @@ class SimPickPlaceDemo(Node):
 
         self._status("DONE: pick-and-place RViz demo complete")
         self._send_trajectory([
-            ([0.78, 0.24, -0.20, -1.15], 1.6),
+            ([0.78, 0.82, -0.58, -0.35], 1.6),
             ([0.0, 0.10, 0.02, -0.80], 3.2),
         ])
 
