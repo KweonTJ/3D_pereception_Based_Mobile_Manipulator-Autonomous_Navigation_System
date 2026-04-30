@@ -18,6 +18,9 @@ from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy
+from rclpy.qos import QoSProfile
+from rclpy.qos import ReliabilityPolicy
 from rclpy._rclpy_pybind11 import RCLError
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32MultiArray
@@ -104,10 +107,15 @@ class SimPickPlaceDemo(Node):
             MarkerArray, self.get_parameter("marker_topic").value, 10)
         self.status_pub = self.create_publisher(
             String, self.get_parameter("status_topic").value, 10)
+        current_id_qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
+        )
         self.cargo_event_pub = self.create_publisher(
             String, self.get_parameter("cargo_event_topic").value, 10)
         self.cargo_current_id_pub = self.create_publisher(
-            String, self.get_parameter("cargo_current_id_topic").value, 1)
+            String, self.get_parameter("cargo_current_id_topic").value, current_id_qos)
         self.gripper = ActionClient(
             self, GripperCommand, self.get_parameter("gripper_action_name").value)
 
