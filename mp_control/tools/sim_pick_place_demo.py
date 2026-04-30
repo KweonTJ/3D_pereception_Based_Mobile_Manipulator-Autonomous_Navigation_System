@@ -116,6 +116,8 @@ class SimPickPlaceDemo(Node):
             ([0.0, 1.32, -0.94, -0.23], 5.5),
         ])
         self._sleep(5.8)
+        self._status("FULL_REACH: arm fully extended at target")
+        self._sleep(2.0)
 
         self._status("PICK: closing gripper and attaching object marker")
         self._send_gripper(-0.015)
@@ -129,6 +131,8 @@ class SimPickPlaceDemo(Node):
             ([0.78, 1.32, -0.94, -0.23], 5.2),
         ])
         self._sleep(5.4)
+        self._status("PLACE_REACH: arm fully extended at place target")
+        self._sleep(2.0)
 
         self._status("RELEASE: opening gripper at place target")
         self._send_gripper(0.019)
