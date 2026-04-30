@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -32,6 +33,7 @@ ament_target_dependencies(mp_control_node
   rclcpp_action
   control_msgs
   std_msgs
+  std_srvs
   sensor_msgs
   geometry_msgs
   tf2
