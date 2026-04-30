@@ -429,6 +429,7 @@ class SimPickPlaceDemo(Node):
         markers.markers.append(self._text_marker(attached, placed))
         markers.markers.append(self._cargo_id_marker(attached, placed))
         self.marker_pub.publish(markers)
+        self._sync_gazebo_object_pose(attached, placed)
 
     def _object_marker(self, attached, placed):
         marker = Marker()
@@ -528,6 +529,61 @@ class SimPickPlaceDemo(Node):
         marker.color.a = 1.0
         marker.text = self.cargo_id if self.cargo_id else "UNASSIGNED"
         return marker
+
+    def _sync_gazebo_object_pose(self, attached, placed):
+        if self.gazebo_pose_client is None:
+            return
+        now = time.monotonic()
+        update_period = float(self.get_parameter("gazebo_pose_update_period_s").value)
+        if now - self.last_gazebo_pose_update < max(update_period, 0.02):
+            return
+        self.last_gazebo_pose_update = now
+
+        pose = self._gazebo_object_pose(attached, placed)
+        if pose is None:
+            return
+        if not self.gazebo_pose_client.service_is_ready():
+            if not self.warned_gazebo_pose_unavailable:
+                self.get_logger().warn(
+                    "Gazebo set_pose service is not ready; RViz marker will still show the grasp")
+                self.warned_gazebo_pose_unavailable = True
+            return
+
+        request = SetEntityPose.Request()
+        request.entity.name = str(self.get_parameter("gazebo_object_entity_name").value)
+        request.entity.type = Entity.MODEL
+        request.pose = pose
+        self.gazebo_pose_client.call_async(request)
+
+    def _gazebo_object_pose(self, attached, placed):
+        if attached:
+            xyz = self._attached_object_odom_xyz()
+            if xyz is None:
+                return None
+        elif placed:
+            xyz = self.place_xyz
+        else:
+            xyz = self.object_xyz
+
+        pose = Pose()
+        pose.position.x = xyz[0] + self.gazebo_world_origin_xyz[0]
+        pose.position.y = xyz[1] + self.gazebo_world_origin_xyz[1]
+        pose.position.z = xyz[2] + self.gazebo_world_origin_xyz[2]
+        pose.orientation.w = 1.0
+        return pose
+
+    def _attached_object_odom_xyz(self):
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                self.odom_frame, "end_effector_link", Time())
+        except TransformException:
+            return None
+        translation = transform.transform.translation
+        return [
+            translation.x + 0.08,
+            translation.y,
+            translation.z,
+        ]
 
 
 def main():
