@@ -433,7 +433,7 @@ private:
       eef_camera_frame_override_.empty() ? info.frame_id : eef_camera_frame_override_;
 
     geometry_msgs::msg::PointStamped object_latest = object_in_target;
-    object_latest.header.stamp = rclcpp::Time(0, 0, get_clock()->get_clock_type()).to_msg();
+    object_latest.header.stamp = builtin_interfaces::msg::Time();
 
     geometry_msgs::msg::PointStamped object_in_eef_camera;
     try {
