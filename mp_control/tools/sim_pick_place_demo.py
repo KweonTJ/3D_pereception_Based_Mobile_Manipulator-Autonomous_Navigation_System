@@ -60,6 +60,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("place_xyz", [1.20, 0.20, 0.115])
         self.declare_parameter("approach_distance_m", 1.00)
         self.declare_parameter("approach_speed_mps", 0.12)
+        self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
 
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
         self.object_frame = str(self.get_parameter("object_frame").value)
@@ -176,7 +177,8 @@ class SimPickPlaceDemo(Node):
         direction = 1.0 if distance_m >= 0.0 else -1.0
         duration_s = abs(distance_m) / speed
 
-        wait_until = time.monotonic() + 1.0
+        wait_until = time.monotonic() + float(
+            self.get_parameter("cmd_vel_wait_timeout_s").value)
         while (
             self.cmd_vel_pub.get_subscription_count() == 0
             and rclpy.ok()
