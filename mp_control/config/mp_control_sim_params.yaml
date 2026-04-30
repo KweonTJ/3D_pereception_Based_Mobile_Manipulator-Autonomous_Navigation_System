@@ -1,0 +1,59 @@
+mp_control_node:
+  ros__parameters:
+    use_sim_time: true
+
+    bbox_topic: /target/tracked_bbox
+    fallback_bbox_topic: /target/init_bbox
+    eef_bbox_topic: /target/eef_tracked_bbox
+    depth_topic: /camera/depth/image_raw
+    camera_info_topic: /camera/color/camera_info
+    eef_camera_info_topic: /eef_camera/camera_info
+
+    twist_topic: /servo_node/delta_twist_cmds
+    gripper_action_name: /gripper_controller/gripper_cmd
+    start_topic: /mp_control/start
+    cancel_topic: /mp_control/cancel
+    status_topic: /mp_control/status
+
+    target_frame: base_link
+    end_effector_frame: end_effector_link
+    camera_frame_override: ""
+    eef_camera_frame_override: eef_usb_camera_optical_frame
+
+    auto_start: false
+    auto_start_on_bbox: true
+    start_servo_on_start: true
+    open_gripper_on_start: true
+    close_gripper_on_arrival: true
+
+    # The current Gazebo setup has the main Astra RGB-D camera but no simulated
+    # end-effector USB camera stream yet, so the first simulation pass uses depth only.
+    use_eef_refinement: false
+
+    command_rate_hz: 20.0
+    max_target_age_s: 0.8
+    linear_gain: 0.9
+    max_linear_speed: 0.025
+    position_tolerance_m: 0.035
+    close_after_stable_cycles: 8
+
+    depth_roi_radius_px: 5
+    depth_unit_scale: 0.001
+    min_valid_depth_m: 0.12
+    max_valid_depth_m: 2.0
+
+    grasp_offset_x: 0.0
+    grasp_offset_y: 0.0
+    grasp_offset_z: 0.0
+
+    eef_refinement_switch_distance_m: 0.12
+    eef_final_depth_m: 0.08
+    eef_center_tolerance_px: 18.0
+    eef_depth_tolerance_m: 0.018
+    eef_refine_lateral_gain: 0.8
+    eef_refine_depth_gain: 0.5
+    eef_refine_max_linear_speed: 0.012
+
+    gripper_open_position: 0.025
+    gripper_close_position: -0.015
+    gripper_max_effort: -1.0

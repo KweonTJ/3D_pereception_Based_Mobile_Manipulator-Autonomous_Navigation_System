@@ -1,0 +1,58 @@
+csrt_ibvs_node:
+  ros__parameters:
+    use_sim_time: true
+
+    image_topic: /camera/color/image_raw
+    depth_topic: /camera/depth/image_raw
+    camera_info_topic: /camera/color/camera_info
+
+    init_bbox_topic: /target/init_bbox
+    tracked_bbox_topic: /target/tracked_bbox
+
+    cmd_vel_topic: /cmd_vel
+    enable_cmd_vel: false
+
+    enable_arm_twist: false
+    arm_twist_topic: /servo_node/delta_twist_cmds
+    arm_command_frame_id: camera_color_optical_frame
+
+    debug_image_topic: /hybrid_csrt_ibvs/debug_image
+    status_topic: /hybrid_csrt_ibvs/status
+    publish_debug_image: true
+
+    use_depth: true
+    use_area_fallback: true
+    stop_when_lost: true
+    allow_reverse: false
+    loss_frame_limit: 8
+    watchdog_timeout_s: 0.7
+    min_bbox_size_px: 12
+
+    desired_u_ratio: 0.5
+    desired_v_ratio: 0.5
+    desired_depth_m: 0.28
+    desired_area_ratio: 0.06
+
+    yaw_gain: 1.35
+    linear_gain: 0.65
+    area_gain: 1.2
+    x_deadband_norm: 0.035
+    y_deadband_norm: 0.035
+    depth_deadband_m: 0.035
+    area_deadband_ratio: 0.01
+    approach_yaw_gate_norm: 0.28
+    max_linear_x: 0.0
+    max_angular_z: 0.0
+
+    arm_lateral_gain: 0.05
+    arm_vertical_gain: 0.05
+    arm_depth_gain: 0.03
+    max_arm_linear: 0.025
+
+    depth_roi_radius_px: 6
+    depth_unit_scale: 0.001
+    min_valid_depth_m: 0.12
+    max_valid_depth_m: 2.0
+    emergency_stop_depth_m: 0.12
+    max_depth_stamp_age_s: 0.50
+    status_period_s: 0.5

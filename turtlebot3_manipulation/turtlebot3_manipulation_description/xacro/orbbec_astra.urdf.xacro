@@ -155,7 +155,7 @@ limitations under the License.
       width="640"
       height="480"
       fov="${60.0/180.0*pi}"
-      min_dist="0.6"
+      min_dist="0.12"
       max_dist="8.0"
       stddev_error="0.05" />
 
