@@ -1,0 +1,30 @@
+eef_csrt_ibvs_node:
+  ros__parameters:
+    image_topic: /eef_camera/image_raw
+    camera_info_topic: /eef_camera/camera_info
+
+    init_bbox_topic: /target/eef_init_bbox
+    tracked_bbox_topic: /target/eef_tracked_bbox
+
+    cmd_vel_topic: /cmd_vel
+    enable_cmd_vel: false
+
+    use_depth: false
+    use_area_fallback: true
+    enable_arm_twist: false
+    publish_debug_image: true
+    stop_when_lost: true
+    allow_reverse: false
+    loss_frame_limit: 8
+    min_bbox_size_px: 12
+
+    debug_image_topic: /eef_hybrid_csrt_ibvs/debug_image
+    status_topic: /eef_hybrid_csrt_ibvs/status
+
+    desired_u_ratio: 0.5
+    desired_v_ratio: 0.5
+    desired_area_ratio: 0.06
+    x_deadband_norm: 0.04
+    y_deadband_norm: 0.04
+    area_deadband_ratio: 0.01
+    status_period_s: 0.5

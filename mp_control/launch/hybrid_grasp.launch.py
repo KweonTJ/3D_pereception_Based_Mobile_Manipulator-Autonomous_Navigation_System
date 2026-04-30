@@ -14,9 +14,11 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     hybrid_config_file = LaunchConfiguration("hybrid_config_file")
+    eef_hybrid_config_file = LaunchConfiguration("eef_hybrid_config_file")
     mp_control_config_file = LaunchConfiguration("mp_control_config_file")
     use_sim = LaunchConfiguration("use_sim")
     start_tracker = LaunchConfiguration("start_tracker")
+    start_eef_tracker = LaunchConfiguration("start_eef_tracker")
     start_servo = LaunchConfiguration("start_servo")
     start_mp_control = LaunchConfiguration("start_mp_control")
 
@@ -41,6 +43,21 @@ def generate_launch_description():
         ]),
         launch_arguments={"config_file": hybrid_config_file}.items(),
         condition=IfCondition(start_tracker),
+    )
+
+    eef_tracker_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("hybrid_csrt_ibvs"),
+                "launch",
+                "hybrid_csrt_ibvs.launch.py",
+            ])
+        ]),
+        launch_arguments={
+            "node_name": "eef_csrt_ibvs_node",
+            "config_file": eef_hybrid_config_file,
+        }.items(),
+        condition=IfCondition(start_eef_tracker),
     )
 
     mp_control_node = Node(
@@ -90,6 +107,15 @@ def generate_launch_description():
             description="YAML parameter file for mp_control.",
         ),
         DeclareLaunchArgument(
+            "eef_hybrid_config_file",
+            default_value=PathJoinSubstitution([
+                FindPackageShare("hybrid_csrt_ibvs"),
+                "config",
+                "eef_usb_camera.yaml",
+            ]),
+            description="YAML parameter file for the end-effector camera tracker.",
+        ),
+        DeclareLaunchArgument(
             "use_sim",
             default_value="false",
             description="Pass through to MoveIt Servo.",
@@ -98,6 +124,11 @@ def generate_launch_description():
             "start_tracker",
             default_value="true",
             description="Launch hybrid_csrt_ibvs tracker.",
+        ),
+        DeclareLaunchArgument(
+            "start_eef_tracker",
+            default_value="false",
+            description="Launch a second tracker for the end-effector USB camera.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -111,6 +142,7 @@ def generate_launch_description():
         ),
         servo_launch,
         tracker_launch,
+        eef_tracker_launch,
         mp_control_node,
         start_servo_call,
     ])
