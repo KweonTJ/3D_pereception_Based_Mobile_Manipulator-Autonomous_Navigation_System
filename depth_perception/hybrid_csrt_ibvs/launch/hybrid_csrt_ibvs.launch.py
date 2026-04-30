@@ -7,8 +7,14 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     config_file = LaunchConfiguration("config_file")
+    node_name = LaunchConfiguration("node_name")
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            "node_name",
+            default_value="csrt_ibvs_node",
+            description="ROS node name for this tracker instance.",
+        ),
         DeclareLaunchArgument(
             "config_file",
             default_value=PathJoinSubstitution([
@@ -21,7 +27,7 @@ def generate_launch_description():
         Node(
             package="hybrid_csrt_ibvs",
             executable="csrt_ibvs_node",
-            name="csrt_ibvs_node",
+            name=node_name,
             output="screen",
             parameters=[config_file],
         ),
