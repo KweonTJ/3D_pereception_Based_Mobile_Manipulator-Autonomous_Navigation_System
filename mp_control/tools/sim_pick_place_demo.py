@@ -42,6 +42,8 @@ class SimPickPlaceDemo(Node):
         super().__init__("sim_pick_place_demo")
         self.declare_parameter("bbox", [264.0, 91.0, 112.0, 146.0])
         self.declare_parameter("bbox_topic", "/target/init_bbox")
+        self.declare_parameter("eef_bbox", [280.0, 180.0, 90.0, 120.0])
+        self.declare_parameter("eef_bbox_topic", "/target/eef_init_bbox")
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("trajectory_topic", "/arm_controller/joint_trajectory")
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
@@ -63,6 +65,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
 
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
+        self.eef_bbox = [float(v) for v in self.get_parameter("eef_bbox").value]
         self.object_frame = str(self.get_parameter("object_frame").value)
         self.place_frame = str(self.get_parameter("place_frame").value)
         self.odom_frame = str(self.get_parameter("odom_frame").value)
@@ -83,6 +86,8 @@ class SimPickPlaceDemo(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.bbox_pub = self.create_publisher(
             Float32MultiArray, self.get_parameter("bbox_topic").value, 10)
+        self.eef_bbox_pub = self.create_publisher(
+            Float32MultiArray, self.get_parameter("eef_bbox_topic").value, 10)
         self.joint_state_pub = self.create_publisher(
             JointState, self.get_parameter("joint_state_topic").value, 10)
         self.cmd_vel_pub = self.create_publisher(
@@ -119,6 +124,7 @@ class SimPickPlaceDemo(Node):
         ])
         self._sleep(5.8)
         self._status("FULL_REACH: arm fully extended at target")
+        self._publish_eef_bbox(repeats=10)
         self._sleep(2.0)
 
         self._status("PICK: closing gripper and attaching object marker")
@@ -167,6 +173,14 @@ class SimPickPlaceDemo(Node):
         msg.data = self.bbox
         for _ in range(max(1, repeats)):
             self.bbox_pub.publish(msg)
+            rclpy.spin_once(self, timeout_sec=0.05)
+            time.sleep(0.1)
+
+    def _publish_eef_bbox(self, repeats=1):
+        msg = Float32MultiArray()
+        msg.data = self.eef_bbox
+        for _ in range(max(1, repeats)):
+            self.eef_bbox_pub.publish(msg)
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.1)
 
