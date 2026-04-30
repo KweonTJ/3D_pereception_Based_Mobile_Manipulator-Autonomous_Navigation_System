@@ -26,9 +26,9 @@ mp_control_node:
     open_gripper_on_start: true
     close_gripper_on_arrival: true
 
-    # The current Gazebo setup has the main Astra RGB-D camera but no simulated
-    # end-effector USB camera stream yet, so the first simulation pass uses depth only.
-    use_eef_refinement: false
+    # Simulation now exposes both the base RGB-D camera and the end-effector
+    # USB camera stream, matching the hardware refinement flow.
+    use_eef_refinement: true
 
     command_rate_hz: 20.0
     max_target_age_s: 30.0
