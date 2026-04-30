@@ -100,8 +100,8 @@ https://github.com/ros-controls/ros2_control_demos/blob/foxy/ros2_control_demo_d
 
       <joint name="${prefix}joint1">
         <command_interface name="position">
-          <param name="min">${-pi*0.9}</param>
-          <param name="max">${pi*0.9}</param>
+          <param name="min">${-pi}</param>
+          <param name="max">${pi}</param>
         </command_interface>
         <state_interface name="position">
           <param name="initial_value">0.0</param>
