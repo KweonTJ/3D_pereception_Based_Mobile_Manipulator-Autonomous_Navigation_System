@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <future>
+#include <iomanip>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -60,6 +61,7 @@ public:
     const auto sensor_qos = rclcpp::SensorDataQoS();
     const auto default_qos = rclcpp::QoS(rclcpp::KeepLast(10));
     const auto status_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local();
+    const auto current_id_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
 
     bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
       bbox_topic_, default_qos,
@@ -96,6 +98,9 @@ public:
 
     twist_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(twist_topic_, default_qos);
     status_pub_ = create_publisher<std_msgs::msg::String>(status_topic_, status_qos);
+    cargo_event_pub_ = create_publisher<std_msgs::msg::String>(cargo_event_topic_, default_qos);
+    cargo_current_id_pub_ =
+      create_publisher<std_msgs::msg::String>(cargo_current_id_topic_, current_id_qos);
     gripper_client_ = rclcpp_action::create_client<GripperCommand>(this, gripper_action_name_);
     servo_start_client_ = create_client<Trigger>("/servo_node/start_servo");
 
@@ -159,6 +164,11 @@ private:
     start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
     status_topic_ = declare_parameter<std::string>("status_topic", "/mp_control/status");
+    cargo_event_topic_ = declare_parameter<std::string>("cargo_event_topic", "/cargo/events");
+    cargo_current_id_topic_ =
+      declare_parameter<std::string>("cargo_current_id_topic", "/cargo/current_id");
+    cargo_id_prefix_ = declare_parameter<std::string>("cargo_id_prefix", "PKG");
+    cargo_sequence_next_ = declare_parameter<int>("cargo_sequence_start", 1);
     gripper_action_name_ = declare_parameter<std::string>("gripper_action_name", "/gripper_controller/gripper_cmd");
     target_frame_ = declare_parameter<std::string>("target_frame", "base_link");
     end_effector_frame_ = declare_parameter<std::string>("end_effector_frame", "end_effector_link");
@@ -306,6 +316,8 @@ private:
     open_sent_ = false;
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
+    assignCargoId();
+    publishCargoEvent("assigned", true);
     if (open_gripper_on_start_) {
       sendGripper(gripper_open_position_);
       open_sent_ = true;
@@ -323,6 +335,7 @@ private:
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
     publishStop();
+    publishCargoEvent("cancelled", true);
     publishStatus(reason, true);
   }
 
@@ -383,6 +396,7 @@ private:
         if (close_gripper_on_arrival_ && !close_sent_) {
           sendGripper(gripper_close_position_);
           close_sent_ = true;
+          publishCargoEvent("picked", true);
         }
         done_ = true;
         active_ = false;
@@ -467,6 +481,7 @@ private:
         if (close_gripper_on_arrival_ && !close_sent_) {
           sendGripper(gripper_close_position_);
           close_sent_ = true;
+          publishCargoEvent("picked", true);
         }
         done_ = true;
         active_ = false;
@@ -673,6 +688,36 @@ private:
     last_status_stamp_ = stamp;
   }
 
+  void assignCargoId()
+  {
+    std::ostringstream id;
+    id << cargo_id_prefix_ << "-" << std::setw(6) << std::setfill('0') << cargo_sequence_next_++;
+    current_cargo_id_ = id.str();
+    std_msgs::msg::String msg;
+    msg.data = current_cargo_id_;
+    cargo_current_id_pub_->publish(msg);
+  }
+
+  void publishCargoEvent(const std::string & event, bool force_current = false)
+  {
+    if (current_cargo_id_.empty() || force_current) {
+      std_msgs::msg::String current;
+      current.data = current_cargo_id_;
+      cargo_current_id_pub_->publish(current);
+    }
+
+    const auto stamp = now();
+    std_msgs::msg::String msg;
+    std::ostringstream event_json;
+    event_json << "{\"cargo_id\":\"" << current_cargo_id_
+               << "\",\"event\":\"" << event
+               << "\",\"stamp\":{\"sec\":" << stamp.seconds()
+               << ",\"nanosec\":" << stamp.nanoseconds() % 1000000000LL
+               << "}}";
+    msg.data = event_json.str();
+    cargo_event_pub_->publish(msg);
+  }
+
   std::string bbox_topic_;
   std::string fallback_bbox_topic_;
   std::string eef_bbox_topic_;
@@ -683,6 +728,9 @@ private:
   std::string start_topic_;
   std::string cancel_topic_;
   std::string status_topic_;
+  std::string cargo_event_topic_;
+  std::string cargo_current_id_topic_;
+  std::string cargo_id_prefix_;
   std::string gripper_action_name_;
   std::string target_frame_;
   std::string end_effector_frame_;
@@ -718,6 +766,8 @@ private:
   double gripper_open_position_{0.025};
   double gripper_close_position_{-0.015};
   double gripper_max_effort_{-1.0};
+  int cargo_sequence_next_{1};
+  std::string current_cargo_id_;
 
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr bbox_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr init_bbox_sub_;
@@ -729,6 +779,8 @@ private:
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_event_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_current_id_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
   rclcpp::TimerBase::SharedPtr timer_;
