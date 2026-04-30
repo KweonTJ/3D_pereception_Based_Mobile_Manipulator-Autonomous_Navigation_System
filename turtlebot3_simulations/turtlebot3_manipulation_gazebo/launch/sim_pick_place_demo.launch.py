@@ -48,6 +48,7 @@ def generate_launch_description():
             {"cmd_vel_topic": "/diff_drive_controller/cmd_vel_unstamped"},
             {"publish_demo_base_tf": False},
             {"publish_demo_joint_states": False},
+            {"cargo_id_prefix": "SIM-PKG"},
         ],
     )
 
