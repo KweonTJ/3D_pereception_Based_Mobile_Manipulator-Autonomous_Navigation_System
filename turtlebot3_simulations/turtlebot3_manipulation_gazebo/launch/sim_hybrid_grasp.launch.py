@@ -2,6 +2,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.actions import TimerAction
+from launch.conditions import IfCondition
+from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
@@ -11,6 +13,7 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     world = LaunchConfiguration("world")
     gz_args = LaunchConfiguration("gz_args")
+    start_gazebo = LaunchConfiguration("start_gazebo")
     start_rviz = LaunchConfiguration("start_rviz")
     start_depth_camera = LaunchConfiguration("start_depth_camera")
     hybrid_config_file = LaunchConfiguration("hybrid_config_file")
@@ -43,6 +46,22 @@ def generate_launch_description():
             "pitch": "0.00",
             "yaw": "0.00",
         }.items(),
+        condition=IfCondition(start_gazebo),
+    )
+
+    rviz_only_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("turtlebot3_manipulation_description"),
+                "launch",
+                "model.launch.py",
+            ])
+        ]),
+        launch_arguments={
+            "start_rviz": start_rviz,
+            "use_gui": "false",
+        }.items(),
+        condition=UnlessCondition(start_gazebo),
     )
 
     grasp_stack_launch = IncludeLaunchDescription(
@@ -79,6 +98,11 @@ def generate_launch_description():
             "gz_args",
             default_value=["-r --headless-rendering ", world],
             description="Arguments passed to Gazebo Sim. Use '-r -s --headless-rendering <world>' for server-only tests.",
+        ),
+        DeclareLaunchArgument(
+            "start_gazebo",
+            default_value="false",
+            description="Start Gazebo simulation. If false, launch RViz model visualization only.",
         ),
         DeclareLaunchArgument(
             "start_rviz",
@@ -142,9 +166,11 @@ def generate_launch_description():
             default_value="6.0",
             description="Seconds to wait before starting Servo, trackers, and mp_control.",
         ),
+        rviz_only_launch,
         gazebo_launch,
         TimerAction(
             period=control_start_delay,
             actions=[grasp_stack_launch],
+            condition=IfCondition(start_gazebo),
         ),
     ])
