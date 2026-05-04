@@ -24,6 +24,11 @@ def generate_launch_description():
             description="Arguments passed to Gazebo Sim.",
         ),
         DeclareLaunchArgument(
+            "start_gazebo",
+            default_value="false",
+            description="Start Gazebo simulation. If false, launch RViz model visualization only.",
+        ),
+        DeclareLaunchArgument(
             "start_rviz",
             default_value="true",
             description="Start RViz with the Gazebo robot description.",
@@ -96,6 +101,7 @@ def generate_launch_description():
             launch_arguments={
                 "world": LaunchConfiguration("world"),
                 "gz_args": LaunchConfiguration("gz_args"),
+                "start_gazebo": LaunchConfiguration("start_gazebo"),
                 "start_rviz": LaunchConfiguration("start_rviz"),
                 "start_depth_camera": LaunchConfiguration("start_depth_camera"),
                 "hybrid_config_file": LaunchConfiguration("hybrid_config_file"),
