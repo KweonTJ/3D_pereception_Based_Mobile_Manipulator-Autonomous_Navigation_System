@@ -107,6 +107,7 @@ def generate_launch_description():
         Node(
             package='joint_state_publisher',
             executable='joint_state_publisher',
+            parameters=[{'robot_description': urdf_file}],
             remappings=[('robot_description', robot_description_topic)],
             condition=UnlessCondition(use_gui)),
 
@@ -120,6 +121,7 @@ def generate_launch_description():
         Node(
             package='joint_state_publisher_gui',
             executable='joint_state_publisher_gui',
+            parameters=[{'robot_description': urdf_file}],
             remappings=[('robot_description', robot_description_topic)],
             condition=IfCondition(use_gui)),
     ])

@@ -26,6 +26,7 @@ def generate_launch_description():
         ]),
         launch_arguments={
             "start_rviz": start_rviz,
+            "start_gazebo": "true",
             "world": world,
             "gz_args": gz_args,
             "start_tracker": "true",
