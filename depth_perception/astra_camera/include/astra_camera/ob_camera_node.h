@@ -12,6 +12,9 @@
 
 #pragma once
 
+#include <map>
+#include <mutex>
+
 #include <rclcpp/rclcpp.hpp>
 
 #include <magic_enum.hpp>
@@ -78,6 +81,14 @@ class OBCameraNode {
   void startStreams();
 
   void stopStreams();
+
+  void startStreamWatchdog();
+
+  void checkStreamWatchdog();
+
+  bool restartStream(const stream_index_pair& stream_index);
+
+  void markFrameReceived(const stream_index_pair& stream_index);
 
   void getParameters();
 
@@ -249,6 +260,13 @@ class OBCameraNode {
   ImageROI color_roi_;
   ImageROI depth_roi_;
   int depth_scale_ = 1;
+  bool stream_watchdog_enabled_ = true;
+  double stream_watchdog_timeout_s_ = 2.0;
+  double stream_watchdog_period_s_ = 1.0;
+  rclcpp::TimerBase::SharedPtr stream_watchdog_timer_;
+  std::mutex stream_watchdog_mutex_;
+  std::map<stream_index_pair, rclcpp::Time> last_frame_stamp_;
+  std::map<stream_index_pair, std::uint64_t> frame_count_;
 };
 
 }  // namespace astra_camera
