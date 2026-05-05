@@ -67,6 +67,8 @@ private:
   bool hasTracker() const;
   void resetTracker();
   const char * trackerBackendName() const;
+  std::optional<cv::Mat> imageMsgToBgr(const sensor_msgs::msg::Image & msg) const;
+  std::optional<cv::Mat> depthMsgToBgr(const sensor_msgs::msg::Image & msg) const;
   std::optional<cv::Rect> sanitizeBox(const cv::Rect & bbox, const cv::Size & image_size) const;
   IbvsResult computeIbvsCommand(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp);
   std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
