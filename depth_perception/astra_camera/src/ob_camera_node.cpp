@@ -12,10 +12,7 @@
 
 #include "astra_camera/ob_camera_node.h"
 #include "astra_camera/utils.h"
-#include <algorithm>
-#include <chrono>
 #include <cv_bridge/cv_bridge.h>
-#include <exception>
 namespace astra_camera {
 
 void OBCameraNode::init() {
