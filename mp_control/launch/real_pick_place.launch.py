@@ -46,6 +46,14 @@ def generate_launch_description():
     auto_init_min_bbox_width_px = LaunchConfiguration("auto_init_min_bbox_width_px")
     auto_init_min_bbox_height_px = LaunchConfiguration("auto_init_min_bbox_height_px")
     auto_init_timeout_s = LaunchConfiguration("auto_init_timeout_s")
+    start_auto_eef_init_bbox = LaunchConfiguration("start_auto_eef_init_bbox")
+    auto_eef_init_bbox_start_delay = LaunchConfiguration("auto_eef_init_bbox_start_delay")
+    auto_eef_init_bbox_image_topic = LaunchConfiguration("auto_eef_init_bbox_image_topic")
+    auto_eef_init_bbox_topic = LaunchConfiguration("auto_eef_init_bbox_topic")
+    auto_eef_init_bbox_status_topic = LaunchConfiguration("auto_eef_init_bbox_status_topic")
+    auto_eef_init_min_mask_pixels = LaunchConfiguration("auto_eef_init_min_mask_pixels")
+    auto_eef_init_min_bbox_width_px = LaunchConfiguration("auto_eef_init_min_bbox_width_px")
+    auto_eef_init_min_bbox_height_px = LaunchConfiguration("auto_eef_init_min_bbox_height_px")
     start_eef_camera_driver = LaunchConfiguration("start_eef_camera_driver")
     eef_camera_video_device = LaunchConfiguration("eef_camera_video_device")
     eef_camera_frame_id = LaunchConfiguration("eef_camera_frame_id")
@@ -144,6 +152,24 @@ def generate_launch_description():
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
         }],
         condition=IfCondition(start_auto_init_bbox),
+    )
+
+    auto_eef_init_bbox_node = Node(
+        package="mp_control",
+        executable="auto_init_bbox.py",
+        name="auto_eef_init_bbox",
+        output="screen",
+        parameters=[{
+            "image_topic": auto_eef_init_bbox_image_topic,
+            "bbox_topic": auto_eef_init_bbox_topic,
+            "status_topic": auto_eef_init_bbox_status_topic,
+            "color_mode": auto_init_color_mode,
+            "min_mask_pixels": ParameterValue(auto_eef_init_min_mask_pixels, value_type=int),
+            "min_bbox_width_px": ParameterValue(auto_eef_init_min_bbox_width_px, value_type=float),
+            "min_bbox_height_px": ParameterValue(auto_eef_init_min_bbox_height_px, value_type=float),
+            "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
+        }],
+        condition=IfCondition(start_auto_eef_init_bbox),
     )
 
     eef_camera_node = Node(
@@ -336,6 +362,46 @@ def generate_launch_description():
             description="Seconds before auto bbox detection gives up. 0 means keep waiting.",
         ),
         DeclareLaunchArgument(
+            "start_auto_eef_init_bbox",
+            default_value="true",
+            description="Automatically detect the colored target from the EEF camera.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_bbox_start_delay",
+            default_value="12.0",
+            description="Seconds to wait before EEF camera auto bbox detection starts.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_bbox_image_topic",
+            default_value="/eef_camera/image_raw",
+            description="EEF camera image topic used for automatic bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_bbox_topic",
+            default_value="/target/eef_init_bbox",
+            description="Initial bbox topic published for the EEF tracker.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_bbox_status_topic",
+            default_value="/target/auto_eef_init_bbox_status",
+            description="Status topic for EEF automatic bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_min_mask_pixels",
+            default_value="250",
+            description="Minimum colored pixel count required for EEF bbox initialization.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_min_bbox_width_px",
+            default_value="12.0",
+            description="Minimum EEF detected bbox width in pixels.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_min_bbox_height_px",
+            default_value="12.0",
+            description="Minimum EEF detected bbox height in pixels.",
+        ),
+        DeclareLaunchArgument(
             "start_eef_camera_driver",
             default_value="true",
             description="Start the v4l2 end-effector USB camera driver.",
@@ -375,5 +441,10 @@ def generate_launch_description():
             period=auto_init_bbox_start_delay,
             actions=[auto_init_bbox_node],
             condition=IfCondition(start_auto_init_bbox),
+        ),
+        TimerAction(
+            period=auto_eef_init_bbox_start_delay,
+            actions=[auto_eef_init_bbox_node],
+            condition=IfCondition(start_auto_eef_init_bbox),
         ),
     ])
