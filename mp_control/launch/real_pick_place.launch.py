@@ -51,8 +51,6 @@ def generate_launch_description():
     eef_camera_frame_id = LaunchConfiguration("eef_camera_frame_id")
     eef_camera_pixel_format = LaunchConfiguration("eef_camera_pixel_format")
     eef_camera_output_encoding = LaunchConfiguration("eef_camera_output_encoding")
-    eef_camera_width = LaunchConfiguration("eef_camera_width")
-    eef_camera_height = LaunchConfiguration("eef_camera_height")
 
     hardware_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -159,10 +157,7 @@ def generate_launch_description():
             "camera_frame_id": eef_camera_frame_id,
             "pixel_format": eef_camera_pixel_format,
             "output_encoding": eef_camera_output_encoding,
-            "image_size": [
-                ParameterValue(eef_camera_width, value_type=int),
-                ParameterValue(eef_camera_height, value_type=int),
-            ],
+            "image_size": [640, 480],
         }],
         condition=IfCondition(start_eef_camera_driver),
     )
@@ -364,16 +359,6 @@ def generate_launch_description():
             "eef_camera_output_encoding",
             default_value="rgb8",
             description="ROS image encoding published by the end-effector camera.",
-        ),
-        DeclareLaunchArgument(
-            "eef_camera_width",
-            default_value="640",
-            description="End-effector camera capture width.",
-        ),
-        DeclareLaunchArgument(
-            "eef_camera_height",
-            default_value="480",
-            description="End-effector camera capture height.",
         ),
         hardware_launch,
         eef_camera_node,
