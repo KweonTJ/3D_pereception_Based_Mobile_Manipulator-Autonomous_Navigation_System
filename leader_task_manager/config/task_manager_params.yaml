@@ -1,0 +1,17 @@
+leader_task_manager:
+  ros__parameters:
+    publish_rate_hz: 10.0
+
+    mp_control_status_topic: "/mp_control/status"
+    cargo_events_topic: "/cargo/events"
+    cargo_current_id_topic: "/cargo/current_id"
+
+    task_state_topic: "/leader/task_state"
+    cargo_state_topic: "/leader/cargo_state"
+    follower_enable_topic: "/leader/follower_enable"
+    platoon_mode_topic: "/leader/platoon_mode"
+
+    initial_task_state: "IDLE"
+    initial_cargo_state: "EMPTY"
+    initial_platoon_mode: "STOP"
+    initial_follower_enable: false
