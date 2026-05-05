@@ -24,14 +24,17 @@ class AutoInitBbox(Node):
         self.image_topic = self.declare_parameter("image_topic", "/camera/color/image_raw").value
         self.bbox_topic = self.declare_parameter("bbox_topic", "/target/init_bbox").value
         self.status_topic = self.declare_parameter("status_topic", "/target/auto_init_bbox_status").value
-        self.color_mode = self.declare_parameter("color_mode", "auto").value
+        self.color_mode = self.declare_parameter("color_mode", "black").value
 
         self.min_mask_pixels = int(self.declare_parameter("min_mask_pixels", 700).value)
         self.min_bbox_width_px = float(self.declare_parameter("min_bbox_width_px", 20.0).value)
         self.min_bbox_height_px = float(self.declare_parameter("min_bbox_height_px", 20.0).value)
         self.max_bbox_area_ratio = float(self.declare_parameter("max_bbox_area_ratio", 0.65).value)
+        self.prefer_center = bool(self.declare_parameter("prefer_center", True).value)
         self.auto_color_min = int(self.declare_parameter("auto_color_min", 55).value)
         self.auto_color_margin = int(self.declare_parameter("auto_color_margin", 35).value)
+        self.black_max = int(self.declare_parameter("black_max", 85).value)
+        self.black_min_contrast = int(self.declare_parameter("black_min_contrast", 20).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -85,7 +88,7 @@ class AutoInitBbox(Node):
                 f"receiving image: encoding={msg.encoding} size={msg.width}x{msg.height}")
 
         mask = self.make_mask(image)
-        bbox = self.mask_to_bbox(mask)
+        bbox = self.mask_to_bbox(mask, image.shape[1], image.shape[0])
         if bbox is None:
             pixels = int(np.count_nonzero(mask))
             self.throttled_waiting_status(f"target pixels too small: {pixels}")
@@ -216,6 +219,13 @@ class AutoInitBbox(Node):
                 ((max_channel - min_channel) >= self.auto_color_margin)
             )
 
+        if self.color_mode == "black":
+            luma = ((77 * r) + (150 * g) + (29 * b)) // 256
+            scene_luma = float(np.median(luma))
+            dark_enough = luma <= self.black_max
+            contrasted = (scene_luma - luma) >= self.black_min_contrast
+            return dark_enough & contrasted
+
         if self.color_mode == "green":
             return (
                 (g >= self.green_min) &
@@ -231,7 +241,7 @@ class AutoInitBbox(Node):
             ((r - np.maximum(g, b)) >= self.red_margin)
         )
 
-    def mask_to_bbox(self, mask):
+    def mask_to_bbox(self, mask, image_width, image_height):
         pixels = int(np.count_nonzero(mask))
         if pixels < self.min_mask_pixels:
             return None
@@ -241,7 +251,7 @@ class AutoInitBbox(Node):
                 mask.astype(np.uint8), 8)
             if labels_count <= 1:
                 return None
-            component_index = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+            component_index = self.choose_component(stats, image_width, image_height)
             component_pixels = int(stats[component_index, cv2.CC_STAT_AREA])
             if component_pixels < self.min_mask_pixels:
                 return None
@@ -259,6 +269,34 @@ class AutoInitBbox(Node):
         y_min = int(ys.min())
         y_max = int(ys.max())
         return x_min, y_min, float(x_max - x_min + 1), float(y_max - y_min + 1), pixels
+
+    def choose_component(self, stats, image_width, image_height):
+        if not self.prefer_center:
+            return 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+
+        image_center_x = 0.5 * float(image_width)
+        image_center_y = 0.5 * float(image_height)
+        image_diag = max(1.0, float(np.hypot(image_width, image_height)))
+        best_index = 1
+        best_score = -1.0
+
+        for index in range(1, stats.shape[0]):
+            area = float(stats[index, cv2.CC_STAT_AREA])
+            if area < self.min_mask_pixels:
+                continue
+            x = float(stats[index, cv2.CC_STAT_LEFT])
+            y = float(stats[index, cv2.CC_STAT_TOP])
+            width = float(stats[index, cv2.CC_STAT_WIDTH])
+            height = float(stats[index, cv2.CC_STAT_HEIGHT])
+            center_x = x + 0.5 * width
+            center_y = y + 0.5 * height
+            center_distance = np.hypot(center_x - image_center_x, center_y - image_center_y) / image_diag
+            score = area * (1.0 - min(0.85, center_distance))
+            if score > best_score:
+                best_score = score
+                best_index = index
+
+        return best_index
 
 
 def main(args=None):
