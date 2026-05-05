@@ -46,6 +46,8 @@ def generate_launch_description():
     auto_init_min_bbox_width_px = LaunchConfiguration("auto_init_min_bbox_width_px")
     auto_init_min_bbox_height_px = LaunchConfiguration("auto_init_min_bbox_height_px")
     auto_init_timeout_s = LaunchConfiguration("auto_init_timeout_s")
+    auto_init_black_max = LaunchConfiguration("auto_init_black_max")
+    auto_init_black_min_contrast = LaunchConfiguration("auto_init_black_min_contrast")
     start_auto_eef_init_bbox = LaunchConfiguration("start_auto_eef_init_bbox")
     auto_eef_init_bbox_start_delay = LaunchConfiguration("auto_eef_init_bbox_start_delay")
     auto_eef_init_bbox_image_topic = LaunchConfiguration("auto_eef_init_bbox_image_topic")
@@ -150,6 +152,8 @@ def generate_launch_description():
             "min_bbox_width_px": ParameterValue(auto_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_init_min_bbox_height_px, value_type=float),
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
+            "black_max": ParameterValue(auto_init_black_max, value_type=int),
+            "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
@@ -168,6 +172,8 @@ def generate_launch_description():
             "min_bbox_width_px": ParameterValue(auto_eef_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_eef_init_min_bbox_height_px, value_type=float),
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
+            "black_max": ParameterValue(auto_init_black_max, value_type=int),
+            "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
     )
@@ -360,6 +366,16 @@ def generate_launch_description():
             "auto_init_timeout_s",
             default_value="0.0",
             description="Seconds before auto bbox detection gives up. 0 means keep waiting.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_black_max",
+            default_value="85",
+            description="Maximum luma value considered black.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_black_min_contrast",
+            default_value="20",
+            description="Minimum luma contrast against the scene median for black target detection.",
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
