@@ -100,12 +100,12 @@ class SimPickPlaceDemo(Node):
         self.grasp_arm_positions = [0.0, 1.32, -0.94, -0.23]
         self.pre_place_arm_positions = [-math.pi, 0.82, -0.58, -0.35]
         self.place_arm_positions = [-math.pi, 1.32, -0.94, -0.23]
+        self.base_x = 0.0
         self.pick_object_xyz = self._planned_object_odom_xyz(self.grasp_arm_positions)
         self.released_object_xyz = None
         self.status_text = "READY"
         self.cargo_id = ""
         self.cargo_sequence = int(self.get_parameter("cargo_sequence_start").value)
-        self.base_x = 0.0
         self.wheel_left = 0.0
         self.wheel_right = 0.0
         self.arm_positions = list(self.stow_arm_positions)
