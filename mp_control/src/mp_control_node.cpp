@@ -66,9 +66,11 @@ public:
     bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
       bbox_topic_, default_qos,
       [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onBbox(msg); });
-    init_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
-      fallback_bbox_topic_, default_qos,
-      [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onBbox(msg); });
+    if (use_fallback_bbox_for_control_ && !fallback_bbox_topic_.empty()) {
+      init_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
+        fallback_bbox_topic_, default_qos,
+        [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onBbox(msg); });
+    }
     eef_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
       eef_bbox_topic_, default_qos,
       [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onEefBbox(msg); });
@@ -185,6 +187,8 @@ private:
 
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
+    use_fallback_bbox_for_control_ =
+      declare_parameter<bool>("use_fallback_bbox_for_control", false);
     start_servo_on_start_ = declare_parameter<bool>("start_servo_on_start", true);
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
@@ -879,6 +883,7 @@ private:
 
   bool auto_start_{false};
   bool auto_start_on_bbox_{false};
+  bool use_fallback_bbox_for_control_{false};
   bool start_servo_on_start_{true};
   bool open_gripper_on_start_{true};
   bool close_gripper_on_arrival_{true};
