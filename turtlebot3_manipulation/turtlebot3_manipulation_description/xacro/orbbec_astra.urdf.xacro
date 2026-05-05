@@ -157,7 +157,7 @@ limitations under the License.
       fov="${60.0/180.0*pi}"
       min_dist="0.12"
       max_dist="8.0"
-      stddev_error="0.05" />
+      stddev_error="0.005" />
 
   </xacro:macro>
 </robot>
