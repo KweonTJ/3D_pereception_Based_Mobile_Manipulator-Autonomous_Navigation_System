@@ -9,7 +9,7 @@ csrt_ibvs_node:
     tracked_bbox_topic: /target/tracked_bbox
 
     cmd_vel_topic: /cmd_vel
-    enable_cmd_vel: true
+    enable_cmd_vel: false
 
     enable_arm_twist: false
     arm_twist_topic: /servo_node/delta_twist_cmds
@@ -22,7 +22,7 @@ csrt_ibvs_node:
     use_depth: true
     use_area_fallback: true
     stop_when_lost: true
-    allow_reverse: true
+    allow_reverse: false
     loss_frame_limit: 8
     watchdog_timeout_s: 0.7
     min_bbox_size_px: 12
