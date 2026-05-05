@@ -3,7 +3,7 @@
 <package format="3">
   <name>leader_platooning_beacon</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Publishes leader heartbeat and optional backup state for platooning.</description>
   <maintainer email="kweontj0701@naver.com">ktj</maintainer>
   <license>Apache-2.0</license>
 
