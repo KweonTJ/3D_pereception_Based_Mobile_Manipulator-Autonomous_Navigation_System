@@ -79,8 +79,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "return_to_stow",
-            default_value="false",
-            description="Return the arm to the stow pose after the demo. False keeps the final extended pose visible.",
+            default_value="true",
+            description="Return the arm to the stow pose after placing the object.",
         ),
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
