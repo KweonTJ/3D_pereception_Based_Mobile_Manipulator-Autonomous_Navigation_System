@@ -382,10 +382,11 @@ private:
       return;
     }
 
-    const auto maybe_object = estimateObjectPoint();
+    std::string object_block_reason;
+    const auto maybe_object = estimateObjectPoint(&object_block_reason);
     if (!maybe_object) {
       publishStop();
-      publishStatus("waiting for bbox, depth, camera info, or TF");
+      publishStatus("waiting for " + object_block_reason);
       return;
     }
 
@@ -552,14 +553,24 @@ private:
     publishStatus(status.str());
   }
 
-  std::optional<geometry_msgs::msg::PointStamped> estimateObjectPoint()
+  std::optional<geometry_msgs::msg::PointStamped> estimateObjectPoint(
+    std::string * block_reason = nullptr)
   {
     Bbox bbox;
     CameraInfo info;
     sensor_msgs::msg::Image::ConstSharedPtr depth;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
-      if (!latest_bbox_ || !latest_camera_info_ || !latest_depth_) {
+      if (!latest_bbox_) {
+        setBlockReason(block_reason, "front bbox on " + bbox_topic_);
+        return std::nullopt;
+      }
+      if (!latest_camera_info_) {
+        setBlockReason(block_reason, "camera info on " + camera_info_topic_);
+        return std::nullopt;
+      }
+      if (!latest_depth_) {
+        setBlockReason(block_reason, "depth image on " + depth_topic_);
         return std::nullopt;
       }
       bbox = *latest_bbox_;
@@ -568,6 +579,7 @@ private:
     }
 
     if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
+      setBlockReason(block_reason, "fresh front bbox on " + bbox_topic_);
       return std::nullopt;
     }
 
@@ -575,6 +587,7 @@ private:
     const double v = bbox.y + 0.5 * bbox.height;
     const auto depth_m = medianDepthAt(*depth, info, u, v);
     if (!depth_m) {
+      setBlockReason(block_reason, "valid depth at bbox center");
       return std::nullopt;
     }
     rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
@@ -589,8 +602,16 @@ private:
     try {
       return tf_buffer_.transform(object_camera, target_frame_);
     } catch (const tf2::TransformException & ex) {
+      setBlockReason(block_reason, "TF from " + object_camera.header.frame_id + " to " + target_frame_);
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "object TF transform failed: %s", ex.what());
       return std::nullopt;
+    }
+  }
+
+  void setBlockReason(std::string * block_reason, const std::string & reason) const
+  {
+    if (block_reason) {
+      *block_reason = reason;
     }
   }
 
