@@ -27,7 +27,7 @@ mp_control_node:
     start_servo_on_start: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
-    use_eef_refinement: false
+    use_eef_refinement: true
 
     command_rate_hz: 20.0
     max_target_age_s: 0.6
