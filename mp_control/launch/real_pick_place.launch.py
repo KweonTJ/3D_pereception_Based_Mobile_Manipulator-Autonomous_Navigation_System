@@ -46,6 +46,13 @@ def generate_launch_description():
     auto_init_min_bbox_width_px = LaunchConfiguration("auto_init_min_bbox_width_px")
     auto_init_min_bbox_height_px = LaunchConfiguration("auto_init_min_bbox_height_px")
     auto_init_timeout_s = LaunchConfiguration("auto_init_timeout_s")
+    start_eef_camera_driver = LaunchConfiguration("start_eef_camera_driver")
+    eef_camera_video_device = LaunchConfiguration("eef_camera_video_device")
+    eef_camera_frame_id = LaunchConfiguration("eef_camera_frame_id")
+    eef_camera_pixel_format = LaunchConfiguration("eef_camera_pixel_format")
+    eef_camera_output_encoding = LaunchConfiguration("eef_camera_output_encoding")
+    eef_camera_width = LaunchConfiguration("eef_camera_width")
+    eef_camera_height = LaunchConfiguration("eef_camera_height")
 
     hardware_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -141,6 +148,25 @@ def generate_launch_description():
         condition=IfCondition(start_auto_init_bbox),
     )
 
+    eef_camera_node = Node(
+        package="v4l2_camera",
+        executable="v4l2_camera_node",
+        namespace="eef_camera",
+        name="v4l2_camera",
+        output="screen",
+        parameters=[{
+            "video_device": eef_camera_video_device,
+            "camera_frame_id": eef_camera_frame_id,
+            "pixel_format": eef_camera_pixel_format,
+            "output_encoding": eef_camera_output_encoding,
+            "image_size": [
+                ParameterValue(eef_camera_width, value_type=int),
+                ParameterValue(eef_camera_height, value_type=int),
+            ],
+        }],
+        condition=IfCondition(start_eef_camera_driver),
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument(
             "start_rviz",
@@ -231,7 +257,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
-            default_value="false",
+            default_value="true",
             description="Launch the optional end-effector camera tracker.",
         ),
         DeclareLaunchArgument(
@@ -314,7 +340,43 @@ def generate_launch_description():
             default_value="0.0",
             description="Seconds before auto bbox detection gives up. 0 means keep waiting.",
         ),
+        DeclareLaunchArgument(
+            "start_eef_camera_driver",
+            default_value="true",
+            description="Start the v4l2 end-effector USB camera driver.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_video_device",
+            default_value="/dev/video0",
+            description="Linux video device for the end-effector USB camera.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_frame_id",
+            default_value="eef_usb_camera_optical_frame",
+            description="Frame id used by the end-effector camera images.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_pixel_format",
+            default_value="YUYV",
+            description="V4L2 pixel format requested from the end-effector camera.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_output_encoding",
+            default_value="rgb8",
+            description="ROS image encoding published by the end-effector camera.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_width",
+            default_value="640",
+            description="End-effector camera capture width.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_height",
+            default_value="480",
+            description="End-effector camera capture height.",
+        ),
         hardware_launch,
+        eef_camera_node,
         TimerAction(
             period=control_start_delay,
             actions=[
