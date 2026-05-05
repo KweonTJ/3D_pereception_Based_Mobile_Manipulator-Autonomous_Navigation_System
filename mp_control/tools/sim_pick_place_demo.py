@@ -125,8 +125,13 @@ class SimPickPlaceDemo(Node):
             Twist, self.get_parameter("cmd_vel_topic").value, 10)
         self.traj_pub = self.create_publisher(
             JointTrajectory, self.get_parameter("trajectory_topic").value, 10)
+        marker_qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
+        )
         self.marker_pub = self.create_publisher(
-            MarkerArray, self.get_parameter("marker_topic").value, 10)
+            MarkerArray, self.get_parameter("marker_topic").value, marker_qos)
         self.status_pub = self.create_publisher(
             String, self.get_parameter("status_topic").value, 10)
         current_id_qos = QoSProfile(
@@ -149,6 +154,7 @@ class SimPickPlaceDemo(Node):
                 "ros_gz_interfaces is not available; Gazebo object pose sync disabled")
 
     def run(self):
+        self._publish_ready_markers()
         self._sleep(float(self.get_parameter("start_delay_s").value))
         self._assign_cargo_id()
         self._status("DETECTED: far object marker published in odom")
@@ -204,6 +210,15 @@ class SimPickPlaceDemo(Node):
                 ([-3.141592653589793, 0.82, -0.58, -0.35], 1.6),
                 ([0.0, 0.10, 0.02, -0.80], 4.0),
             ])
+
+    def _publish_ready_markers(self, repeats=3):
+        msg = String()
+        msg.data = self.status_text
+        self.status_pub.publish(msg)
+        for _ in range(max(1, repeats)):
+            self._publish_markers(attached=False, placed=False)
+            rclpy.spin_once(self, timeout_sec=0.05)
+            time.sleep(0.05)
 
     def _sleep(self, seconds):
         end = time.monotonic() + seconds

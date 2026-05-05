@@ -362,7 +362,7 @@ Visualization Manager:
         pick_place_demo: true
       Topic:
         Depth: 5
-        Durability Policy: Volatile
+        Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /mp_control/pick_place_markers
