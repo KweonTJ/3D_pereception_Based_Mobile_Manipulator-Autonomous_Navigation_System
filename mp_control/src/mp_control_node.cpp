@@ -456,6 +456,9 @@ private:
     }
 
     if (use_eef_refinement_ && err_norm <= eef_refinement_switch_distance_m_) {
+      if (!prepareEefRefinement(object)) {
+        return;
+      }
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
       publishStatus("switching to end-effector camera refinement", true);
@@ -494,6 +497,112 @@ private:
     status << "approach err=(" << err_x << ", " << err_y << ", " << err_z
            << ") norm=" << err_norm;
     publishStatus(status.str());
+  }
+
+  bool prepareEefRefinement(const geometry_msgs::msg::PointStamped & object_in_target)
+  {
+    CameraInfo info;
+    std::optional<Bbox> eef_bbox;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_eef_camera_info_) {
+        publishStop();
+        publishStatus("waiting for end-effector camera info before near-field refinement");
+        return false;
+      }
+      info = *latest_eef_camera_info_;
+      eef_bbox = latest_eef_bbox_;
+    }
+
+    if (eef_bbox && (now() - eef_bbox->stamp).seconds() <= max_target_age_s_) {
+      return true;
+    }
+
+    if (!auto_init_eef_tracker_from_object_) {
+      publishStop();
+      publishStatus("waiting for end-effector tracker bbox near object");
+      return false;
+    }
+
+    const auto stamp = now();
+    if (last_eef_init_bbox_stamp_.nanoseconds() == 0 ||
+        (stamp - last_eef_init_bbox_stamp_).seconds() >= eef_init_bbox_republish_period_s_) {
+      if (publishProjectedEefInitBbox(object_in_target, info)) {
+        last_eef_init_bbox_stamp_ = stamp;
+      }
+    }
+
+    publishStop();
+    publishStatus("waiting for end-effector tracker bbox near object");
+    return false;
+  }
+
+  bool publishProjectedEefInitBbox(
+    const geometry_msgs::msg::PointStamped & object_in_target,
+    const CameraInfo & info)
+  {
+    const std::string eef_camera_frame =
+      eef_camera_frame_override_.empty() ? info.frame_id : eef_camera_frame_override_;
+
+    geometry_msgs::msg::PointStamped object_latest = object_in_target;
+    object_latest.header.stamp = builtin_interfaces::msg::Time();
+
+    geometry_msgs::msg::PointStamped object_in_eef_camera;
+    try {
+      object_in_eef_camera = tf_buffer_.transform(object_latest, eef_camera_frame);
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "end-effector init bbox TF unavailable: %s", ex.what());
+      return false;
+    }
+
+    const double z_m = object_in_eef_camera.point.z;
+    if (!std::isfinite(z_m) || z_m <= 0.01) {
+      return false;
+    }
+
+    const double u = info.fx * object_in_eef_camera.point.x / z_m + info.cx;
+    const double v = info.fy * object_in_eef_camera.point.y / z_m + info.cy;
+    if (!std::isfinite(u) || !std::isfinite(v)) {
+      return false;
+    }
+
+    const double image_width = std::max(1.0, static_cast<double>(info.width));
+    const double image_height = std::max(1.0, static_cast<double>(info.height));
+    if (u < 0.0 || u >= image_width || v < 0.0 || v >= image_height) {
+      return false;
+    }
+
+    std::optional<double> measured_width;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      measured_width = latest_object_width_m_;
+    }
+    const double width_m = measured_width.value_or(gripper_fallback_object_width_m_);
+    const double bbox_w = clampValue(
+      eef_init_bbox_padding_scale_ * width_m * info.fx / z_m,
+      eef_init_bbox_min_size_px_, eef_init_bbox_max_size_px_);
+    const double bbox_h = clampValue(
+      eef_init_bbox_padding_scale_ * object_height_m_ * info.fy / z_m,
+      eef_init_bbox_min_size_px_, eef_init_bbox_max_size_px_);
+
+    const double x = clampValue(u - 0.5 * bbox_w, 0.0, image_width - 1.0);
+    const double y = clampValue(v - 0.5 * bbox_h, 0.0, image_height - 1.0);
+    const double w = std::min(bbox_w, image_width - x);
+    const double h = std::min(bbox_h, image_height - y);
+    if (w < 2.0 || h < 2.0) {
+      return false;
+    }
+
+    std_msgs::msg::Float32MultiArray msg;
+    msg.data = {
+      static_cast<float>(x),
+      static_cast<float>(y),
+      static_cast<float>(w),
+      static_cast<float>(h)};
+    eef_init_bbox_pub_->publish(msg);
+    return true;
   }
 
   void updateEefRefinement(const geometry_msgs::msg::PointStamped & object_in_target)
