@@ -48,11 +48,16 @@ def generate_launch_description():
     auto_init_timeout_s = LaunchConfiguration("auto_init_timeout_s")
     auto_init_black_max = LaunchConfiguration("auto_init_black_max")
     auto_init_black_min_contrast = LaunchConfiguration("auto_init_black_min_contrast")
+    auto_init_depth_min_m = LaunchConfiguration("auto_init_depth_min_m")
+    auto_init_depth_max_m = LaunchConfiguration("auto_init_depth_max_m")
+    auto_init_depth_near_percentile = LaunchConfiguration("auto_init_depth_near_percentile")
+    auto_init_depth_band_m = LaunchConfiguration("auto_init_depth_band_m")
     start_auto_eef_init_bbox = LaunchConfiguration("start_auto_eef_init_bbox")
     auto_eef_init_bbox_start_delay = LaunchConfiguration("auto_eef_init_bbox_start_delay")
     auto_eef_init_bbox_image_topic = LaunchConfiguration("auto_eef_init_bbox_image_topic")
     auto_eef_init_bbox_topic = LaunchConfiguration("auto_eef_init_bbox_topic")
     auto_eef_init_bbox_status_topic = LaunchConfiguration("auto_eef_init_bbox_status_topic")
+    auto_eef_init_color_mode = LaunchConfiguration("auto_eef_init_color_mode")
     auto_eef_init_min_mask_pixels = LaunchConfiguration("auto_eef_init_min_mask_pixels")
     auto_eef_init_min_bbox_width_px = LaunchConfiguration("auto_eef_init_min_bbox_width_px")
     auto_eef_init_min_bbox_height_px = LaunchConfiguration("auto_eef_init_min_bbox_height_px")
@@ -154,6 +159,10 @@ def generate_launch_description():
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
+            "depth_min_m": ParameterValue(auto_init_depth_min_m, value_type=float),
+            "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
+            "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
+            "depth_band_m": ParameterValue(auto_init_depth_band_m, value_type=float),
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
@@ -167,13 +176,17 @@ def generate_launch_description():
             "image_topic": auto_eef_init_bbox_image_topic,
             "bbox_topic": auto_eef_init_bbox_topic,
             "status_topic": auto_eef_init_bbox_status_topic,
-            "color_mode": auto_init_color_mode,
+            "color_mode": auto_eef_init_color_mode,
             "min_mask_pixels": ParameterValue(auto_eef_init_min_mask_pixels, value_type=int),
             "min_bbox_width_px": ParameterValue(auto_eef_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_eef_init_min_bbox_height_px, value_type=float),
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
+            "depth_min_m": ParameterValue(auto_init_depth_min_m, value_type=float),
+            "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
+            "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
+            "depth_band_m": ParameterValue(auto_init_depth_band_m, value_type=float),
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
     )
@@ -255,9 +268,9 @@ def generate_launch_description():
             default_value=PathJoinSubstitution([
                 FindPackageShare("hybrid_csrt_ibvs"),
                 "config",
-                "turtlebot3_waffle_pi_orbbec.yaml",
+                "turtlebot3_waffle_pi_orbbec_depth.yaml",
             ]),
-            description="Real robot parameter file for the base RGB-D tracker.",
+            description="Real robot parameter file for the base depth tracker.",
         ),
         DeclareLaunchArgument(
             "eef_hybrid_config_file",
@@ -329,8 +342,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_image_topic",
-            default_value="/camera/color/image_raw",
-            description="Color image topic used for automatic initial bbox detection.",
+            default_value="/camera/depth/image_raw",
+            description="Image topic used for automatic initial bbox detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_topic",
@@ -344,8 +357,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="black",
-            description="Target appearance to detect. Supported values: black, auto, red, green.",
+            default_value="depth_near",
+            description="Target appearance to detect. Supported values: depth_near, black, auto, red, green.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
@@ -378,6 +391,26 @@ def generate_launch_description():
             description="Minimum luma contrast against the scene median for black target detection.",
         ),
         DeclareLaunchArgument(
+            "auto_init_depth_min_m",
+            default_value="0.12",
+            description="Minimum valid depth for depth_near automatic bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_depth_max_m",
+            default_value="1.2",
+            description="Maximum valid depth for depth_near automatic bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_depth_near_percentile",
+            default_value="8.0",
+            description="Nearest valid depth percentile used by depth_near automatic bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_depth_band_m",
+            default_value="0.08",
+            description="Depth band above the near percentile used by depth_near detection.",
+        ),
+        DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
             default_value="true",
             description="Automatically detect the colored target from the EEF camera.",
@@ -401,6 +434,11 @@ def generate_launch_description():
             "auto_eef_init_bbox_status_topic",
             default_value="/target/auto_eef_init_bbox_status",
             description="Status topic for EEF automatic bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_color_mode",
+            default_value="black",
+            description="Target appearance to detect from the EEF RGB camera.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_min_mask_pixels",
