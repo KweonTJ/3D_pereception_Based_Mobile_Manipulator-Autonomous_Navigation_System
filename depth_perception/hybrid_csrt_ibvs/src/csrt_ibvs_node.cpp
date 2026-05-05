@@ -299,7 +299,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
 }
 
 std::optional<cv::Mat> CsrtIbvsNode::imageMsgToBgr(
-  const sensor_msgs::msg::Image::ConstSharedPtr & msg) const
+  const sensor_msgs::msg::Image::ConstSharedPtr & msg)
 {
   const std::string & encoding = msg->encoding;
   if (encoding == sensor_msgs::image_encodings::TYPE_16UC1 ||
@@ -322,7 +322,7 @@ std::optional<cv::Mat> CsrtIbvsNode::imageMsgToBgr(
 }
 
 std::optional<cv::Mat> CsrtIbvsNode::depthMsgToBgr(
-  const sensor_msgs::msg::Image::ConstSharedPtr & msg) const
+  const sensor_msgs::msg::Image::ConstSharedPtr & msg)
 {
   cv::Mat depth_m;
 
