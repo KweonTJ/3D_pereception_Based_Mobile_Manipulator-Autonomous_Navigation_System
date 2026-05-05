@@ -289,6 +289,54 @@ class SimPickPlaceDemo(Node):
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.1)
 
+    def _drive_base(self, distance_m, speed_mps):
+        speed = abs(speed_mps)
+        if speed < 0.01:
+            speed = 0.10
+        direction = 1.0 if distance_m >= 0.0 else -1.0
+        duration_s = abs(distance_m) / speed
+
+        wait_until = time.monotonic() + float(
+            self.get_parameter("cmd_vel_wait_timeout_s").value)
+        while (
+            self.cmd_vel_pub.get_subscription_count() == 0
+            and rclpy.ok()
+            and time.monotonic() < wait_until
+        ):
+            self._publish_demo_state()
+            self._publish_markers()
+            rclpy.spin_once(self, timeout_sec=0.1)
+        if self.cmd_vel_pub.get_subscription_count() == 0:
+            self.get_logger().warn(
+                "no /cmd_vel subscriber; publishing RViz demo TF for base approach")
+
+        end = time.monotonic() + duration_s
+        last = time.monotonic()
+        while rclpy.ok() and time.monotonic() < end:
+            now = time.monotonic()
+            dt = now - last
+            last = now
+            self.base_x += direction * speed * dt
+            self.wheel_left += direction * speed * dt / 0.033
+            self.wheel_right += direction * speed * dt / 0.033
+            msg = Twist()
+            msg.linear.x = direction * speed
+            self.cmd_vel_pub.publish(msg)
+            self._publish_demo_state()
+            self._publish_markers()
+            rclpy.spin_once(self, timeout_sec=0.05)
+            time.sleep(0.05)
+        self._stop_base()
+
+    def _stop_base(self):
+        stop = Twist()
+        for _ in range(10):
+            self.cmd_vel_pub.publish(stop)
+            self._publish_demo_state()
+            self._publish_markers()
+            rclpy.spin_once(self, timeout_sec=0.03)
+            time.sleep(0.03)
+
     def _publish_demo_state(self):
         self._publish_base_tf()
         self._publish_demo_joint_states()
@@ -578,12 +626,13 @@ class SimPickPlaceDemo(Node):
             return self.released_object_xyz
         return self._planned_object_odom_xyz(self.place_arm_positions)
 
-    def _planned_object_odom_xyz(self, arm_positions):
+    def _planned_object_odom_xyz(self, arm_positions, base_x=None):
         matrix = self._planned_end_effector_matrix(arm_positions)
         translation = [matrix[0][3], matrix[1][3], matrix[2][3]]
         offset = self._rotate_matrix_vector(matrix, self.attached_object_offset_xyz)
+        base_x = self.base_x if base_x is None else float(base_x)
         return [
-            self.base_x + translation[0] + offset[0],
+            base_x + translation[0] + offset[0],
             translation[1] + offset[1],
             translation[2] + offset[2],
         ]
