@@ -125,7 +125,7 @@ class SimPickPlaceDemo(Node):
         self.pre_grasp_arm_positions = [0.0, 0.82, -0.58, -0.35]
         self.grasp_arm_positions = [0.0, 1.32, -0.94, -0.23]
         self.pre_place_arm_positions = [-math.pi, 0.82, -0.58, -0.35]
-        self.place_arm_positions = [-math.pi, 1.32, -0.94, -0.23]
+        self.place_arm_positions = [-math.pi, 1.50, -0.94, -0.03]
         self.base_approach_distance_m = float(
             self.get_parameter("base_approach_distance_m").value)
         self.base_x = 0.0
