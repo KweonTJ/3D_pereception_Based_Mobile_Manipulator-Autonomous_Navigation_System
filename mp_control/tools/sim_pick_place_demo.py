@@ -193,7 +193,7 @@ class SimPickPlaceDemo(Node):
         self._status("PLACE_REACH: arm fully extended behind robot")
         self._sleep(2.0)
 
-        self._status("RELEASE: opening gripper at place target")
+        self._status("RELEASE: opening gripper at reached pose")
         self.released_object_xyz = (
             self._attached_object_odom_xyz()
             or self._planned_object_odom_xyz(self.place_arm_positions)
