@@ -152,6 +152,13 @@ private:
     std::string frame_id;
   };
 
+  struct GripperTarget
+  {
+    double position{0.0};
+    double object_width_m{0.0};
+    bool measured{false};
+  };
+
   void readParameters()
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
@@ -205,6 +212,21 @@ private:
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
+    gripper_width_control_enabled_ = declare_parameter<bool>("gripper_width_control_enabled", true);
+    gripper_fallback_object_width_m_ =
+      declare_parameter<double>("gripper_fallback_object_width_m", 0.06);
+    gripper_finger_home_half_gap_m_ =
+      declare_parameter<double>("gripper_finger_home_half_gap_m", 0.021);
+    gripper_pre_grasp_clearance_m_ =
+      declare_parameter<double>("gripper_pre_grasp_clearance_m", 0.012);
+    gripper_grasp_compression_m_ =
+      declare_parameter<double>("gripper_grasp_compression_m", 0.002);
+    gripper_min_position_ = declare_parameter<double>("gripper_min_position", -0.010);
+    gripper_max_position_ = declare_parameter<double>("gripper_max_position", 0.019);
+    gripper_min_measured_object_width_m_ =
+      declare_parameter<double>("gripper_min_measured_object_width_m", 0.01);
+    gripper_max_measured_object_width_m_ =
+      declare_parameter<double>("gripper_max_measured_object_width_m", 0.08);
 
     command_rate_hz_ = std::max(1.0, command_rate_hz_);
     max_linear_speed_ = std::max(0.0, max_linear_speed_);
@@ -217,6 +239,20 @@ private:
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
     cargo_sequence_next_ = std::max(1, cargo_sequence_next_);
+    if (gripper_min_position_ > gripper_max_position_) {
+      std::swap(gripper_min_position_, gripper_max_position_);
+    }
+    if (gripper_min_measured_object_width_m_ > gripper_max_measured_object_width_m_) {
+      std::swap(gripper_min_measured_object_width_m_, gripper_max_measured_object_width_m_);
+    }
+    gripper_open_position_ = clampValue(
+      gripper_open_position_, gripper_min_position_, gripper_max_position_);
+    gripper_close_position_ = clampValue(
+      gripper_close_position_, gripper_min_position_, gripper_max_position_);
+    gripper_fallback_object_width_m_ = std::max(0.0, gripper_fallback_object_width_m_);
+    gripper_finger_home_half_gap_m_ = std::max(0.0, gripper_finger_home_half_gap_m_);
+    gripper_pre_grasp_clearance_m_ = std::max(0.0, gripper_pre_grasp_clearance_m_);
+    gripper_grasp_compression_m_ = std::max(0.0, gripper_grasp_compression_m_);
   }
 
   void onBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
@@ -320,7 +356,7 @@ private:
     assignCargoId();
     publishCargoEvent("assigned", true);
     if (open_gripper_on_start_) {
-      sendGripper(gripper_open_position_);
+      sendGripperOpenForObject();
       open_sent_ = true;
     }
     if (start_servo_on_start_) {
@@ -395,13 +431,13 @@ private:
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
         if (close_gripper_on_arrival_ && !close_sent_) {
-          sendGripper(gripper_close_position_);
+          sendGripperGraspForObject();
           close_sent_ = true;
           publishCargoEvent("picked", true);
         }
         done_ = true;
         active_ = false;
-        publishStatus("grasp target reached; gripper close command sent", true);
+        publishStatus("grasp target reached; width-aware gripper command sent", true);
       } else {
         publishStatus("holding near target before closing");
       }
@@ -480,13 +516,13 @@ private:
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
         if (close_gripper_on_arrival_ && !close_sent_) {
-          sendGripper(gripper_close_position_);
+          sendGripperGraspForObject();
           close_sent_ = true;
           publishCargoEvent("picked", true);
         }
         done_ = true;
         active_ = false;
-        publishStatus("eef camera refined grasp reached; gripper close command sent", true);
+        publishStatus("eef camera refined grasp reached; width-aware gripper command sent", true);
       } else {
         publishStatus("eef camera aligned; holding before closing");
       }
