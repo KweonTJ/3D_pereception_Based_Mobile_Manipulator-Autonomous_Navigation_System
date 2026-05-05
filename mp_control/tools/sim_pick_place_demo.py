@@ -80,6 +80,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("base_approach_distance_m", 0.80)
         self.declare_parameter("base_approach_speed_mps", 0.12)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
+        self.declare_parameter("object_size_xyz", [0.06, 0.06, 0.10])
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
@@ -96,6 +97,8 @@ class SimPickPlaceDemo(Node):
         self.publish_demo_base_tf = bool(self.get_parameter("publish_demo_base_tf").value)
         self.publish_demo_joint_states = bool(
             self.get_parameter("publish_demo_joint_states").value)
+        self.object_size_xyz = [
+            float(v) for v in self.get_parameter("object_size_xyz").value]
         self.attached_object_offset_xyz = [
             float(v) for v in self.get_parameter("attached_object_offset_xyz").value]
         self.gazebo_world_origin_xyz = [
@@ -470,9 +473,9 @@ class SimPickPlaceDemo(Node):
         marker.id = 1
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
-        marker.scale.x = 0.06
-        marker.scale.y = 0.06
-        marker.scale.z = 0.08
+        marker.scale.x = self.object_size_xyz[0]
+        marker.scale.y = self.object_size_xyz[1]
+        marker.scale.z = self.object_size_xyz[2]
         marker.color.r = 0.85
         marker.color.g = 0.04
         marker.color.b = 0.03
@@ -554,7 +557,7 @@ class SimPickPlaceDemo(Node):
             xyz = self._placed_object_odom_xyz() if placed else self.pick_object_xyz
             marker.pose.position.x = xyz[0]
             marker.pose.position.y = xyz[1]
-            marker.pose.position.z = xyz[2] + 0.12
+            marker.pose.position.z = xyz[2] + self.object_size_xyz[2] + 0.04
         marker.pose.orientation.w = 1.0
         marker.scale.z = 0.05
         marker.color.r = 1.0
