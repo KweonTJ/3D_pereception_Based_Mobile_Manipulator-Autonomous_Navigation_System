@@ -23,6 +23,12 @@
   <depend>tf2_geometry_msgs</depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>ros_gz_interfaces</exec_depend>
+  <exec_depend>hybrid_csrt_ibvs</exec_depend>
+  <exec_depend>leader_platooning_beacon</exec_depend>
+  <exec_depend>leader_task_manager</exec_depend>
+  <exec_depend>platooning_bridge_config</exec_depend>
+  <exec_depend>turtlebot3_manipulation_bringup</exec_depend>
+  <exec_depend>turtlebot3_manipulation_moveit_config</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
