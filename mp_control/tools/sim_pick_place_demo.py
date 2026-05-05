@@ -443,7 +443,7 @@ class SimPickPlaceDemo(Node):
 
         markers = MarkerArray()
         markers.markers.append(self._object_marker(attached, placed))
-        markers.markers.append(self._place_marker())
+        markers.markers.append(self._place_marker(placed))
         markers.markers.append(self._text_marker(attached, placed))
         markers.markers.append(self._cargo_id_marker(attached, placed))
         self.marker_pub.publish(markers)
@@ -472,14 +472,14 @@ class SimPickPlaceDemo(Node):
             marker.pose.position.z = self.attached_object_offset_xyz[2]
         else:
             marker.header.frame_id = self.place_frame if placed else self.object_frame
-            xyz = self.place_xyz if placed else self.object_xyz
+            xyz = self._placed_object_odom_xyz() if placed else self.pick_object_xyz
             marker.pose.position.x = xyz[0]
             marker.pose.position.y = xyz[1]
             marker.pose.position.z = xyz[2]
         marker.pose.orientation.w = 1.0
         return marker
 
-    def _place_marker(self):
+    def _place_marker(self, placed):
         marker = Marker()
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.header.frame_id = self.place_frame
@@ -487,9 +487,11 @@ class SimPickPlaceDemo(Node):
         marker.id = 2
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
-        marker.pose.position.x = self.place_xyz[0]
-        marker.pose.position.y = self.place_xyz[1]
-        marker.pose.position.z = self.place_xyz[2]
+        xyz = self._placed_object_odom_xyz() if placed else self._planned_object_odom_xyz(
+            self.place_arm_positions)
+        marker.pose.position.x = xyz[0]
+        marker.pose.position.y = xyz[1]
+        marker.pose.position.z = xyz[2]
         marker.pose.orientation.w = 1.0
         marker.scale.x = 0.08
         marker.scale.y = 0.08
@@ -535,7 +537,7 @@ class SimPickPlaceDemo(Node):
             marker.pose.position.z = self.attached_object_offset_xyz[2] + 0.10
         else:
             marker.header.frame_id = self.place_frame if placed else self.object_frame
-            xyz = self.place_xyz if placed else self.object_xyz
+            xyz = self._placed_object_odom_xyz() if placed else self.pick_object_xyz
             marker.pose.position.x = xyz[0]
             marker.pose.position.y = xyz[1]
             marker.pose.position.z = xyz[2] + 0.12
@@ -579,9 +581,9 @@ class SimPickPlaceDemo(Node):
             if xyz is None:
                 return None
         elif placed:
-            xyz = self.place_xyz
+            xyz = self._placed_object_odom_xyz()
         else:
-            xyz = self.object_xyz
+            xyz = self.pick_object_xyz
 
         pose = Pose()
         pose.position.x = xyz[0] + self.gazebo_world_origin_xyz[0]
@@ -603,6 +605,89 @@ class SimPickPlaceDemo(Node):
             translation.x + offset[0],
             translation.y + offset[1],
             translation.z + offset[2],
+        ]
+
+    def _placed_object_odom_xyz(self):
+        if self.released_object_xyz is not None:
+            return self.released_object_xyz
+        return self._planned_object_odom_xyz(self.place_arm_positions)
+
+    def _planned_object_odom_xyz(self, arm_positions):
+        matrix = self._planned_end_effector_matrix(arm_positions)
+        translation = [matrix[0][3], matrix[1][3], matrix[2][3]]
+        offset = self._rotate_matrix_vector(matrix, self.attached_object_offset_xyz)
+        return [
+            self.base_x + translation[0] + offset[0],
+            translation[1] + offset[1],
+            translation[2] + offset[2],
+        ]
+
+    def _planned_end_effector_matrix(self, arm_positions):
+        joint1, joint2, joint3, joint4 = arm_positions
+        matrix = self._identity_matrix()
+        for transform in [
+            self._translation_matrix(-0.092, 0.0, 0.178),
+            self._translation_matrix(0.012, 0.0, 0.017),
+            self._rotation_z_matrix(joint1),
+            self._translation_matrix(0.0, 0.0, 0.0595),
+            self._rotation_y_matrix(joint2),
+            self._translation_matrix(0.024, 0.0, 0.128),
+            self._rotation_y_matrix(joint3),
+            self._translation_matrix(0.124, 0.0, 0.0),
+            self._rotation_y_matrix(joint4),
+            self._translation_matrix(0.126, 0.0, 0.0),
+        ]:
+            matrix = self._matrix_multiply(matrix, transform)
+        return matrix
+
+    def _identity_matrix(self):
+        return [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+
+    def _translation_matrix(self, x, y, z):
+        matrix = self._identity_matrix()
+        matrix[0][3] = x
+        matrix[1][3] = y
+        matrix[2][3] = z
+        return matrix
+
+    def _rotation_y_matrix(self, angle):
+        c = math.cos(angle)
+        s = math.sin(angle)
+        return [
+            [c, 0.0, s, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [-s, 0.0, c, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+
+    def _rotation_z_matrix(self, angle):
+        c = math.cos(angle)
+        s = math.sin(angle)
+        return [
+            [c, -s, 0.0, 0.0],
+            [s, c, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+
+    def _matrix_multiply(self, lhs, rhs):
+        return [
+            [
+                sum(lhs[row][idx] * rhs[idx][col] for idx in range(4))
+                for col in range(4)
+            ]
+            for row in range(4)
+        ]
+
+    def _rotate_matrix_vector(self, matrix, vector):
+        return [
+            sum(matrix[row][idx] * vector[idx] for idx in range(3))
+            for row in range(3)
         ]
 
     def _rotate_vector(self, quaternion, vector):
