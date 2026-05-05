@@ -122,10 +122,10 @@ class SimPickPlaceDemo(Node):
         self.gripper_grasp_compression_m = max(
             0.0, float(self.get_parameter("gripper_grasp_compression_m").value))
         self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
-        self.pre_grasp_arm_positions = [0.0, 0.82, -0.58, -0.35]
-        self.grasp_arm_positions = [0.0, 1.32, -0.94, -0.23]
-        self.pre_place_arm_positions = [-math.pi, 0.82, -0.58, -0.35]
-        self.place_arm_positions = [-math.pi, 1.50, -0.94, -0.03]
+        self.pre_grasp_arm_positions = self._level_gripper_pose(0.0, 0.82, -0.58)
+        self.grasp_arm_positions = self._level_gripper_pose(0.0, 1.32, -0.94)
+        self.pre_place_arm_positions = self._level_gripper_pose(-math.pi, 0.82, -0.58)
+        self.place_arm_positions = self._level_gripper_pose(-math.pi, 1.56, -0.47)
         self.base_approach_distance_m = float(
             self.get_parameter("base_approach_distance_m").value)
         self.base_x = 0.0
@@ -183,6 +183,9 @@ class SimPickPlaceDemo(Node):
         elif bool(self.get_parameter("sync_gazebo_object").value):
             self.get_logger().warn(
                 "ros_gz_interfaces is not available; Gazebo object pose sync disabled")
+
+    def _level_gripper_pose(self, joint1, joint2, joint3):
+        return [float(joint1), float(joint2), float(joint3), -float(joint2) - float(joint3)]
 
     def run(self):
         self._publish_ready_markers()
