@@ -78,8 +78,11 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("return_to_stow", False)
         self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
         self.declare_parameter("place_xyz", [0.72, 0.0, 0.115])
-        self.declare_parameter("approach_distance_m", 1.00)
+        self.declare_parameter("approach_distance_m", 1.04)
         self.declare_parameter("approach_speed_mps", 0.12)
+        self.declare_parameter("post_pick_forward_distance_m", 0.14)
+        self.declare_parameter("post_pick_forward_speed_mps", 0.08)
+        self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
@@ -98,6 +101,8 @@ class SimPickPlaceDemo(Node):
             self.get_parameter("publish_demo_joint_states").value)
         self.object_xyz = [float(v) for v in self.get_parameter("object_xyz").value]
         self.place_xyz = [float(v) for v in self.get_parameter("place_xyz").value]
+        self.attached_object_offset_xyz = [
+            float(v) for v in self.get_parameter("attached_object_offset_xyz").value]
         self.gazebo_world_origin_xyz = [
             float(v) for v in self.get_parameter("gazebo_world_origin_xyz").value]
         self.status_text = "READY"
@@ -187,6 +192,12 @@ class SimPickPlaceDemo(Node):
         self._publish_cargo_event("picked")
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
+
+        self._status("BASE_CLEARANCE: moving forward before rear placement")
+        self._drive_base(
+            float(self.get_parameter("post_pick_forward_distance_m").value),
+            float(self.get_parameter("post_pick_forward_speed_mps").value),
+        )
 
         self._status("PLACE: lifting and moving to rear place pose")
         self._send_trajectory([
@@ -463,9 +474,9 @@ class SimPickPlaceDemo(Node):
         if attached:
             marker.header.frame_id = "end_effector_link"
             marker.frame_locked = True
-            marker.pose.position.x = 0.08
-            marker.pose.position.y = 0.0
-            marker.pose.position.z = 0.0
+            marker.pose.position.x = self.attached_object_offset_xyz[0]
+            marker.pose.position.y = self.attached_object_offset_xyz[1]
+            marker.pose.position.z = self.attached_object_offset_xyz[2]
         else:
             marker.header.frame_id = self.place_frame if placed else self.object_frame
             xyz = self.place_xyz if placed else self.object_xyz
@@ -526,9 +537,9 @@ class SimPickPlaceDemo(Node):
         if attached:
             marker.header.frame_id = "end_effector_link"
             marker.frame_locked = True
-            marker.pose.position.x = 0.08
-            marker.pose.position.y = 0.0
-            marker.pose.position.z = 0.10
+            marker.pose.position.x = self.attached_object_offset_xyz[0]
+            marker.pose.position.y = self.attached_object_offset_xyz[1]
+            marker.pose.position.z = self.attached_object_offset_xyz[2] + 0.10
         else:
             marker.header.frame_id = self.place_frame if placed else self.object_frame
             xyz = self.place_xyz if placed else self.object_xyz
@@ -594,7 +605,7 @@ class SimPickPlaceDemo(Node):
             return None
         translation = transform.transform.translation
         rotation = transform.transform.rotation
-        offset = self._rotate_vector(rotation, [0.08, 0.0, 0.0])
+        offset = self._rotate_vector(rotation, self.attached_object_offset_xyz)
         return [
             translation.x + offset[0],
             translation.y + offset[1],
