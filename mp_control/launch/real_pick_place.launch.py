@@ -338,8 +338,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="auto",
-            description="Colored target to detect. Supported values: auto, red, green.",
+            default_value="black",
+            description="Target appearance to detect. Supported values: black, auto, red, green.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
