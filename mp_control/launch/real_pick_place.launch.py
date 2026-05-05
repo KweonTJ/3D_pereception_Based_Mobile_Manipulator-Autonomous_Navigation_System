@@ -6,6 +6,8 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -34,6 +36,16 @@ def generate_launch_description():
     start_leader_task_manager = LaunchConfiguration("start_leader_task_manager")
     start_leader_beacon = LaunchConfiguration("start_leader_beacon")
     start_domain_bridge = LaunchConfiguration("start_domain_bridge")
+    start_auto_init_bbox = LaunchConfiguration("start_auto_init_bbox")
+    auto_init_bbox_start_delay = LaunchConfiguration("auto_init_bbox_start_delay")
+    auto_init_bbox_image_topic = LaunchConfiguration("auto_init_bbox_image_topic")
+    auto_init_bbox_topic = LaunchConfiguration("auto_init_bbox_topic")
+    auto_init_bbox_status_topic = LaunchConfiguration("auto_init_bbox_status_topic")
+    auto_init_color_mode = LaunchConfiguration("auto_init_color_mode")
+    auto_init_min_mask_pixels = LaunchConfiguration("auto_init_min_mask_pixels")
+    auto_init_min_bbox_width_px = LaunchConfiguration("auto_init_min_bbox_width_px")
+    auto_init_min_bbox_height_px = LaunchConfiguration("auto_init_min_bbox_height_px")
+    auto_init_timeout_s = LaunchConfiguration("auto_init_timeout_s")
 
     hardware_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -109,6 +121,24 @@ def generate_launch_description():
             ])
         ]),
         condition=IfCondition(start_domain_bridge),
+    )
+
+    auto_init_bbox_node = Node(
+        package="mp_control",
+        executable="auto_init_bbox.py",
+        name="auto_init_bbox",
+        output="screen",
+        parameters=[{
+            "image_topic": auto_init_bbox_image_topic,
+            "bbox_topic": auto_init_bbox_topic,
+            "status_topic": auto_init_bbox_status_topic,
+            "color_mode": auto_init_color_mode,
+            "min_mask_pixels": ParameterValue(auto_init_min_mask_pixels, value_type=int),
+            "min_bbox_width_px": ParameterValue(auto_init_min_bbox_width_px, value_type=float),
+            "min_bbox_height_px": ParameterValue(auto_init_min_bbox_height_px, value_type=float),
+            "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
+        }],
+        condition=IfCondition(start_auto_init_bbox),
     )
 
     return LaunchDescription([
@@ -190,7 +220,7 @@ def generate_launch_description():
             default_value=PathJoinSubstitution([
                 FindPackageShare("mp_control"),
                 "config",
-                "mp_control_params.yaml",
+                "mp_control_real_params.yaml",
             ]),
             description="Real robot parameter file for mp_control.",
         ),
@@ -234,6 +264,56 @@ def generate_launch_description():
             default_value="false",
             description="Start the optional leader-to-follower domain bridge.",
         ),
+        DeclareLaunchArgument(
+            "start_auto_init_bbox",
+            default_value="true",
+            description="Automatically detect the colored target and publish /target/init_bbox.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_bbox_start_delay",
+            default_value="12.0",
+            description="Seconds to wait before auto-detecting the initial bbox.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_bbox_image_topic",
+            default_value="/camera/color/image_raw",
+            description="Color image topic used for automatic initial bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_bbox_topic",
+            default_value="/target/init_bbox",
+            description="Initial bbox topic published by the auto detector.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_bbox_status_topic",
+            default_value="/target/auto_init_bbox_status",
+            description="Status topic for automatic initial bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_color_mode",
+            default_value="red",
+            description="Colored target to detect. Supported values: red, green.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_min_mask_pixels",
+            default_value="700",
+            description="Minimum colored pixel count required to initialize tracking.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_min_bbox_width_px",
+            default_value="20.0",
+            description="Minimum detected bbox width in pixels.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_min_bbox_height_px",
+            default_value="20.0",
+            description="Minimum detected bbox height in pixels.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_timeout_s",
+            default_value="0.0",
+            description="Seconds before auto bbox detection gives up. 0 means keep waiting.",
+        ),
         hardware_launch,
         TimerAction(
             period=control_start_delay,
@@ -243,5 +323,10 @@ def generate_launch_description():
                 leader_beacon_launch,
                 domain_bridge_launch,
             ],
+        ),
+        TimerAction(
+            period=auto_init_bbox_start_delay,
+            actions=[auto_init_bbox_node],
+            condition=IfCondition(start_auto_init_bbox),
         ),
     ])
