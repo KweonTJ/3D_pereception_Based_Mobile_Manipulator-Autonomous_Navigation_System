@@ -43,3 +43,6 @@ publish_tf: true
 tf_publish_rate: 0.0
 camera_link_frame_id: "camera_link"
 reconnect_timeout: 6.0
+stream_watchdog_enabled: true
+stream_watchdog_timeout_s: 2.0
+stream_watchdog_period_s: 1.0
