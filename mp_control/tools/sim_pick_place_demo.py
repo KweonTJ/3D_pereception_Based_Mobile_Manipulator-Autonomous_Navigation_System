@@ -74,7 +74,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("base_frame", "base_footprint")
         self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("publish_demo_joint_states", True)
-        self.declare_parameter("return_to_stow", False)
+        self.declare_parameter("return_to_stow", True)
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
@@ -203,12 +203,16 @@ class SimPickPlaceDemo(Node):
         self._publish_markers(attached=False, placed=True)
         self._sleep(1.2)
 
-        self._status("DONE: object placed; holding fully extended pose")
         if bool(self.get_parameter("return_to_stow").value):
+            self._status("STOW: folding arm for navigation")
             self._send_trajectory([
                 (self.pre_place_arm_positions, 1.6),
                 (self.stow_arm_positions, 4.0),
             ])
+            self._sleep(4.2)
+            self._status("DONE: object placed; arm stowed")
+        else:
+            self._status("DONE: object placed; holding fully extended pose")
 
     def _publish_ready_markers(self, repeats=3):
         msg = String()
