@@ -15,7 +15,6 @@ from builtin_interfaces.msg import Duration
 from control_msgs.action import GripperCommand
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
-from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -61,7 +60,6 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("eef_bbox_topic", "/target/eef_init_bbox")
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("trajectory_topic", "/arm_controller/joint_trajectory")
-        self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("marker_topic", "/mp_control/pick_place_markers")
         self.declare_parameter("status_topic", "/mp_control/pick_place_status")
         self.declare_parameter("cargo_event_topic", "/cargo/events")
@@ -78,7 +76,6 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("return_to_stow", False)
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
-        self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
         self.declare_parameter("gazebo_object_entity_name", "grasp_test_cube")
@@ -126,8 +123,6 @@ class SimPickPlaceDemo(Node):
             Float32MultiArray, self.get_parameter("eef_bbox_topic").value, 10)
         self.joint_state_pub = self.create_publisher(
             JointState, self.get_parameter("joint_state_topic").value, 10)
-        self.cmd_vel_pub = self.create_publisher(
-            Twist, self.get_parameter("cmd_vel_topic").value, 10)
         self.traj_pub = self.create_publisher(
             JointTrajectory, self.get_parameter("trajectory_topic").value, 10)
         marker_qos = QoSProfile(
@@ -274,54 +269,6 @@ class SimPickPlaceDemo(Node):
             self.eef_bbox_pub.publish(msg)
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.1)
-
-    def _drive_base(self, distance_m, speed_mps):
-        speed = abs(speed_mps)
-        if speed < 0.01:
-            speed = 0.10
-        direction = 1.0 if distance_m >= 0.0 else -1.0
-        duration_s = abs(distance_m) / speed
-
-        wait_until = time.monotonic() + float(
-            self.get_parameter("cmd_vel_wait_timeout_s").value)
-        while (
-            self.cmd_vel_pub.get_subscription_count() == 0
-            and rclpy.ok()
-            and time.monotonic() < wait_until
-        ):
-            self._publish_demo_state()
-            self._publish_markers()
-            rclpy.spin_once(self, timeout_sec=0.1)
-        if self.cmd_vel_pub.get_subscription_count() == 0:
-            self.get_logger().warn(
-                "no /cmd_vel subscriber; publishing RViz demo TF for base approach")
-
-        end = time.monotonic() + duration_s
-        last = time.monotonic()
-        while rclpy.ok() and time.monotonic() < end:
-            now = time.monotonic()
-            dt = now - last
-            last = now
-            self.base_x += direction * speed * dt
-            self.wheel_left += direction * speed * dt / 0.033
-            self.wheel_right += direction * speed * dt / 0.033
-            msg = Twist()
-            msg.linear.x = direction * speed
-            self.cmd_vel_pub.publish(msg)
-            self._publish_demo_state()
-            self._publish_markers()
-            rclpy.spin_once(self, timeout_sec=0.05)
-            time.sleep(0.05)
-        self._stop_base()
-
-    def _stop_base(self):
-        stop = Twist()
-        for _ in range(10):
-            self.cmd_vel_pub.publish(stop)
-            self._publish_demo_state()
-            self._publish_markers()
-            rclpy.spin_once(self, timeout_sec=0.03)
-            time.sleep(0.03)
 
     def _publish_demo_state(self):
         self._publish_base_tf()
