@@ -662,8 +662,87 @@ private:
     return std::nullopt;
   }
 
+  void rememberMeasuredObjectWidth(double width_m)
+  {
+    if (!std::isfinite(width_m) ||
+        width_m < gripper_min_measured_object_width_m_ ||
+        width_m > gripper_max_measured_object_width_m_) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "ignoring object width estimate %.3f m outside [%.3f, %.3f] m",
+        width_m, gripper_min_measured_object_width_m_, gripper_max_measured_object_width_m_);
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_object_width_m_ = width_m;
+  }
+
+  double gripperPositionForGap(double gap_m) const
+  {
+    const double joint_position =
+      0.5 * std::max(0.0, gap_m) - gripper_finger_home_half_gap_m_;
+    return clampValue(joint_position, gripper_min_position_, gripper_max_position_);
+  }
+
+  GripperTarget makeGripperTarget(bool open)
+  {
+    if (!gripper_width_control_enabled_) {
+      return GripperTarget{
+        open ? gripper_open_position_ : gripper_close_position_,
+        0.0,
+        false};
+    }
+
+    std::optional<double> measured_width;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      measured_width = latest_object_width_m_;
+    }
+
+    const double object_width_m =
+      measured_width.value_or(gripper_fallback_object_width_m_);
+    const double target_gap_m = open ?
+      object_width_m + gripper_pre_grasp_clearance_m_ :
+      std::max(0.0, object_width_m - gripper_grasp_compression_m_);
+
+    return GripperTarget{
+      gripperPositionForGap(target_gap_m),
+      object_width_m,
+      measured_width.has_value()};
+  }
+
+  void sendGripperOpenForObject()
+  {
+    const auto target = makeGripperTarget(true);
+    if (gripper_width_control_enabled_) {
+      RCLCPP_INFO(
+        get_logger(),
+        "gripper open target: object_width=%.3f m (%s), position=%.4f m",
+        target.object_width_m,
+        target.measured ? "measured" : "fallback",
+        target.position);
+    }
+    sendGripper(target.position);
+  }
+
+  void sendGripperGraspForObject()
+  {
+    const auto target = makeGripperTarget(false);
+    if (gripper_width_control_enabled_) {
+      RCLCPP_INFO(
+        get_logger(),
+        "gripper grasp target: object_width=%.3f m (%s), position=%.4f m",
+        target.object_width_m,
+        target.measured ? "measured" : "fallback",
+        target.position);
+    }
+    sendGripper(target.position);
+  }
+
   void sendGripper(double position)
   {
+    position = clampValue(position, gripper_min_position_, gripper_max_position_);
     if (!gripper_client_->wait_for_action_server(std::chrono::milliseconds(100))) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
