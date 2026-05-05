@@ -34,6 +34,14 @@ class AutoInitBbox(Node):
         self.min_bbox_width_px = float(self.declare_parameter("min_bbox_width_px", 20.0).value)
         self.min_bbox_height_px = float(self.declare_parameter("min_bbox_height_px", 20.0).value)
         self.max_bbox_area_ratio = float(self.declare_parameter("max_bbox_area_ratio", 0.65).value)
+        self.min_bbox_aspect_ratio = float(
+            self.declare_parameter("min_bbox_aspect_ratio", 0.0).value)
+        self.max_bbox_aspect_ratio = float(
+            self.declare_parameter("max_bbox_aspect_ratio", 1000.0).value)
+        self.roi_min_x_ratio = float(self.declare_parameter("roi_min_x_ratio", 0.0).value)
+        self.roi_max_x_ratio = float(self.declare_parameter("roi_max_x_ratio", 1.0).value)
+        self.roi_min_y_ratio = float(self.declare_parameter("roi_min_y_ratio", 0.0).value)
+        self.roi_max_y_ratio = float(self.declare_parameter("roi_max_y_ratio", 1.0).value)
         self.prefer_center = bool(self.declare_parameter("prefer_center", True).value)
         self.auto_color_min = int(self.declare_parameter("auto_color_min", 55).value)
         self.auto_color_margin = int(self.declare_parameter("auto_color_margin", 35).value)
@@ -118,6 +126,8 @@ class AutoInitBbox(Node):
             image_width = image.shape[1]
             image_height = image.shape[0]
 
+        mask = self.apply_roi(mask, image_width, image_height)
+
         if not self.logged_first_image:
             self.logged_first_image = True
             self.publish_status(
@@ -138,6 +148,12 @@ class AutoInitBbox(Node):
 
         if area_ratio > self.max_bbox_area_ratio:
             self.throttled_waiting_status(f"bbox too large: area_ratio={area_ratio:.2f}")
+            return
+
+        aspect_ratio = width / max(1.0, height)
+        if aspect_ratio < self.min_bbox_aspect_ratio or aspect_ratio > self.max_bbox_aspect_ratio:
+            self.throttled_waiting_status(
+                f"bbox aspect rejected: ratio={aspect_ratio:.2f}")
             return
 
         bbox_msg = [float(x_min), float(y_min), width, height]
@@ -296,6 +312,24 @@ class AutoInitBbox(Node):
         band = max(0.005, self.depth_band_m)
         mask = valid & (depth <= near_depth + band)
         return mask
+
+    def apply_roi(self, mask, image_width, image_height):
+        x0 = int(np.floor(np.clip(self.roi_min_x_ratio, 0.0, 1.0) * image_width))
+        x1 = int(np.ceil(np.clip(self.roi_max_x_ratio, 0.0, 1.0) * image_width))
+        y0 = int(np.floor(np.clip(self.roi_min_y_ratio, 0.0, 1.0) * image_height))
+        y1 = int(np.ceil(np.clip(self.roi_max_y_ratio, 0.0, 1.0) * image_height))
+
+        x0 = max(0, min(x0, image_width))
+        x1 = max(0, min(x1, image_width))
+        y0 = max(0, min(y0, image_height))
+        y1 = max(0, min(y1, image_height))
+
+        if x1 <= x0 or y1 <= y0:
+            return mask
+
+        roi_mask = np.zeros_like(mask, dtype=bool)
+        roi_mask[y0:y1, x0:x1] = mask[y0:y1, x0:x1]
+        return roi_mask
 
     def image_to_depth_m(self, msg):
         encoding = msg.encoding.lower()

@@ -193,6 +193,7 @@ private:
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
+    wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -207,6 +208,8 @@ private:
     grasp_offset_y_ = declare_parameter<double>("grasp_offset_y", 0.0);
     grasp_offset_z_ = declare_parameter<double>("grasp_offset_z", 0.0);
     eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
+    arm_start_max_error_m_ = declare_parameter<double>("arm_start_max_error_m", 0.40);
+    arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.60);
     eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
     eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
@@ -238,6 +241,8 @@ private:
     close_after_stable_cycles_ = std::max(1, close_after_stable_cycles_);
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
+    arm_start_max_error_m_ = std::max(0.05, arm_start_max_error_m_);
+    arm_start_max_object_x_m_ = std::max(0.05, arm_start_max_object_x_m_);
     eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
     eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
@@ -422,6 +427,17 @@ private:
     const double err_y = goal_y - eef_y;
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
+
+    if (wait_for_base_approach_ &&
+        (err_norm > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
+      stable_cycles_ = 0;
+      publishStop();
+      std::ostringstream status;
+      status << "waiting for base approach before arm motion: goal_x=" << goal_x
+             << " err_norm=" << err_norm;
+      publishStatus(status.str());
+      return;
+    }
 
     if (use_eef_refinement_ && err_norm <= eef_refinement_switch_distance_m_) {
       stage_ = GraspStage::EEF_REFINE;
@@ -888,6 +904,7 @@ private:
   bool open_gripper_on_start_{true};
   bool close_gripper_on_arrival_{true};
   bool use_eef_refinement_{true};
+  bool wait_for_base_approach_{false};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -902,6 +919,8 @@ private:
   double grasp_offset_y_{0.0};
   double grasp_offset_z_{0.0};
   double eef_refinement_switch_distance_m_{0.12};
+  double arm_start_max_error_m_{0.40};
+  double arm_start_max_object_x_m_{0.60};
   double eef_final_depth_m_{0.08};
   double eef_center_tolerance_px_{18.0};
   double eef_depth_tolerance_m_{0.018};
