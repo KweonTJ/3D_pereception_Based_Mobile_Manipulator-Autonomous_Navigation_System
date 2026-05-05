@@ -35,8 +35,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "return_to_stow",
-            default_value="false",
-            description="Return the arm to the stow pose after the demo.",
+            default_value="true",
+            description="Return the arm to the stow pose after placing the object.",
         ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
