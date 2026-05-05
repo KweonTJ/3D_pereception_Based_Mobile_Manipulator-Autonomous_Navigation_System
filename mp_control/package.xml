@@ -30,6 +30,7 @@
   <exec_depend>platooning_bridge_config</exec_depend>
   <exec_depend>turtlebot3_manipulation_bringup</exec_depend>
   <exec_depend>turtlebot3_manipulation_moveit_config</exec_depend>
+  <exec_depend>v4l2_camera</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
