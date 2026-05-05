@@ -125,8 +125,7 @@ class AutoInitBbox(Node):
             mask = self.make_mask(image)
             image_width = image.shape[1]
             image_height = image.shape[0]
-
-        mask = self.apply_roi(mask, image_width, image_height)
+            mask = self.apply_roi(mask, image_width, image_height)
 
         if not self.logged_first_image:
             self.logged_first_image = True
@@ -302,9 +301,11 @@ class AutoInitBbox(Node):
             (depth >= self.depth_min_m) &
             (depth <= self.depth_max_m)
         )
+        valid = self.apply_roi(valid, msg.width, msg.height)
         valid_depth = depth[valid]
         if valid_depth.size < self.min_mask_pixels:
-            self.throttled_waiting_status(f"valid depth pixels too small: {valid_depth.size}")
+            self.throttled_waiting_status(
+                f"valid depth pixels in ROI too small: {valid_depth.size}")
             return None
 
         percentile = min(50.0, max(0.1, self.depth_near_percentile))
