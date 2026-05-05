@@ -1006,6 +1006,7 @@ private:
   std::string bbox_topic_;
   std::string fallback_bbox_topic_;
   std::string eef_bbox_topic_;
+  std::string eef_init_bbox_topic_;
   std::string depth_topic_;
   std::string camera_info_topic_;
   std::string eef_camera_info_topic_;
@@ -1030,6 +1031,7 @@ private:
   bool close_gripper_on_arrival_{true};
   bool use_eef_refinement_{true};
   bool wait_for_base_approach_{false};
+  bool auto_init_eef_tracker_from_object_{true};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -1046,6 +1048,11 @@ private:
   double eef_refinement_switch_distance_m_{0.12};
   double arm_start_max_error_m_{0.40};
   double arm_start_max_object_x_m_{0.60};
+  double object_height_m_{0.10};
+  double eef_init_bbox_min_size_px_{32.0};
+  double eef_init_bbox_max_size_px_{180.0};
+  double eef_init_bbox_padding_scale_{1.6};
+  double eef_init_bbox_republish_period_s_{0.5};
   double eef_final_depth_m_{0.08};
   double eef_center_tolerance_px_{18.0};
   double eef_depth_tolerance_m_{0.018};
@@ -1079,6 +1086,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_event_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_current_id_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr eef_init_bbox_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
   rclcpp::TimerBase::SharedPtr timer_;
@@ -1101,6 +1109,7 @@ private:
   GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
   rclcpp::Time last_status_stamp_;
+  rclcpp::Time last_eef_init_bbox_stamp_;
 };
 
 }  // namespace mp_control
