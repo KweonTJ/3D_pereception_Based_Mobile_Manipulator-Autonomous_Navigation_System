@@ -15,6 +15,7 @@ from builtin_interfaces.msg import Duration
 from control_msgs.action import GripperCommand
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import Twist
 from rclpy.action import ActionClient
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -60,6 +61,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("eef_bbox_topic", "/target/eef_init_bbox")
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("trajectory_topic", "/arm_controller/joint_trajectory")
+        self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("marker_topic", "/mp_control/pick_place_markers")
         self.declare_parameter("status_topic", "/mp_control/pick_place_status")
         self.declare_parameter("cargo_event_topic", "/cargo/events")
@@ -75,6 +77,9 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("return_to_stow", True)
+        self.declare_parameter("base_approach_distance_m", 0.80)
+        self.declare_parameter("base_approach_speed_mps", 0.12)
+        self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
@@ -100,8 +105,11 @@ class SimPickPlaceDemo(Node):
         self.grasp_arm_positions = [0.0, 1.32, -0.94, -0.23]
         self.pre_place_arm_positions = [-math.pi, 0.82, -0.58, -0.35]
         self.place_arm_positions = [-math.pi, 1.32, -0.94, -0.23]
+        self.base_approach_distance_m = float(
+            self.get_parameter("base_approach_distance_m").value)
         self.base_x = 0.0
-        self.pick_object_xyz = self._planned_object_odom_xyz(self.grasp_arm_positions)
+        self.pick_object_xyz = self._planned_object_odom_xyz(
+            self.grasp_arm_positions, base_x=self.base_approach_distance_m)
         self.released_object_xyz = None
         self.status_text = "READY"
         self.cargo_id = ""
@@ -123,6 +131,8 @@ class SimPickPlaceDemo(Node):
             Float32MultiArray, self.get_parameter("eef_bbox_topic").value, 10)
         self.joint_state_pub = self.create_publisher(
             JointState, self.get_parameter("joint_state_topic").value, 10)
+        self.cmd_vel_pub = self.create_publisher(
+            Twist, self.get_parameter("cmd_vel_topic").value, 10)
         self.traj_pub = self.create_publisher(
             JointTrajectory, self.get_parameter("trajectory_topic").value, 10)
         marker_qos = QoSProfile(
@@ -157,12 +167,17 @@ class SimPickPlaceDemo(Node):
         self._publish_ready_markers()
         self._sleep(float(self.get_parameter("start_delay_s").value))
         self._assign_cargo_id()
-        self._status("DETECTED: object marker generated from gripper pick pose")
+        self._status("DETECTED: object marker generated after planned base approach")
         self._publish_cargo_event("assigned")
         self._publish_markers(attached=False, placed=False)
         self._sleep(1.5)
 
-        self._status("BASE_FIXED: robot stays still; publishing bbox")
+        self._status("BASE_APPROACH: driving robot before grasp")
+        self._drive_base(
+            self.base_approach_distance_m,
+            float(self.get_parameter("base_approach_speed_mps").value),
+        )
+        self._status("BASE_ALIGNED: robot reached grasping distance; publishing bbox")
         self._publish_bbox(repeats=10)
 
         self._status("APPROACH: moving arm to pre-grasp pose")
