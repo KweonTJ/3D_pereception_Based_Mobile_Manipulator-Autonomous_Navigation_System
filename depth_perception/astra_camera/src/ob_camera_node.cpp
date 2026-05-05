@@ -22,6 +22,7 @@ void OBCameraNode::init() {
   setupConfig();
   setupTopics();
   startStreams();
+  startStreamWatchdog();
 }
 
 OBCameraNode::OBCameraNode(rclcpp::Node* node, std::shared_ptr<openni::Device> device,
@@ -50,7 +51,11 @@ OBCameraNode::~OBCameraNode() { clean(); }
 
 void OBCameraNode::clean() {
   is_running_.store(false);
-  if (tf_thread_->joinable()) {
+  if (stream_watchdog_timer_) {
+    stream_watchdog_timer_->cancel();
+    stream_watchdog_timer_.reset();
+  }
+  if (tf_thread_ && tf_thread_->joinable()) {
     tf_thread_->join();
   }
   stopStreams();
@@ -213,6 +218,11 @@ void OBCameraNode::startStreams() {
       streams_[stream_index]->addNewFrameListener(stream_frame_listener_[stream_index].get());
       CHECK_EQ(streams_[stream_index]->start(), openni::STATUS_OK);
       stream_started_[stream_index] = true;
+      {
+        std::lock_guard<std::mutex> lock(stream_watchdog_mutex_);
+        last_frame_stamp_[stream_index] = node_->now();
+        frame_count_[stream_index] = 0;
+      }
       RCLCPP_INFO_STREAM(logger_, magic_enum::enum_name(stream_index.first) << " is started");
     }
   }
@@ -281,6 +291,104 @@ void OBCameraNode::getParameters() {
   setAndGetNodeParameter(parameters_, depth_roi_.width, "depth_roi.width", -1);
   setAndGetNodeParameter(parameters_, depth_roi_.height, "depth_roi.height", -1);
   setAndGetNodeParameter(parameters_, depth_scale_, "depth_scale", 1);
+  setAndGetNodeParameter(parameters_, stream_watchdog_enabled_, "stream_watchdog_enabled", true);
+  setAndGetNodeParameter(parameters_, stream_watchdog_timeout_s_, "stream_watchdog_timeout_s", 2.0);
+  setAndGetNodeParameter(parameters_, stream_watchdog_period_s_, "stream_watchdog_period_s", 1.0);
+}
+
+void OBCameraNode::startStreamWatchdog() {
+  if (!stream_watchdog_enabled_) {
+    return;
+  }
+
+  const auto period_ms =
+      static_cast<int>(std::max(100.0, stream_watchdog_period_s_ * 1000.0));
+  stream_watchdog_timer_ = node_->create_wall_timer(
+      std::chrono::milliseconds(period_ms), [this] { checkStreamWatchdog(); });
+}
+
+void OBCameraNode::checkStreamWatchdog() {
+  if (!is_running_.load()) {
+    return;
+  }
+
+  std::vector<stream_index_pair> stale_streams;
+  const auto stamp = node_->now();
+  {
+    std::lock_guard<std::mutex> lock(stream_watchdog_mutex_);
+    for (const auto& stream_index : IMAGE_STREAMS) {
+      if (!enable_[stream_index] || !stream_started_[stream_index]) {
+        continue;
+      }
+      const auto last_it = last_frame_stamp_.find(stream_index);
+      if (last_it == last_frame_stamp_.end()) {
+        continue;
+      }
+      const double age_s = (stamp - last_it->second).seconds();
+      if (age_s > stream_watchdog_timeout_s_) {
+        stale_streams.push_back(stream_index);
+      }
+    }
+  }
+
+  for (const auto& stream_index : stale_streams) {
+    RCLCPP_WARN_STREAM(
+        logger_, "No " << stream_name_[stream_index] << " frames for more than "
+                       << stream_watchdog_timeout_s_ << "s; restarting stream");
+    restartStream(stream_index);
+  }
+}
+
+bool OBCameraNode::restartStream(const stream_index_pair& stream_index) {
+  if (!enable_[stream_index] || !streams_[stream_index]) {
+    return false;
+  }
+
+  try {
+    if (stream_started_[stream_index]) {
+      streams_[stream_index]->stop();
+      if (stream_frame_listener_[stream_index]) {
+        streams_[stream_index]->removeNewFrameListener(stream_frame_listener_[stream_index].get());
+      }
+      stream_started_[stream_index] = false;
+    }
+
+    if (!stream_video_mode_.count(stream_index)) {
+      RCLCPP_ERROR_STREAM(logger_, "Cannot restart " << stream_name_[stream_index]
+                                                     << ": missing video mode");
+      return false;
+    }
+
+    streams_[stream_index]->setVideoMode(stream_video_mode_.at(stream_index));
+    streams_[stream_index]->setMirroringEnabled(false);
+    streams_[stream_index]->addNewFrameListener(stream_frame_listener_[stream_index].get());
+    const auto rc = streams_[stream_index]->start();
+    if (rc != openni::STATUS_OK) {
+      RCLCPP_ERROR_STREAM(logger_, "Failed to restart " << stream_name_[stream_index]
+                                                        << " stream: "
+                                                        << openni::OpenNI::getExtendedError());
+      return false;
+    }
+
+    stream_started_[stream_index] = true;
+    {
+      std::lock_guard<std::mutex> lock(stream_watchdog_mutex_);
+      last_frame_stamp_[stream_index] = node_->now();
+      frame_count_[stream_index] = 0;
+    }
+    RCLCPP_INFO_STREAM(logger_, "Restarted stream " << stream_name_[stream_index]);
+    return true;
+  } catch (const std::exception& ex) {
+    RCLCPP_ERROR_STREAM(logger_, "Exception while restarting " << stream_name_[stream_index]
+                                                               << " stream: " << ex.what());
+    return false;
+  }
+}
+
+void OBCameraNode::markFrameReceived(const stream_index_pair& stream_index) {
+  std::lock_guard<std::mutex> lock(stream_watchdog_mutex_);
+  last_frame_stamp_[stream_index] = node_->now();
+  frame_count_[stream_index] += 1;
 }
 
 void OBCameraNode::setupTopics() {
@@ -410,6 +518,7 @@ void OBCameraNode::setImageRegistrationMode(bool data) {
 
 void OBCameraNode::onNewFrameCallback(const openni::VideoFrameRef& frame,
                                       const stream_index_pair& stream_index) {
+  markFrameReceived(stream_index);
   int width = frame.getWidth();
   int height = frame.getHeight();
   CHECK(images_.count(stream_index));
