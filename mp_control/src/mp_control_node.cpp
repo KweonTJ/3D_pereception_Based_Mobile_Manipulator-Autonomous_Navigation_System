@@ -607,6 +607,10 @@ private:
 
   void updateEefRefinement(const geometry_msgs::msg::PointStamped & object_in_target)
   {
+    if (!prepareEefRefinement(object_in_target)) {
+      return;
+    }
+
     Bbox bbox;
     CameraInfo info;
     {
