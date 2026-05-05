@@ -69,6 +69,11 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("cargo_id_prefix", "PKG")
         self.declare_parameter("cargo_sequence_start", 1)
         self.declare_parameter("gripper_action_name", "/gripper_controller/gripper_cmd")
+        self.declare_parameter("gripper_joint_lower_m", -0.010)
+        self.declare_parameter("gripper_joint_upper_m", 0.019)
+        self.declare_parameter("gripper_finger_home_half_gap_m", 0.021)
+        self.declare_parameter("gripper_pre_grasp_clearance_m", 0.012)
+        self.declare_parameter("gripper_grasp_compression_m", 0.002)
         self.declare_parameter("start_delay_s", 4.0)
         self.declare_parameter("object_frame", "odom")
         self.declare_parameter("place_frame", "odom")
@@ -103,6 +108,19 @@ class SimPickPlaceDemo(Node):
             float(v) for v in self.get_parameter("attached_object_offset_xyz").value]
         self.gazebo_world_origin_xyz = [
             float(v) for v in self.get_parameter("gazebo_world_origin_xyz").value]
+        self.gripper_joint_lower_m = float(
+            self.get_parameter("gripper_joint_lower_m").value)
+        self.gripper_joint_upper_m = float(
+            self.get_parameter("gripper_joint_upper_m").value)
+        if self.gripper_joint_lower_m > self.gripper_joint_upper_m:
+            self.gripper_joint_lower_m, self.gripper_joint_upper_m = (
+                self.gripper_joint_upper_m, self.gripper_joint_lower_m)
+        self.gripper_finger_home_half_gap_m = max(
+            0.0, float(self.get_parameter("gripper_finger_home_half_gap_m").value))
+        self.gripper_pre_grasp_clearance_m = max(
+            0.0, float(self.get_parameter("gripper_pre_grasp_clearance_m").value))
+        self.gripper_grasp_compression_m = max(
+            0.0, float(self.get_parameter("gripper_grasp_compression_m").value))
         self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
         self.pre_grasp_arm_positions = [0.0, 0.82, -0.58, -0.35]
         self.grasp_arm_positions = [0.0, 1.32, -0.94, -0.23]
@@ -120,7 +138,7 @@ class SimPickPlaceDemo(Node):
         self.wheel_left = 0.0
         self.wheel_right = 0.0
         self.arm_positions = list(self.stay_arm_positions)
-        self.gripper_position = 0.019
+        self.gripper_position = self._object_gripper_open_position()
         self.active_trajectory = None
         self.last_gazebo_pose_update = 0.0
         self.warned_gazebo_pose_unavailable = False
@@ -171,6 +189,7 @@ class SimPickPlaceDemo(Node):
         self._sleep(float(self.get_parameter("start_delay_s").value))
         self._assign_cargo_id()
         self._status("DETECTED: object marker generated after planned base approach")
+        self._log_gripper_width_targets()
         self._publish_cargo_event("assigned")
         self._publish_markers(attached=False, placed=False)
         self._sleep(1.5)
@@ -184,7 +203,7 @@ class SimPickPlaceDemo(Node):
         self._publish_bbox(repeats=10)
 
         self._status("APPROACH: moving arm to pre-grasp pose")
-        self._send_gripper(0.019)
+        self._send_gripper(self._object_gripper_open_position())
         self._send_trajectory([
             (self.stay_arm_positions, 1.5),
             (self.pre_grasp_arm_positions, 3.5),
@@ -196,7 +215,7 @@ class SimPickPlaceDemo(Node):
         self._sleep(2.0)
 
         self._status("PICK: closing gripper and attaching object marker")
-        self._send_gripper(-0.015)
+        self._send_gripper(self._object_gripper_grasp_position())
         self._publish_cargo_event("picked")
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
@@ -216,7 +235,7 @@ class SimPickPlaceDemo(Node):
             self._attached_object_odom_xyz()
             or self._planned_object_odom_xyz(self.place_arm_positions)
         )
-        self._send_gripper(0.019)
+        self._send_gripper(self._object_gripper_open_position())
         self._publish_cargo_event("placed")
         self._publish_markers(attached=False, placed=True)
         self._sleep(1.2)
@@ -439,7 +458,11 @@ class SimPickPlaceDemo(Node):
         self._start_demo_trajectory(points)
 
     def _send_gripper(self, position):
-        self.gripper_position = float(position)
+        position = max(
+            self.gripper_joint_lower_m,
+            min(float(position), self.gripper_joint_upper_m),
+        )
+        self.gripper_position = position
         if not self.gripper.wait_for_server(timeout_sec=1.0):
             self.get_logger().warn("gripper action server is not available")
             return
@@ -448,6 +471,33 @@ class SimPickPlaceDemo(Node):
         goal.command.position = float(position)
         goal.command.max_effort = -1.0
         self.gripper.send_goal_async(goal)
+
+    def _object_width_m(self):
+        return max(0.0, float(self.object_size_xyz[1]))
+
+    def _gripper_position_for_gap(self, gap_m):
+        joint_position = (
+            0.5 * max(0.0, float(gap_m)) - self.gripper_finger_home_half_gap_m)
+        return max(
+            self.gripper_joint_lower_m,
+            min(joint_position, self.gripper_joint_upper_m),
+        )
+
+    def _object_gripper_open_position(self):
+        return self._gripper_position_for_gap(
+            self._object_width_m() + self.gripper_pre_grasp_clearance_m)
+
+    def _object_gripper_grasp_position(self):
+        return self._gripper_position_for_gap(
+            max(0.0, self._object_width_m() - self.gripper_grasp_compression_m))
+
+    def _log_gripper_width_targets(self):
+        self.get_logger().info(
+            "object width %.3f m -> gripper open %.4f m, grasp %.4f m",
+            self._object_width_m(),
+            self._object_gripper_open_position(),
+            self._object_gripper_grasp_position(),
+        )
 
     def _publish_markers(self, attached=None, placed=None):
         self._publish_demo_state()
