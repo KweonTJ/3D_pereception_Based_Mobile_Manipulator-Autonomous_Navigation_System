@@ -15,6 +15,8 @@ def generate_launch_description():
     world = LaunchConfiguration("world")
     demo_start_delay = LaunchConfiguration("demo_start_delay")
     return_to_stow = LaunchConfiguration("return_to_stow")
+    base_approach_distance = LaunchConfiguration("base_approach_distance")
+    base_approach_speed = LaunchConfiguration("base_approach_speed")
 
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -46,6 +48,8 @@ def generate_launch_description():
             {"use_sim_time": True},
             {"start_delay_s": demo_start_delay},
             {"return_to_stow": return_to_stow},
+            {"base_approach_distance_m": base_approach_distance},
+            {"base_approach_speed_mps": base_approach_speed},
             {"cmd_vel_topic": "/diff_drive_controller/cmd_vel_unstamped"},
             {"publish_demo_base_tf": False},
             {"publish_demo_joint_states": False},
@@ -82,6 +86,16 @@ def generate_launch_description():
             "return_to_stow",
             default_value="true",
             description="Return the arm to the stow pose after placing the object.",
+        ),
+        DeclareLaunchArgument(
+            "base_approach_distance",
+            default_value="0.80",
+            description="Meters to drive before grasping. Object pose is generated from the post-drive grasp pose.",
+        ),
+        DeclareLaunchArgument(
+            "base_approach_speed",
+            default_value="0.12",
+            description="Base linear speed in m/s during the approach stage.",
         ),
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
