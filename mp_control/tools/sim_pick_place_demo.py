@@ -7,6 +7,7 @@ joint trajectory, and publishes RViz markers so the object is visible while it
 is picked and placed.
 """
 
+import math
 import time
 
 import rclpy
@@ -76,12 +77,6 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("return_to_stow", False)
-        self.declare_parameter("object_xyz", [1.30, 0.0, 0.115])
-        self.declare_parameter("place_xyz", [0.72, 0.0, 0.115])
-        self.declare_parameter("approach_distance_m", 1.03)
-        self.declare_parameter("approach_speed_mps", 0.12)
-        self.declare_parameter("post_pick_forward_distance_m", 0.12)
-        self.declare_parameter("post_pick_forward_speed_mps", 0.08)
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("sync_gazebo_object", True)
@@ -99,19 +94,24 @@ class SimPickPlaceDemo(Node):
         self.publish_demo_base_tf = bool(self.get_parameter("publish_demo_base_tf").value)
         self.publish_demo_joint_states = bool(
             self.get_parameter("publish_demo_joint_states").value)
-        self.object_xyz = [float(v) for v in self.get_parameter("object_xyz").value]
-        self.place_xyz = [float(v) for v in self.get_parameter("place_xyz").value]
         self.attached_object_offset_xyz = [
             float(v) for v in self.get_parameter("attached_object_offset_xyz").value]
         self.gazebo_world_origin_xyz = [
             float(v) for v in self.get_parameter("gazebo_world_origin_xyz").value]
+        self.stow_arm_positions = [0.0, 0.10, 0.02, -0.80]
+        self.pre_grasp_arm_positions = [0.0, 0.82, -0.58, -0.35]
+        self.grasp_arm_positions = [0.0, 1.32, -0.94, -0.23]
+        self.pre_place_arm_positions = [-math.pi, 0.82, -0.58, -0.35]
+        self.place_arm_positions = [-math.pi, 1.32, -0.94, -0.23]
+        self.pick_object_xyz = self._planned_object_odom_xyz(self.grasp_arm_positions)
+        self.released_object_xyz = None
         self.status_text = "READY"
         self.cargo_id = ""
         self.cargo_sequence = int(self.get_parameter("cargo_sequence_start").value)
         self.base_x = 0.0
         self.wheel_left = 0.0
         self.wheel_right = 0.0
-        self.arm_positions = [0.0, 0.10, 0.02, -0.80]
+        self.arm_positions = list(self.stow_arm_positions)
         self.gripper_position = 0.019
         self.active_trajectory = None
         self.last_gazebo_pose_update = 0.0
@@ -162,25 +162,20 @@ class SimPickPlaceDemo(Node):
         self._publish_ready_markers()
         self._sleep(float(self.get_parameter("start_delay_s").value))
         self._assign_cargo_id()
-        self._status("DETECTED: far object marker published in odom")
+        self._status("DETECTED: object marker generated from gripper pick pose")
         self._publish_cargo_event("assigned")
         self._publish_markers(attached=False, placed=False)
         self._sleep(1.5)
 
-        self._status("BASE_APPROACH: driving robot close to object")
-        self._drive_base(
-            float(self.get_parameter("approach_distance_m").value),
-            float(self.get_parameter("approach_speed_mps").value),
-        )
-        self._status("BASE_ALIGNED: object is within manipulator reach; publishing bbox")
+        self._status("BASE_FIXED: robot stays still; publishing bbox")
         self._publish_bbox(repeats=10)
 
         self._status("APPROACH: moving arm to pre-grasp pose")
         self._send_gripper(0.019)
         self._send_trajectory([
-            ([0.0, 0.10, 0.02, -0.80], 1.5),
-            ([0.0, 0.82, -0.58, -0.35], 3.5),
-            ([0.0, 1.32, -0.94, -0.23], 5.5),
+            (self.stow_arm_positions, 1.5),
+            (self.pre_grasp_arm_positions, 3.5),
+            (self.grasp_arm_positions, 5.5),
         ])
         self._sleep(5.8)
         self._status("FULL_REACH: arm fully extended at target")
@@ -193,23 +188,21 @@ class SimPickPlaceDemo(Node):
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
 
-        self._status("BASE_CLEARANCE: moving forward before rear placement")
-        self._drive_base(
-            float(self.get_parameter("post_pick_forward_distance_m").value),
-            float(self.get_parameter("post_pick_forward_speed_mps").value),
-        )
-
-        self._status("PLACE: lifting and moving to rear place pose")
+        self._status("PLACE: rotating arm 180 degrees and lowering at reached pose")
         self._send_trajectory([
-            ([0.0, 0.82, -0.58, -0.35], 1.6),
-            ([-3.141592653589793, 0.82, -0.58, -0.35], 4.2),
-            ([-3.141592653589793, 1.32, -0.94, -0.23], 6.2),
+            (self.pre_grasp_arm_positions, 1.6),
+            (self.pre_place_arm_positions, 4.2),
+            (self.place_arm_positions, 6.2),
         ])
         self._sleep(6.4)
         self._status("PLACE_REACH: arm fully extended behind robot")
         self._sleep(2.0)
 
         self._status("RELEASE: opening gripper at place target")
+        self.released_object_xyz = (
+            self._attached_object_odom_xyz()
+            or self._planned_object_odom_xyz(self.place_arm_positions)
+        )
         self._send_gripper(0.019)
         self._publish_cargo_event("placed")
         self._publish_markers(attached=False, placed=True)
@@ -218,8 +211,8 @@ class SimPickPlaceDemo(Node):
         self._status("DONE: object placed; holding fully extended pose")
         if bool(self.get_parameter("return_to_stow").value):
             self._send_trajectory([
-                ([-3.141592653589793, 0.82, -0.58, -0.35], 1.6),
-                ([0.0, 0.10, 0.02, -0.80], 4.0),
+                (self.pre_place_arm_positions, 1.6),
+                (self.stow_arm_positions, 4.0),
             ])
 
     def _publish_ready_markers(self, repeats=3):
