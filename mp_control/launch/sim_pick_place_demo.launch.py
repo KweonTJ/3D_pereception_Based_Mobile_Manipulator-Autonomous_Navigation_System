@@ -38,6 +38,16 @@ def generate_launch_description():
             default_value="true",
             description="Return the arm to the stow pose after placing the object.",
         ),
+        DeclareLaunchArgument(
+            "base_approach_distance",
+            default_value="0.80",
+            description="Meters to drive before grasping.",
+        ),
+        DeclareLaunchArgument(
+            "base_approach_speed",
+            default_value="0.12",
+            description="Base linear speed in m/s during the approach stage.",
+        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
@@ -52,6 +62,8 @@ def generate_launch_description():
                 "start_rviz": LaunchConfiguration("start_rviz"),
                 "demo_start_delay": LaunchConfiguration("demo_start_delay"),
                 "return_to_stow": LaunchConfiguration("return_to_stow"),
+                "base_approach_distance": LaunchConfiguration("base_approach_distance"),
+                "base_approach_speed": LaunchConfiguration("base_approach_speed"),
             }.items(),
         ),
     ])
