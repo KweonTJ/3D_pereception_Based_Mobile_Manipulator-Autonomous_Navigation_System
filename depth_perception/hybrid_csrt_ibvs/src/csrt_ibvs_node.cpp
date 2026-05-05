@@ -448,15 +448,28 @@ bool CsrtIbvsNode::updateTracker(const cv::Mat & frame, cv::Rect & bbox)
   cv::Mat hsv;
   cv::Mat mask;
   cv::Mat back_project;
-  cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
-  cv::inRange(hsv, cv::Scalar(0, 30, 20), cv::Scalar(180, 255, 255), mask);
+  if (tracker_uses_gray_) {
+    cv::Mat gray;
+    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+    const int channels[] = {0};
+    const float gray_range[] = {1.0F, 256.0F};
+    const float * ranges[] = {gray_range};
+    cv::calcBackProject(&gray, 1, channels, tracker_hist_, back_project, ranges);
+  } else {
+    cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
+    cv::inRange(hsv, cv::Scalar(0, 30, 20), cv::Scalar(180, 255, 255), mask);
 
-  const int channels[] = {0, 1};
-  const float h_range[] = {0.0F, 180.0F};
-  const float s_range[] = {0.0F, 256.0F};
-  const float * ranges[] = {h_range, s_range};
-  cv::calcBackProject(&hsv, 1, channels, tracker_hist_, back_project, ranges);
-  cv::bitwise_and(back_project, mask, back_project);
+    const int channels[] = {0, 1};
+    const float h_range[] = {0.0F, 180.0F};
+    const float s_range[] = {0.0F, 256.0F};
+    const float * ranges[] = {h_range, s_range};
+    cv::calcBackProject(&hsv, 1, channels, tracker_hist_, back_project, ranges);
+    cv::bitwise_and(back_project, mask, back_project);
+  }
+
+  if (back_project.empty() || cv::sum(back_project)[0] <= 0.0) {
+    return false;
+  }
 
   const cv::Rect image_bounds(0, 0, frame.cols, frame.rows);
   tracker_window_ = tracker_window_ & image_bounds;
