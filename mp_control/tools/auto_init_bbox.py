@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Detect a colored target in the camera image and publish one initial bbox."""
 
+import sys
 import time
 
 import numpy as np
@@ -38,6 +39,12 @@ class AutoInitBbox(Node):
         self.auto_color_margin = int(self.declare_parameter("auto_color_margin", 35).value)
         self.black_max = int(self.declare_parameter("black_max", 85).value)
         self.black_min_contrast = int(self.declare_parameter("black_min_contrast", 20).value)
+        self.depth_unit_scale = float(self.declare_parameter("depth_unit_scale", 0.001).value)
+        self.depth_min_m = float(self.declare_parameter("depth_min_m", 0.12).value)
+        self.depth_max_m = float(self.declare_parameter("depth_max_m", 1.2).value)
+        self.depth_near_percentile = float(
+            self.declare_parameter("depth_near_percentile", 8.0).value)
+        self.depth_band_m = float(self.declare_parameter("depth_band_m", 0.08).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -97,23 +104,33 @@ class AutoInitBbox(Node):
         if self.published:
             return
 
-        image = self.image_to_rgb(msg)
-        if image is None:
-            return
+        if self.color_mode == "depth_near":
+            mask = self.depth_near_mask(msg)
+            image_width = msg.width
+            image_height = msg.height
+            if mask is None:
+                return
+        else:
+            image = self.image_to_rgb(msg)
+            if image is None:
+                return
+            mask = self.make_mask(image)
+            image_width = image.shape[1]
+            image_height = image.shape[0]
+
         if not self.logged_first_image:
             self.logged_first_image = True
             self.publish_status(
                 f"receiving image: encoding={msg.encoding} size={msg.width}x{msg.height}")
 
-        mask = self.make_mask(image)
-        bbox = self.mask_to_bbox(mask, image.shape[1], image.shape[0])
+        bbox = self.mask_to_bbox(mask, image_width, image_height)
         if bbox is None:
             pixels = int(np.count_nonzero(mask))
             self.throttled_waiting_status(f"target pixels too small: {pixels}")
             return
 
         x_min, y_min, width, height, pixels = bbox
-        area_ratio = (width * height) / float(max(1, image.shape[0] * image.shape[1]))
+        area_ratio = (width * height) / float(max(1, image_width * image_height))
 
         if width < self.min_bbox_width_px or height < self.min_bbox_height_px:
             self.throttled_waiting_status(f"bbox too small: {width:.1f}x{height:.1f}")
@@ -258,6 +275,65 @@ class AutoInitBbox(Node):
             (r >= b * self.red_ratio) &
             ((r - np.maximum(g, b)) >= self.red_margin)
         )
+
+    def depth_near_mask(self, msg):
+        depth = self.image_to_depth_m(msg)
+        if depth is None:
+            return None
+
+        valid = (
+            np.isfinite(depth) &
+            (depth >= self.depth_min_m) &
+            (depth <= self.depth_max_m)
+        )
+        valid_depth = depth[valid]
+        if valid_depth.size < self.min_mask_pixels:
+            self.throttled_waiting_status(f"valid depth pixels too small: {valid_depth.size}")
+            return None
+
+        percentile = min(50.0, max(0.1, self.depth_near_percentile))
+        near_depth = float(np.percentile(valid_depth, percentile))
+        band = max(0.005, self.depth_band_m)
+        mask = valid & (depth <= near_depth + band)
+        return mask
+
+    def image_to_depth_m(self, msg):
+        encoding = msg.encoding.lower()
+        if encoding in ("16uc1", "mono16"):
+            depth = self.strided_image_array(msg, np.uint16, 2)
+            if depth is None:
+                return None
+            if msg.is_bigendian != (sys.byteorder == "big"):
+                depth = depth.byteswap()
+            return depth.astype(np.float32) * self.depth_unit_scale
+
+        if encoding == "32fc1":
+            depth = self.strided_image_array(msg, np.float32, 4)
+            if depth is None:
+                return None
+            if msg.is_bigendian != (sys.byteorder == "big"):
+                depth = depth.byteswap()
+            return depth.astype(np.float32)
+
+        self.throttled_waiting_status(f"unsupported depth encoding: {msg.encoding}")
+        return None
+
+    def strided_image_array(self, msg, dtype, bytes_per_pixel):
+        expected_step = msg.width * bytes_per_pixel
+        if msg.step < expected_step:
+            self.throttled_waiting_status(
+                f"invalid image step: step={msg.step}, expected>={expected_step}")
+            return None
+        try:
+            return np.ndarray(
+                shape=(msg.height, msg.width),
+                dtype=dtype,
+                buffer=msg.data,
+                strides=(msg.step, bytes_per_pixel),
+            ).copy()
+        except (TypeError, ValueError) as exc:
+            self.throttled_waiting_status(f"invalid image buffer: {exc}")
+            return None
 
     def mask_to_bbox(self, mask, image_width, image_height):
         pixels = int(np.count_nonzero(mask))
