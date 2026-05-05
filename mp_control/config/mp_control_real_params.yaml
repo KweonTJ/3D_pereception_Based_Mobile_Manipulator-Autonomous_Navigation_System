@@ -3,6 +3,7 @@ mp_control_node:
     bbox_topic: /target/tracked_bbox
     fallback_bbox_topic: /target/init_bbox
     eef_bbox_topic: /target/eef_tracked_bbox
+    eef_init_bbox_topic: /target/eef_init_bbox
     depth_topic: /camera/depth/image_raw
     camera_info_topic: /camera/depth/camera_info
     eef_camera_info_topic: /eef_camera/camera_info
@@ -28,8 +29,9 @@ mp_control_node:
     start_servo_on_start: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
-    use_eef_refinement: false
+    use_eef_refinement: true
     wait_for_base_approach: true
+    auto_init_eef_tracker_from_object: true
 
     command_rate_hz: 20.0
     max_target_age_s: 0.6
@@ -54,6 +56,11 @@ mp_control_node:
     eef_refinement_switch_distance_m: 0.12
     arm_start_max_error_m: 0.40
     arm_start_max_object_x_m: 0.60
+    object_height_m: 0.10
+    eef_init_bbox_min_size_px: 32.0
+    eef_init_bbox_max_size_px: 180.0
+    eef_init_bbox_padding_scale: 1.6
+    eef_init_bbox_republish_period_s: 0.5
     eef_final_depth_m: 0.08
     eef_center_tolerance_px: 18.0
     eef_depth_tolerance_m: 0.018

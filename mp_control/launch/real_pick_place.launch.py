@@ -318,8 +318,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
-            default_value="false",
-            description="Launch the optional end-effector RGB tracker.",
+            default_value="true",
+            description="Launch the near-field end-effector tracker. It is initialized from depth geometry, not as the main detector.",
         ),
         DeclareLaunchArgument(
             "start_servo",
