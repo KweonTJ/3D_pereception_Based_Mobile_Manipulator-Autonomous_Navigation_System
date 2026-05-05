@@ -505,6 +505,7 @@ private:
     const double lateral_m = err_u_px * z_m / info.fx;
     const double vertical_m = err_v_px * z_m / info.fy;
     const double depth_error_m = object_in_eef_camera.point.z - eef_final_depth_m_;
+    rememberMeasuredObjectWidth(bbox.width * object_in_eef_camera.point.z / info.fx);
 
     const bool centered =
       std::abs(err_u_px) <= eef_center_tolerance_px_ &&
@@ -576,6 +577,7 @@ private:
     if (!depth_m) {
       return std::nullopt;
     }
+    rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
 
     geometry_msgs::msg::PointStamped object_camera;
     object_camera.header.stamp = depth->header.stamp;
