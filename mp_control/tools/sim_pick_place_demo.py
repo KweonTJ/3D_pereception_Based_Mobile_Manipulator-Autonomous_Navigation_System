@@ -95,7 +95,7 @@ class SimPickPlaceDemo(Node):
             float(v) for v in self.get_parameter("attached_object_offset_xyz").value]
         self.gazebo_world_origin_xyz = [
             float(v) for v in self.get_parameter("gazebo_world_origin_xyz").value]
-        self.stow_arm_positions = [0.0, 0.10, 0.02, -0.80]
+        self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
         self.pre_grasp_arm_positions = [0.0, 0.82, -0.58, -0.35]
         self.grasp_arm_positions = [0.0, 1.32, -0.94, -0.23]
         self.pre_place_arm_positions = [-math.pi, 0.82, -0.58, -0.35]
@@ -108,7 +108,7 @@ class SimPickPlaceDemo(Node):
         self.cargo_sequence = int(self.get_parameter("cargo_sequence_start").value)
         self.wheel_left = 0.0
         self.wheel_right = 0.0
-        self.arm_positions = list(self.stow_arm_positions)
+        self.arm_positions = list(self.stay_arm_positions)
         self.gripper_position = 0.019
         self.active_trajectory = None
         self.last_gazebo_pose_update = 0.0
@@ -168,7 +168,7 @@ class SimPickPlaceDemo(Node):
         self._status("APPROACH: moving arm to pre-grasp pose")
         self._send_gripper(0.019)
         self._send_trajectory([
-            (self.stow_arm_positions, 1.5),
+            (self.stay_arm_positions, 1.5),
             (self.pre_grasp_arm_positions, 3.5),
             (self.grasp_arm_positions, 5.5),
         ])
@@ -204,13 +204,13 @@ class SimPickPlaceDemo(Node):
         self._sleep(1.2)
 
         if bool(self.get_parameter("return_to_stow").value):
-            self._status("STOW: folding arm for navigation")
+            self._status("STAY: returning arm to saved navigation pose")
             self._send_trajectory([
                 (self.pre_place_arm_positions, 1.6),
-                (self.stow_arm_positions, 4.0),
+                (self.stay_arm_positions, 4.0),
             ])
             self._sleep(4.2)
-            self._status("DONE: object placed; arm stowed")
+            self._status("DONE: object placed; arm in stay pose")
         else:
             self._status("DONE: object placed; holding fully extended pose")
 
