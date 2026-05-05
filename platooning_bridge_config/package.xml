@@ -3,13 +3,14 @@
 <package format="3">
   <name>platooning_bridge_config</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Domain bridge configuration for leader-to-follower platooning topics.</description>
   <maintainer email="kweontj0701@naver.com">ktj</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <exec_depend>domain_bridge</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

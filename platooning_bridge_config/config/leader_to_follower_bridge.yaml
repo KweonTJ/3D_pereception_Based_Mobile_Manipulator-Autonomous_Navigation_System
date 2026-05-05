@@ -1,0 +1,53 @@
+name: leader_to_follower_bridge
+from_domain: 10
+to_domain: 20
+
+topics:
+  leader/task_state:
+    type: std_msgs/msg/String
+    qos:
+      reliability: reliable
+      durability: transient_local
+      depth: 1
+
+  leader/cargo_state:
+    type: std_msgs/msg/String
+    qos:
+      reliability: reliable
+      durability: transient_local
+      depth: 1
+
+  leader/follower_enable:
+    type: std_msgs/msg/Bool
+    qos:
+      reliability: reliable
+      durability: transient_local
+      depth: 1
+
+  leader/heartbeat:
+    type: std_msgs/msg/Bool
+    qos:
+      reliability: best_effort
+      durability: volatile
+      depth: 3
+
+  leader/platoon_mode:
+    type: std_msgs/msg/String
+    qos:
+      reliability: reliable
+      durability: transient_local
+      depth: 1
+
+  leader/odom:
+    type: nav_msgs/msg/Odometry
+    qos:
+      reliability: best_effort
+      durability: volatile
+      depth: 5
+
+  leader/cmd_vel:
+    type: geometry_msgs/msg/Twist
+    qos:
+      reliability: best_effort
+      durability: volatile
+      depth: 5
