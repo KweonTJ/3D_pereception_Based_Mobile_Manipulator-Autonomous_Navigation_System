@@ -24,6 +24,7 @@ mp_control_node:
 
     auto_start: false
     auto_start_on_bbox: true
+    use_fallback_bbox_for_control: false
     start_servo_on_start: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
