@@ -6,6 +6,7 @@ import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
@@ -39,7 +40,8 @@ class AutoInitBbox(Node):
 
         self.bbox_pub = self.create_publisher(Float32MultiArray, self.bbox_topic, 10)
         self.status_pub = self.create_publisher(String, self.status_topic, 10)
-        self.image_sub = self.create_subscription(Image, self.image_topic, self.on_image, 10)
+        self.image_sub = self.create_subscription(
+            Image, self.image_topic, self.on_image, qos_profile_sensor_data)
         self.timeout_timer = self.create_timer(0.5, self.on_timeout)
 
         self.start_time = time.monotonic()
