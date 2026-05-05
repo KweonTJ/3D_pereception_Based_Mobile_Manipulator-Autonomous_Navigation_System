@@ -493,10 +493,11 @@ class SimPickPlaceDemo(Node):
 
     def _log_gripper_width_targets(self):
         self.get_logger().info(
-            "object width %.3f m -> gripper open %.4f m, grasp %.4f m",
-            self._object_width_m(),
-            self._object_gripper_open_position(),
-            self._object_gripper_grasp_position(),
+            "object width {:.3f} m -> gripper open {:.4f} m, grasp {:.4f} m".format(
+                self._object_width_m(),
+                self._object_gripper_open_position(),
+                self._object_gripper_grasp_position(),
+            )
         )
 
     def _publish_markers(self, attached=None, placed=None):
