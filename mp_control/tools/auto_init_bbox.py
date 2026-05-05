@@ -6,6 +6,9 @@ import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy
+from rclpy.qos import QoSProfile
+from rclpy.qos import ReliabilityPolicy
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
@@ -48,25 +51,40 @@ class AutoInitBbox(Node):
         self.green_margin = int(self.declare_parameter("green_margin", 25).value)
         self.green_ratio = float(self.declare_parameter("green_ratio", 1.15).value)
 
-        self.bbox_pub = self.create_publisher(Float32MultiArray, self.bbox_topic, 10)
-        self.status_pub = self.create_publisher(String, self.status_topic, 10)
+        latched_qos = QoSProfile(depth=1)
+        latched_qos.reliability = ReliabilityPolicy.RELIABLE
+        latched_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+
+        self.bbox_pub = self.create_publisher(Float32MultiArray, self.bbox_topic, latched_qos)
+        self.status_pub = self.create_publisher(String, self.status_topic, latched_qos)
         self.image_sub = self.create_subscription(
             Image, self.image_topic, self.on_image, qos_profile_sensor_data)
         self.timeout_timer = self.create_timer(0.5, self.on_timeout)
+        self.heartbeat_timer = self.create_timer(2.0, self.on_heartbeat)
 
         self.start_time = time.monotonic()
         self.published = False
         self.last_warn_time = 0.0
         self.logged_first_image = False
+        self.last_status = ""
 
         self.publish_status(
             f"waiting for {self.color_mode} target on {self.image_topic}; publishing bbox to {self.bbox_topic}")
 
     def publish_status(self, text):
+        self.last_status = text
         msg = String()
         msg.data = text
         self.status_pub.publish(msg)
         self.get_logger().info(text)
+
+    def on_heartbeat(self):
+        if self.published:
+            return
+        if self.last_status:
+            msg = String()
+            msg.data = self.last_status
+            self.status_pub.publish(msg)
 
     def on_timeout(self):
         if self.published or self.timeout_s <= 0.0:
