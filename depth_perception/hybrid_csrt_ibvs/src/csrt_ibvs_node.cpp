@@ -389,15 +389,31 @@ bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbo
     cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
     cv::inRange(hsv, cv::Scalar(0, 30, 20), cv::Scalar(180, 255, 255), mask);
 
-    const cv::Mat roi = hsv(bbox);
     const cv::Mat roi_mask = mask(bbox);
-    const int channels[] = {0, 1};
-    const int hist_size[] = {30, 32};
-    const float h_range[] = {0.0F, 180.0F};
-    const float s_range[] = {0.0F, 256.0F};
-    const float * ranges[] = {h_range, s_range};
+    const int color_pixels = cv::countNonZero(roi_mask);
+    const int min_color_pixels = std::max(8, bbox.area() / 100);
+    if (color_pixels >= min_color_pixels) {
+      const cv::Mat roi = hsv(bbox);
+      const int channels[] = {0, 1};
+      const int hist_size[] = {30, 32};
+      const float h_range[] = {0.0F, 180.0F};
+      const float s_range[] = {0.0F, 256.0F};
+      const float * ranges[] = {h_range, s_range};
 
-    cv::calcHist(&roi, 1, channels, roi_mask, tracker_hist_, 2, hist_size, ranges);
+      cv::calcHist(&roi, 1, channels, roi_mask, tracker_hist_, 2, hist_size, ranges);
+      tracker_uses_gray_ = false;
+    } else {
+      cv::Mat gray;
+      cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+      const cv::Mat roi = gray(bbox);
+      const int channels[] = {0};
+      const int hist_size[] = {32};
+      const float gray_range[] = {1.0F, 256.0F};
+      const float * ranges[] = {gray_range};
+
+      cv::calcHist(&roi, 1, channels, cv::Mat(), tracker_hist_, 1, hist_size, ranges);
+      tracker_uses_gray_ = true;
+    }
     if (cv::countNonZero(tracker_hist_) == 0) {
       throw cv::Exception(cv::Error::StsBadArg, "empty CamShift histogram", __func__, __FILE__, __LINE__);
     }
@@ -478,6 +494,7 @@ void CsrtIbvsNode::resetTracker()
   tracker_hist_.release();
   tracker_window_ = cv::Rect();
   tracker_initialized_ = false;
+  tracker_uses_gray_ = false;
 #endif
 }
 

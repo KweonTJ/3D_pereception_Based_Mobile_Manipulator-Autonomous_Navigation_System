@@ -154,6 +154,7 @@ private:
   cv::Mat tracker_hist_;
   cv::Rect tracker_window_;
   bool tracker_initialized_{false};
+  bool tracker_uses_gray_{false};
 #endif
   TrackerState state_{TrackerState::WAITING_FOR_BBOX};
   int lost_count_{0};
