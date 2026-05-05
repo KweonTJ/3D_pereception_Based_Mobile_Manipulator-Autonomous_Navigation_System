@@ -166,6 +166,7 @@ private:
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
     fallback_bbox_topic_ = declare_parameter<std::string>("fallback_bbox_topic", "/target/init_bbox");
     eef_bbox_topic_ = declare_parameter<std::string>("eef_bbox_topic", "/target/eef_tracked_bbox");
+    eef_init_bbox_topic_ = declare_parameter<std::string>("eef_init_bbox_topic", "/target/eef_init_bbox");
     depth_topic_ = declare_parameter<std::string>("depth_topic", "/camera/depth/image_raw");
     camera_info_topic_ = declare_parameter<std::string>("camera_info_topic", "/camera/color/camera_info");
     eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
@@ -194,6 +195,8 @@ private:
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
+    auto_init_eef_tracker_from_object_ =
+      declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -210,6 +213,12 @@ private:
     eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
     arm_start_max_error_m_ = declare_parameter<double>("arm_start_max_error_m", 0.40);
     arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.60);
+    object_height_m_ = declare_parameter<double>("object_height_m", 0.10);
+    eef_init_bbox_min_size_px_ = declare_parameter<double>("eef_init_bbox_min_size_px", 32.0);
+    eef_init_bbox_max_size_px_ = declare_parameter<double>("eef_init_bbox_max_size_px", 180.0);
+    eef_init_bbox_padding_scale_ = declare_parameter<double>("eef_init_bbox_padding_scale", 1.6);
+    eef_init_bbox_republish_period_s_ =
+      declare_parameter<double>("eef_init_bbox_republish_period_s", 0.5);
     eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
     eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
@@ -243,6 +252,11 @@ private:
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
     arm_start_max_error_m_ = std::max(0.05, arm_start_max_error_m_);
     arm_start_max_object_x_m_ = std::max(0.05, arm_start_max_object_x_m_);
+    object_height_m_ = std::max(0.01, object_height_m_);
+    eef_init_bbox_min_size_px_ = std::max(2.0, eef_init_bbox_min_size_px_);
+    eef_init_bbox_max_size_px_ = std::max(eef_init_bbox_min_size_px_, eef_init_bbox_max_size_px_);
+    eef_init_bbox_padding_scale_ = std::max(1.0, eef_init_bbox_padding_scale_);
+    eef_init_bbox_republish_period_s_ = std::max(0.1, eef_init_bbox_republish_period_s_);
     eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
     eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
