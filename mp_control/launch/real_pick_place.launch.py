@@ -45,6 +45,13 @@ def generate_launch_description():
     auto_init_min_mask_pixels = LaunchConfiguration("auto_init_min_mask_pixels")
     auto_init_min_bbox_width_px = LaunchConfiguration("auto_init_min_bbox_width_px")
     auto_init_min_bbox_height_px = LaunchConfiguration("auto_init_min_bbox_height_px")
+    auto_init_max_bbox_area_ratio = LaunchConfiguration("auto_init_max_bbox_area_ratio")
+    auto_init_min_bbox_aspect_ratio = LaunchConfiguration("auto_init_min_bbox_aspect_ratio")
+    auto_init_max_bbox_aspect_ratio = LaunchConfiguration("auto_init_max_bbox_aspect_ratio")
+    auto_init_roi_min_x_ratio = LaunchConfiguration("auto_init_roi_min_x_ratio")
+    auto_init_roi_max_x_ratio = LaunchConfiguration("auto_init_roi_max_x_ratio")
+    auto_init_roi_min_y_ratio = LaunchConfiguration("auto_init_roi_min_y_ratio")
+    auto_init_roi_max_y_ratio = LaunchConfiguration("auto_init_roi_max_y_ratio")
     auto_init_timeout_s = LaunchConfiguration("auto_init_timeout_s")
     auto_init_black_max = LaunchConfiguration("auto_init_black_max")
     auto_init_black_min_contrast = LaunchConfiguration("auto_init_black_min_contrast")
@@ -156,6 +163,13 @@ def generate_launch_description():
             "min_mask_pixels": ParameterValue(auto_init_min_mask_pixels, value_type=int),
             "min_bbox_width_px": ParameterValue(auto_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_init_min_bbox_height_px, value_type=float),
+            "max_bbox_area_ratio": ParameterValue(auto_init_max_bbox_area_ratio, value_type=float),
+            "min_bbox_aspect_ratio": ParameterValue(auto_init_min_bbox_aspect_ratio, value_type=float),
+            "max_bbox_aspect_ratio": ParameterValue(auto_init_max_bbox_aspect_ratio, value_type=float),
+            "roi_min_x_ratio": ParameterValue(auto_init_roi_min_x_ratio, value_type=float),
+            "roi_max_x_ratio": ParameterValue(auto_init_roi_max_x_ratio, value_type=float),
+            "roi_min_y_ratio": ParameterValue(auto_init_roi_min_y_ratio, value_type=float),
+            "roi_max_y_ratio": ParameterValue(auto_init_roi_max_y_ratio, value_type=float),
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
@@ -180,6 +194,13 @@ def generate_launch_description():
             "min_mask_pixels": ParameterValue(auto_eef_init_min_mask_pixels, value_type=int),
             "min_bbox_width_px": ParameterValue(auto_eef_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_eef_init_min_bbox_height_px, value_type=float),
+            "max_bbox_area_ratio": ParameterValue(auto_init_max_bbox_area_ratio, value_type=float),
+            "min_bbox_aspect_ratio": ParameterValue(auto_init_min_bbox_aspect_ratio, value_type=float),
+            "max_bbox_aspect_ratio": ParameterValue(auto_init_max_bbox_aspect_ratio, value_type=float),
+            "roi_min_x_ratio": ParameterValue(auto_init_roi_min_x_ratio, value_type=float),
+            "roi_max_x_ratio": ParameterValue(auto_init_roi_max_x_ratio, value_type=float),
+            "roi_min_y_ratio": ParameterValue(auto_init_roi_min_y_ratio, value_type=float),
+            "roi_max_y_ratio": ParameterValue(auto_init_roi_max_y_ratio, value_type=float),
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
@@ -297,8 +318,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
-            default_value="true",
-            description="Launch the optional end-effector camera tracker.",
+            default_value="false",
+            description="Launch the optional end-effector RGB tracker.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -333,7 +354,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_auto_init_bbox",
             default_value="true",
-            description="Automatically detect the colored target and publish /target/init_bbox.",
+            description="Automatically detect the depth target and publish /target/init_bbox.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_start_delay",
@@ -358,12 +379,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "auto_init_color_mode",
             default_value="depth_near",
-            description="Target appearance to detect. Supported values: depth_near, black, auto, red, green.",
+            description="Detection mode. Real robot default uses depth_near, not color.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
             default_value="700",
-            description="Minimum colored pixel count required to initialize tracking.",
+            description="Minimum depth-mask pixel count required to initialize tracking.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_width_px",
@@ -374,6 +395,41 @@ def generate_launch_description():
             "auto_init_min_bbox_height_px",
             default_value="20.0",
             description="Minimum detected bbox height in pixels.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_max_bbox_area_ratio",
+            default_value="0.25",
+            description="Maximum bbox area ratio allowed for automatic depth detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_min_bbox_aspect_ratio",
+            default_value="0.35",
+            description="Minimum bbox width/height ratio allowed for automatic depth detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_max_bbox_aspect_ratio",
+            default_value="3.0",
+            description="Maximum bbox width/height ratio allowed for automatic depth detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_roi_min_x_ratio",
+            default_value="0.18",
+            description="Left boundary of the automatic detection ROI as an image-width ratio.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_roi_max_x_ratio",
+            default_value="0.82",
+            description="Right boundary of the automatic detection ROI as an image-width ratio.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_roi_min_y_ratio",
+            default_value="0.15",
+            description="Top boundary of the automatic detection ROI as an image-height ratio.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_roi_max_y_ratio",
+            default_value="0.95",
+            description="Bottom boundary of the automatic detection ROI as an image-height ratio.",
         ),
         DeclareLaunchArgument(
             "auto_init_timeout_s",
@@ -412,8 +468,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
-            default_value="true",
-            description="Automatically detect the colored target from the EEF camera.",
+            default_value="false",
+            description="Automatically detect a target from the EEF RGB camera.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_start_delay",
