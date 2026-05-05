@@ -885,6 +885,15 @@ private:
   double gripper_open_position_{0.025};
   double gripper_close_position_{-0.015};
   double gripper_max_effort_{-1.0};
+  bool gripper_width_control_enabled_{true};
+  double gripper_fallback_object_width_m_{0.06};
+  double gripper_finger_home_half_gap_m_{0.021};
+  double gripper_pre_grasp_clearance_m_{0.012};
+  double gripper_grasp_compression_m_{0.002};
+  double gripper_min_position_{-0.010};
+  double gripper_max_position_{0.019};
+  double gripper_min_measured_object_width_m_{0.01};
+  double gripper_max_measured_object_width_m_{0.08};
   int cargo_sequence_next_{1};
   std::string current_cargo_id_;
 
@@ -912,6 +921,7 @@ private:
   std::optional<Bbox> latest_eef_bbox_;
   std::optional<CameraInfo> latest_camera_info_;
   std::optional<CameraInfo> latest_eef_camera_info_;
+  std::optional<double> latest_object_width_m_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
 
   bool active_{false};
