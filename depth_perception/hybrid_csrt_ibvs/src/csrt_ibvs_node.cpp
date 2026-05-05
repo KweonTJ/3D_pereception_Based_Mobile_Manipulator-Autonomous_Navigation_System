@@ -8,6 +8,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc.hpp>
+#include <sensor_msgs/image_encodings.hpp>
 
 #ifndef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
 #include <opencv2/video/tracking.hpp>
@@ -190,15 +191,12 @@ void CsrtIbvsNode::onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg)
 
 void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
 {
-  cv_bridge::CvImagePtr cv_ptr;
-  try {
-    cv_ptr = cv_bridge::toCvCopy(msg, kBgr8);
-  } catch (const cv_bridge::Exception & ex) {
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1500, "image cv_bridge conversion failed: %s", ex.what());
+  const auto frame_bgr = imageMsgToBgr(*msg);
+  if (!frame_bgr) {
     return;
   }
 
-  const cv::Mat & frame = cv_ptr->image;
+  const cv::Mat & frame = *frame_bgr;
   if (frame.empty()) {
     publishStatus("empty image received");
     return;
@@ -298,6 +296,83 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   status << " vx=" << ibvs.base_cmd.linear.x
          << " wz=" << ibvs.base_cmd.angular.z;
   publishStatus(status.str());
+}
+
+std::optional<cv::Mat> CsrtIbvsNode::imageMsgToBgr(const sensor_msgs::msg::Image & msg) const
+{
+  const std::string & encoding = msg.encoding;
+  if (encoding == sensor_msgs::image_encodings::TYPE_16UC1 ||
+      encoding == "16UC1" ||
+      encoding == sensor_msgs::image_encodings::MONO16 ||
+      encoding == "mono16" ||
+      encoding == sensor_msgs::image_encodings::TYPE_32FC1 ||
+      encoding == "32FC1") {
+    return depthMsgToBgr(msg);
+  }
+
+  try {
+    return cv_bridge::toCvCopy(msg.shared_from_this(), kBgr8)->image;
+  } catch (const cv_bridge::Exception & ex) {
+    RCLCPP_WARN_THROTTLE(
+      get_logger(), *get_clock(), 1500,
+      "image cv_bridge conversion failed: %s", ex.what());
+    return std::nullopt;
+  }
+}
+
+std::optional<cv::Mat> CsrtIbvsNode::depthMsgToBgr(const sensor_msgs::msg::Image & msg) const
+{
+  cv::Mat depth_m;
+
+  if (msg.encoding == sensor_msgs::image_encodings::TYPE_16UC1 ||
+      msg.encoding == "16UC1" ||
+      msg.encoding == sensor_msgs::image_encodings::MONO16 ||
+      msg.encoding == "mono16") {
+    try {
+      const auto cv_ptr = cv_bridge::toCvCopy(msg.shared_from_this(), sensor_msgs::image_encodings::TYPE_16UC1);
+      cv_ptr->image.convertTo(depth_m, CV_32FC1, depth_unit_scale_);
+    } catch (const cv_bridge::Exception & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1500,
+        "depth image conversion failed: %s", ex.what());
+      return std::nullopt;
+    }
+  } else if (msg.encoding == sensor_msgs::image_encodings::TYPE_32FC1 ||
+             msg.encoding == "32FC1") {
+    try {
+      depth_m = cv_bridge::toCvCopy(msg.shared_from_this(), sensor_msgs::image_encodings::TYPE_32FC1)->image;
+    } catch (const cv_bridge::Exception & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1500,
+        "depth image conversion failed: %s", ex.what());
+      return std::nullopt;
+    }
+  } else {
+    return std::nullopt;
+  }
+
+  if (depth_m.empty()) {
+    return std::nullopt;
+  }
+
+  cv::Mat gray(depth_m.size(), CV_8UC1, cv::Scalar(0));
+  const double range = std::max(0.001, max_valid_depth_m_ - min_valid_depth_m_);
+  for (int row = 0; row < depth_m.rows; ++row) {
+    const float * depth_row = depth_m.ptr<float>(row);
+    uint8_t * gray_row = gray.ptr<uint8_t>(row);
+    for (int col = 0; col < depth_m.cols; ++col) {
+      const double z = depth_row[col];
+      if (!std::isfinite(z) || z < min_valid_depth_m_ || z > max_valid_depth_m_) {
+        continue;
+      }
+      const double normalized = (max_valid_depth_m_ - z) / range;
+      gray_row[col] = static_cast<uint8_t>(clampValue(normalized, 0.0, 1.0) * 255.0);
+    }
+  }
+
+  cv::Mat bgr;
+  cv::cvtColor(gray, bgr, cv::COLOR_GRAY2BGR);
+  return bgr;
 }
 
 bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbox)
