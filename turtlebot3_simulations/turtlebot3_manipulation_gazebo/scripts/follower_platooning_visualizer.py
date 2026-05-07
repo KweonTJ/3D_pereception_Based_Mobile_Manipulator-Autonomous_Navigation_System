@@ -5,7 +5,9 @@ import math
 import rclpy
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy._rclpy_pybind11 import RCLError
 from std_msgs.msg import String
 from tf2_ros import TransformBroadcaster
 
@@ -264,9 +266,15 @@ def main(args=None):
     node = FollowerPlatooningVisualizer()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            if rclpy.ok():
+                rclpy.shutdown()
+        except RCLError:
+            pass
 
 
 if __name__ == "__main__":
