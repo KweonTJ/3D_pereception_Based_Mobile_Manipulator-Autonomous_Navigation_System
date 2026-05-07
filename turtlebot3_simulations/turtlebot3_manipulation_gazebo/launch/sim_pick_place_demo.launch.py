@@ -34,6 +34,8 @@ def generate_launch_description():
     follower_max_speed = LaunchConfiguration("follower_max_speed")
     follower_max_turn_speed = LaunchConfiguration("follower_max_turn_speed")
     follower_leader_odom_topic = LaunchConfiguration("follower_leader_odom_topic")
+    follower_leader_reference_frame = LaunchConfiguration("follower_leader_reference_frame")
+    follower_reference_frame = LaunchConfiguration("follower_reference_frame")
     place_on_follower = LaunchConfiguration("place_on_follower")
     follower_place_z = LaunchConfiguration("follower_place_z")
 
@@ -131,6 +133,8 @@ def generate_launch_description():
             {"leader_odom_topic": follower_leader_odom_topic},
             {"parent_frame": "odom"},
             {"follower_frame": "follower_base_footprint"},
+            {"leader_reference_frame": follower_leader_reference_frame},
+            {"follower_reference_frame": follower_reference_frame},
             {"follower_odom_topic": "/follower/odom"},
             {"target_distance_m": follower_distance},
             {"handoff_distance_m": follower_handoff_distance},
@@ -214,33 +218,43 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_x",
-            default_value="-0.30",
-            description="Follower visualization x offset from the leader base_footprint frame.",
+            default_value="-0.45",
+            description="Follower visualization initial x offset from the leader reference frame.",
         ),
         DeclareLaunchArgument(
             "follower_y",
             default_value="0.00",
-            description="Follower visualization y offset from the leader base_footprint frame.",
+            description="Follower visualization initial y offset from the leader reference frame.",
         ),
         DeclareLaunchArgument(
             "follower_yaw",
             default_value="0.00",
-            description="Follower visualization yaw offset from the leader base_footprint frame.",
+            description="Follower visualization yaw offset from the leader reference frame.",
         ),
         DeclareLaunchArgument(
             "follower_distance",
-            default_value="0.30",
-            description="Target following distance behind the leader in meters.",
+            default_value="0.45",
+            description="Target IMU-to-IMU following distance behind the leader in meters.",
         ),
         DeclareLaunchArgument(
             "follower_handoff_distance",
-            default_value="0.30",
-            description="Follower spacing used while the leader places cargo on the follower deck.",
+            default_value="0.45",
+            description="IMU-to-IMU follower spacing used while the leader places cargo on the follower deck.",
         ),
         DeclareLaunchArgument(
             "follower_leader_odom_topic",
             default_value="/diff_drive_controller/odom",
             description="Leader odometry topic used by the follower platooning visualizer.",
+        ),
+        DeclareLaunchArgument(
+            "follower_leader_reference_frame",
+            default_value="imu_link",
+            description="Leader TF frame used as the platooning distance reference.",
+        ),
+        DeclareLaunchArgument(
+            "follower_reference_frame",
+            default_value="follower_imu_link",
+            description="Follower TF frame used as the platooning distance reference.",
         ),
         DeclareLaunchArgument(
             "place_on_follower",
