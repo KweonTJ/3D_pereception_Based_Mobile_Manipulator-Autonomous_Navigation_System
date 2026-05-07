@@ -150,14 +150,6 @@ private:
       return;
     }
 
-    if (contains_any(status, {"PLACING", "PLACE"})) {
-      set_task_state("PLACING_ON_FOLLOWER");
-      set_cargo_state("LOADING");
-      set_follower_enable(true);
-      set_platoon_mode("STANDBY");
-      return;
-    }
-
     if (contains_any(status, {"PICKING", "GRASPING", "PICK:"})) {
       set_task_state("PICKING");
       return;
@@ -167,6 +159,14 @@ private:
       set_task_state("MOVING");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
+      return;
+    }
+
+    if (contains_any(status, {"PLACING", "PLACE"})) {
+      set_task_state("PLACING_ON_FOLLOWER");
+      set_cargo_state("LOADING");
+      set_follower_enable(true);
+      set_platoon_mode("STANDBY");
       return;
     }
 
