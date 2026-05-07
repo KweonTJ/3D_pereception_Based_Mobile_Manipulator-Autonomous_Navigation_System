@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
+from launch.actions import SetEnvironmentVariable
 from launch.actions import TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -19,6 +20,7 @@ def generate_launch_description():
     world = LaunchConfiguration("world")
     demo_start_delay = LaunchConfiguration("demo_start_delay")
     return_to_stow = LaunchConfiguration("return_to_stow")
+    direct_place_on_follower = LaunchConfiguration("direct_place_on_follower")
     base_approach_distance = LaunchConfiguration("base_approach_distance")
     base_approach_speed = LaunchConfiguration("base_approach_speed")
     base_transport_distance = LaunchConfiguration("base_transport_distance")
@@ -38,6 +40,10 @@ def generate_launch_description():
     follower_reference_frame = LaunchConfiguration("follower_reference_frame")
     place_on_follower = LaunchConfiguration("place_on_follower")
     follower_place_z = LaunchConfiguration("follower_place_z")
+    leader_domain_id = LaunchConfiguration("leader_domain_id")
+    start_leader_task_manager = LaunchConfiguration("start_leader_task_manager")
+    start_leader_beacon = LaunchConfiguration("start_leader_beacon")
+    start_domain_bridge = LaunchConfiguration("start_domain_bridge")
 
     follower_description = ParameterValue(
         Command([
@@ -82,6 +88,7 @@ def generate_launch_description():
             {"use_sim_time": True},
             {"start_delay_s": demo_start_delay},
             {"return_to_stow": return_to_stow},
+            {"direct_place_on_follower": direct_place_on_follower},
             {"base_approach_distance_m": base_approach_distance},
             {"base_approach_speed_mps": base_approach_speed},
             {"base_transport_distance_m": base_transport_distance},
@@ -104,6 +111,56 @@ def generate_launch_description():
             {"publish_demo_joint_states": False},
             {"cargo_id_prefix": "SIM-PKG"},
         ],
+    )
+
+    leader_task_manager_node = Node(
+        package="leader_task_manager",
+        executable="leader_task_manager_node",
+        name="leader_task_manager",
+        output="screen",
+        condition=IfCondition(start_leader_task_manager),
+        parameters=[{
+            "mp_control_status_topic": "/mp_control/pick_place_status",
+            "cargo_events_topic": "/cargo/events",
+            "cargo_current_id_topic": "/cargo/current_id",
+            "task_state_topic": "/leader/task_state",
+            "cargo_state_topic": "/leader/cargo_state",
+            "follower_enable_topic": "/leader/follower_enable",
+            "platoon_mode_topic": "/leader/platoon_mode",
+            "initial_task_state": "IDLE",
+            "initial_cargo_state": "EMPTY",
+            "initial_platoon_mode": "STOP",
+            "initial_follower_enable": False,
+        }],
+    )
+
+    leader_beacon_node = Node(
+        package="leader_platooning_beacon",
+        executable="leader_platooning_beacon_node",
+        name="leader_platooning_beacon",
+        output="screen",
+        condition=IfCondition(start_leader_beacon),
+        parameters=[{
+            "heartbeat_rate_hz": 10.0,
+            "publish_odom_backup": True,
+            "publish_cmd_vel_backup": True,
+            "odom_topic": "/diff_drive_controller/odom",
+            "cmd_vel_topic": "/diff_drive_controller/cmd_vel_unstamped",
+            "heartbeat_topic": "/leader/heartbeat",
+            "leader_odom_topic": "/leader/odom",
+            "leader_cmd_vel_topic": "/leader/cmd_vel",
+        }],
+    )
+
+    domain_bridge_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("platooning_bridge_config"),
+                "launch",
+                "bridge.launch.py",
+            ])
+        ]),
+        condition=IfCondition(start_domain_bridge),
     )
 
     follower_state_publisher = Node(
@@ -152,6 +209,12 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        SetEnvironmentVariable("ROS_DOMAIN_ID", leader_domain_id),
+        DeclareLaunchArgument(
+            "leader_domain_id",
+            default_value="10",
+            description="ROS_DOMAIN_ID used by the leader simulation side.",
+        ),
         DeclareLaunchArgument(
             "world",
             default_value=PathJoinSubstitution([
@@ -182,6 +245,11 @@ def generate_launch_description():
             description="Return the arm to the stow pose after placing the object.",
         ),
         DeclareLaunchArgument(
+            "direct_place_on_follower",
+            default_value="true",
+            description="After grasping, place directly onto the follower without base transport.",
+        ),
+        DeclareLaunchArgument(
             "base_approach_distance",
             default_value="0.80",
             description="Meters to drive before grasping. Object pose is generated from the post-drive grasp pose.",
@@ -193,8 +261,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "base_transport_distance",
-            default_value="1.00",
-            description="Meters to drive after grasping and before placing.",
+            default_value="0.00",
+            description="Meters to drive after grasping and before placing when direct placement is disabled.",
         ),
         DeclareLaunchArgument(
             "base_transport_speed",
@@ -203,8 +271,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "base_turn_angle",
-            default_value="1.5708",
-            description="Radians to rotate after picking before transport. Positive turns left; 0 keeps the old straight path.",
+            default_value="0.00",
+            description="Radians to rotate after picking when direct placement is disabled.",
         ),
         DeclareLaunchArgument(
             "base_turn_speed",
@@ -276,6 +344,24 @@ def generate_launch_description():
             default_value="1.20",
             description="Follower visualization maximum angular speed in rad/s.",
         ),
+        DeclareLaunchArgument(
+            "start_leader_task_manager",
+            default_value="true",
+            description="Publish leader task/cargo/platoon state for follower communication.",
+        ),
+        DeclareLaunchArgument(
+            "start_leader_beacon",
+            default_value="true",
+            description="Publish leader heartbeat, odometry, and cmd_vel backup topics.",
+        ),
+        DeclareLaunchArgument(
+            "start_domain_bridge",
+            default_value="true",
+            description="Bridge /leader topics from leader domain 10 to follower domain 20.",
+        ),
+        leader_task_manager_node,
+        leader_beacon_node,
+        domain_bridge_launch,
         follower_state_publisher,
         follower_platooning_node,
         sim_launch,
