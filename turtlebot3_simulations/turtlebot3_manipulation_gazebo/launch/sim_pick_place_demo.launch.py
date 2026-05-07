@@ -104,6 +104,7 @@ def generate_launch_description():
         ],
         remappings=[
             ("robot_description", "/follower/robot_description"),
+            ("joint_states", "/follower/joint_states"),
         ],
     )
 
@@ -116,6 +117,10 @@ def generate_launch_description():
         parameters=[
             {"robot_description": follower_description},
             {"use_sim_time": True},
+        ],
+        remappings=[
+            ("robot_description", "/follower/robot_description"),
+            ("joint_states", "/follower/joint_states"),
         ],
     )
 
