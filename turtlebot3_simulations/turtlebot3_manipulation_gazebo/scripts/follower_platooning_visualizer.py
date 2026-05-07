@@ -178,6 +178,10 @@ class FollowerPlatooningVisualizer(Node):
             "BASE_APPROACH",
             "MOVING_WITH_CARGO",
             "TURN_WITH_CARGO",
+            "CARGO_LOADED",
+            "STAY",
+            "POST_PLACE_MOVE",
+            "POST_PLACE_ARRIVED",
         }
         if should_handoff and not self.handoff_active:
             self.handoff_active = True
