@@ -10,7 +10,10 @@ from rclpy.node import Node
 from rclpy._rclpy_pybind11 import RCLError
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
+from tf2_ros import Buffer
 from tf2_ros import TransformBroadcaster
+from tf2_ros import TransformException
+from tf2_ros import TransformListener
 
 
 def clamp(value, lower, upper):
@@ -44,6 +47,8 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("leader_odom_topic", "/odom")
         self.declare_parameter("parent_frame", "odom")
         self.declare_parameter("follower_frame", "follower_base_footprint")
+        self.declare_parameter("leader_reference_frame", "imu_link")
+        self.declare_parameter("follower_reference_frame", "follower_imu_link")
         self.declare_parameter("follower_odom_topic", "/follower/odom")
         self.declare_parameter("follower_joint_state_topic", "/follower/joint_states")
         self.declare_parameter(
@@ -68,6 +73,8 @@ class FollowerPlatooningVisualizer(Node):
         self.leader_odom_topic = self._string_param("leader_odom_topic")
         self.parent_frame = self._string_param("parent_frame")
         self.follower_frame = self._string_param("follower_frame")
+        self.leader_reference_frame = self._string_param("leader_reference_frame")
+        self.follower_reference_frame = self._string_param("follower_reference_frame")
         self.follower_odom_topic = self._string_param("follower_odom_topic")
         self.follower_joint_state_topic = self._string_param("follower_joint_state_topic")
         self.follower_wheel_joints = [
@@ -89,6 +96,8 @@ class FollowerPlatooningVisualizer(Node):
         publish_rate_hz = max(1.0, self._float_param("publish_rate_hz"))
 
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         self.odom_pub = self.create_publisher(Odometry, self.follower_odom_topic, 10)
         self.joint_state_pub = self.create_publisher(
             JointState, self.follower_joint_state_topic, 10
@@ -114,6 +123,7 @@ class FollowerPlatooningVisualizer(Node):
             "Follower platooning visualizer started: "
             f"target_distance={self.target_distance_m:.2f} m, "
             f"handoff_distance={self.handoff_distance_m:.2f} m, "
+            f"reference={self.leader_reference_frame}->{self.follower_reference_frame}, "
             f"leader_odom={self.leader_odom_topic}"
         )
 
@@ -195,15 +205,16 @@ class FollowerPlatooningVisualizer(Node):
             self._publish_follower(now)
             return
 
-        leader_x, leader_y, leader_yaw = self.leader_pose
+        leader_x, leader_y, leader_yaw = self._leader_reference_pose()
         active_distance = (
             self.handoff_distance_m if self.handoff_active else self.target_distance_m
         )
         target_x = leader_x - active_distance * math.cos(leader_yaw)
         target_y = leader_y - active_distance * math.sin(leader_yaw)
+        follower_ref_x, follower_ref_y, _ = self._follower_reference_pose()
 
-        dx = target_x - self.follower_x
-        dy = target_y - self.follower_y
+        dx = target_x - follower_ref_x
+        dy = target_y - follower_ref_y
         target_error = math.hypot(dx, dy)
 
         if target_error > self.distance_deadband_m:
@@ -234,6 +245,36 @@ class FollowerPlatooningVisualizer(Node):
 
         self._publish_follower(now)
         self._log_spacing(now, leader_x, leader_y, active_distance)
+
+    def _lookup_pose(self, frame_id):
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                self.parent_frame,
+                frame_id,
+                rclpy.time.Time(),
+            )
+        except TransformException:
+            return None
+
+        translation = transform.transform.translation
+        rotation = transform.transform.rotation
+        return (
+            translation.x,
+            translation.y,
+            yaw_from_quaternion(rotation),
+        )
+
+    def _leader_reference_pose(self):
+        pose = self._lookup_pose(self.leader_reference_frame)
+        if pose is not None:
+            return pose
+        return self.leader_pose
+
+    def _follower_reference_pose(self):
+        pose = self._lookup_pose(self.follower_reference_frame)
+        if pose is not None:
+            return pose
+        return (self.follower_x, self.follower_y, self.follower_yaw)
 
     def _integrate_wheels(self, linear_speed, angular_speed, dt):
         half_track = 0.5 * self.wheel_separation_m
@@ -286,10 +327,12 @@ class FollowerPlatooningVisualizer(Node):
         if now_sec - self.last_log_time < 2.0:
             return
         self.last_log_time = now_sec
-        spacing = math.hypot(leader_x - self.follower_x, leader_y - self.follower_y)
+        follower_x, follower_y, _ = self._follower_reference_pose()
+        spacing = math.hypot(leader_x - follower_x, leader_y - follower_y)
         self.get_logger().info(
-            f"FOLLOWING: spacing={spacing:.2f} m "
+            f"FOLLOWING: imu_spacing={spacing:.2f} m "
             f"target={active_distance:.2f} m "
+            f"frames={self.leader_reference_frame}->{self.follower_reference_frame} "
             f"v={self.last_linear_speed:.2f} m/s "
             f"w={self.last_angular_speed:.2f} rad/s"
         )
