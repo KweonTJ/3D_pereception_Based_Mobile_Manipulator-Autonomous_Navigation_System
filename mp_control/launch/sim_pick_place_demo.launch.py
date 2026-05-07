@@ -40,8 +40,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "base_approach_distance",
-            default_value="0.80",
-            description="Meters to drive before grasping.",
+            default_value="0.28",
+            description="Meters to drive before grasping. Matches the hybrid depth simulation desired depth.",
         ),
         DeclareLaunchArgument(
             "base_approach_speed",
