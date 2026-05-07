@@ -143,7 +143,7 @@ class FollowerPlatooningVisualizer(Node):
         )
 
         if not self.initialized:
-            leader_x, leader_y, leader_yaw = self.leader_pose
+            leader_x, leader_y, leader_yaw = self._leader_reference_pose()
             cos_yaw = math.cos(leader_yaw)
             sin_yaw = math.sin(leader_yaw)
             self.follower_x = (
