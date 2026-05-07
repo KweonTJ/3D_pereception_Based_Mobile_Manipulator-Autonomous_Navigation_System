@@ -45,7 +45,7 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("follower_frame", "follower_base_footprint")
         self.declare_parameter("follower_odom_topic", "/follower/odom")
         self.declare_parameter("target_distance_m", 1.0)
-        self.declare_parameter("handoff_distance_m", 0.37)
+        self.declare_parameter("handoff_distance_m", 0.20)
         self.declare_parameter("initial_offset_x_m", -1.0)
         self.declare_parameter("initial_offset_y_m", 0.0)
         self.declare_parameter("initial_yaw_offset_rad", 0.0)
