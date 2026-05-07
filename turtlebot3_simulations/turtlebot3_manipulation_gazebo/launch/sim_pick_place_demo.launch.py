@@ -17,6 +17,8 @@ def generate_launch_description():
     return_to_stow = LaunchConfiguration("return_to_stow")
     base_approach_distance = LaunchConfiguration("base_approach_distance")
     base_approach_speed = LaunchConfiguration("base_approach_speed")
+    base_transport_distance = LaunchConfiguration("base_transport_distance")
+    base_transport_speed = LaunchConfiguration("base_transport_speed")
 
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -50,6 +52,8 @@ def generate_launch_description():
             {"return_to_stow": return_to_stow},
             {"base_approach_distance_m": base_approach_distance},
             {"base_approach_speed_mps": base_approach_speed},
+            {"base_transport_distance_m": base_transport_distance},
+            {"base_transport_speed_mps": base_transport_speed},
             {"cmd_vel_topic": "/diff_drive_controller/cmd_vel_unstamped"},
             {"publish_demo_base_tf": False},
             {"publish_demo_joint_states": False},
@@ -96,6 +100,16 @@ def generate_launch_description():
             "base_approach_speed",
             default_value="0.12",
             description="Base linear speed in m/s during the approach stage.",
+        ),
+        DeclareLaunchArgument(
+            "base_transport_distance",
+            default_value="1.00",
+            description="Meters to drive after grasping and before placing.",
+        ),
+        DeclareLaunchArgument(
+            "base_transport_speed",
+            default_value="0.12",
+            description="Base linear speed in m/s during the transport stage.",
         ),
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
