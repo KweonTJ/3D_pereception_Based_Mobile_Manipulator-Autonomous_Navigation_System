@@ -2,10 +2,14 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.actions import TimerAction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import Command
+from launch.substitutions import FindExecutable
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -21,6 +25,23 @@ def generate_launch_description():
     base_transport_speed = LaunchConfiguration("base_transport_speed")
     base_turn_angle = LaunchConfiguration("base_turn_angle")
     base_turn_speed = LaunchConfiguration("base_turn_speed")
+    show_follower = LaunchConfiguration("show_follower")
+    follower_x = LaunchConfiguration("follower_x")
+    follower_y = LaunchConfiguration("follower_y")
+    follower_yaw = LaunchConfiguration("follower_yaw")
+
+    follower_description = ParameterValue(
+        Command([
+            PathJoinSubstitution([FindExecutable(name="xacro")]),
+            " ",
+            PathJoinSubstitution([
+                FindPackageShare("turtlebot3_manipulation_gazebo"),
+                "urdf",
+                "turtlebot3_platooning_follower.urdf.xacro",
+            ]),
+        ]),
+        value_type=str,
+    )
 
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -68,6 +89,49 @@ def generate_launch_description():
             {"publish_demo_base_tf": False},
             {"publish_demo_joint_states": False},
             {"cargo_id_prefix": "SIM-PKG"},
+        ],
+    )
+
+    follower_state_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="follower_robot_state_publisher",
+        output="screen",
+        condition=IfCondition(show_follower),
+        parameters=[
+            {"robot_description": follower_description},
+            {"use_sim_time": True},
+        ],
+        remappings=[
+            ("robot_description", "/follower/robot_description"),
+        ],
+    )
+
+    follower_joint_publisher = Node(
+        package="joint_state_publisher",
+        executable="joint_state_publisher",
+        name="follower_joint_state_publisher",
+        output="screen",
+        condition=IfCondition(show_follower),
+        parameters=[
+            {"robot_description": follower_description},
+            {"use_sim_time": True},
+        ],
+    )
+
+    follower_anchor_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="follower_anchor_tf",
+        output="screen",
+        condition=IfCondition(show_follower),
+        arguments=[
+            "--x", follower_x,
+            "--y", follower_y,
+            "--z", "0.0",
+            "--yaw", follower_yaw,
+            "--frame-id", "base_footprint",
+            "--child-frame-id", "follower_base_footprint",
         ],
     )
 
@@ -131,6 +195,29 @@ def generate_launch_description():
             default_value="0.45",
             description="Base angular speed in rad/s during the post-pick turn.",
         ),
+        DeclareLaunchArgument(
+            "show_follower",
+            default_value="true",
+            description="Show a follower TurtleBot3 model in RViz for platooning visualization.",
+        ),
+        DeclareLaunchArgument(
+            "follower_x",
+            default_value="-1.00",
+            description="Follower visualization x offset from the leader base_footprint frame.",
+        ),
+        DeclareLaunchArgument(
+            "follower_y",
+            default_value="0.00",
+            description="Follower visualization y offset from the leader base_footprint frame.",
+        ),
+        DeclareLaunchArgument(
+            "follower_yaw",
+            default_value="0.00",
+            description="Follower visualization yaw offset from the leader base_footprint frame.",
+        ),
+        follower_state_publisher,
+        follower_joint_publisher,
+        follower_anchor_tf,
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
     ])

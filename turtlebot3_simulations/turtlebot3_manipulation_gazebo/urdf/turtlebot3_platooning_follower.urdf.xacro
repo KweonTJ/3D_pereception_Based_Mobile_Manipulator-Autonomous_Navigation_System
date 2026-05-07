@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<robot name="turtlebot3_platooning_follower" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="prefix" default="follower_"/>
+
+  <xacro:include filename="$(find turtlebot3_manipulation_gazebo)/gazebo/materials.xacro"/>
+  <xacro:include filename="$(find turtlebot3_manipulation_gazebo)/urdf/turtlebot3_waffle_pi.urdf.xacro"/>
+
+  <xacro:turtlebot3_waffle_pi prefix="$(arg prefix)"/>
+</robot>
