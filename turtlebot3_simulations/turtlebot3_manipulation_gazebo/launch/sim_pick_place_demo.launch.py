@@ -30,9 +30,12 @@ def generate_launch_description():
     follower_y = LaunchConfiguration("follower_y")
     follower_yaw = LaunchConfiguration("follower_yaw")
     follower_distance = LaunchConfiguration("follower_distance")
+    follower_handoff_distance = LaunchConfiguration("follower_handoff_distance")
     follower_max_speed = LaunchConfiguration("follower_max_speed")
     follower_max_turn_speed = LaunchConfiguration("follower_max_turn_speed")
     follower_leader_odom_topic = LaunchConfiguration("follower_leader_odom_topic")
+    place_on_follower = LaunchConfiguration("place_on_follower")
+    follower_place_z = LaunchConfiguration("follower_place_z")
 
     follower_description = ParameterValue(
         Command([
@@ -83,6 +86,10 @@ def generate_launch_description():
             {"base_transport_speed_mps": base_transport_speed},
             {"base_turn_angle_rad": base_turn_angle},
             {"base_turn_speed_radps": base_turn_speed},
+            {"place_on_follower": place_on_follower},
+            {"follower_place_frame": "follower_base_footprint"},
+            {"follower_place_xyz": [0.0, 0.0, follower_place_z]},
+            {"follower_handoff_wait_s": 2.5},
             {"cmd_vel_topic": "/diff_drive_controller/cmd_vel_unstamped"},
             {"cmd_vel_wait_timeout_s": 90.0},
             {"trajectory_wait_timeout_s": 90.0},
@@ -125,9 +132,11 @@ def generate_launch_description():
             {"follower_frame": "follower_base_footprint"},
             {"follower_odom_topic": "/follower/odom"},
             {"target_distance_m": follower_distance},
+            {"handoff_distance_m": follower_handoff_distance},
             {"initial_offset_x_m": follower_x},
             {"initial_offset_y_m": follower_y},
             {"initial_yaw_offset_rad": follower_yaw},
+            {"status_topic": "/mp_control/pick_place_status"},
             {"max_linear_speed_mps": follower_max_speed},
             {"max_angular_speed_radps": follower_max_turn_speed},
             {"linear_gain": 0.85},
@@ -223,9 +232,24 @@ def generate_launch_description():
             description="Target following distance behind the leader in meters.",
         ),
         DeclareLaunchArgument(
+            "follower_handoff_distance",
+            default_value="0.37",
+            description="Follower spacing used while the leader places cargo on the follower deck.",
+        ),
+        DeclareLaunchArgument(
             "follower_leader_odom_topic",
             default_value="/diff_drive_controller/odom",
             description="Leader odometry topic used by the follower platooning visualizer.",
+        ),
+        DeclareLaunchArgument(
+            "place_on_follower",
+            default_value="true",
+            description="Place the released object marker on the follower cargo deck frame.",
+        ),
+        DeclareLaunchArgument(
+            "follower_place_z",
+            default_value="0.12",
+            description="Object center height above follower_base_footprint when placed on the follower.",
         ),
         DeclareLaunchArgument(
             "follower_max_speed",

@@ -6,6 +6,7 @@ import rclpy
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
+from std_msgs.msg import String
 from tf2_ros import TransformBroadcaster
 
 
@@ -42,9 +43,11 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("follower_frame", "follower_base_footprint")
         self.declare_parameter("follower_odom_topic", "/follower/odom")
         self.declare_parameter("target_distance_m", 1.0)
+        self.declare_parameter("handoff_distance_m", 0.37)
         self.declare_parameter("initial_offset_x_m", -1.0)
         self.declare_parameter("initial_offset_y_m", 0.0)
         self.declare_parameter("initial_yaw_offset_rad", 0.0)
+        self.declare_parameter("status_topic", "/mp_control/pick_place_status")
         self.declare_parameter("max_linear_speed_mps", 0.24)
         self.declare_parameter("max_angular_speed_radps", 1.2)
         self.declare_parameter("linear_gain", 0.85)
@@ -57,9 +60,11 @@ class FollowerPlatooningVisualizer(Node):
         self.follower_frame = self._string_param("follower_frame")
         self.follower_odom_topic = self._string_param("follower_odom_topic")
         self.target_distance_m = self._float_param("target_distance_m")
+        self.handoff_distance_m = self._float_param("handoff_distance_m")
         self.initial_offset_x_m = self._float_param("initial_offset_x_m")
         self.initial_offset_y_m = self._float_param("initial_offset_y_m")
         self.initial_yaw_offset_rad = self._float_param("initial_yaw_offset_rad")
+        self.status_topic = self._string_param("status_topic")
         self.max_linear_speed_mps = self._float_param("max_linear_speed_mps")
         self.max_angular_speed_radps = self._float_param("max_angular_speed_radps")
         self.linear_gain = self._float_param("linear_gain")
@@ -70,6 +75,7 @@ class FollowerPlatooningVisualizer(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.odom_pub = self.create_publisher(Odometry, self.follower_odom_topic, 10)
         self.create_subscription(Odometry, self.leader_odom_topic, self._leader_odom_cb, 10)
+        self.create_subscription(String, self.status_topic, self._status_cb, 10)
         self.timer = self.create_timer(1.0 / publish_rate_hz, self._timer_cb)
 
         self.leader_pose = None
@@ -81,10 +87,12 @@ class FollowerPlatooningVisualizer(Node):
         self.initialized = False
         self.last_linear_speed = 0.0
         self.last_angular_speed = 0.0
+        self.handoff_active = False
 
         self.get_logger().info(
             "Follower platooning visualizer started: "
             f"target_distance={self.target_distance_m:.2f} m, "
+            f"handoff_distance={self.handoff_distance_m:.2f} m, "
             f"leader_odom={self.leader_odom_topic}"
         )
 
@@ -123,6 +131,38 @@ class FollowerPlatooningVisualizer(Node):
                 f"({self.follower_x:.2f}, {self.follower_y:.2f})"
             )
 
+    def _status_cb(self, msg):
+        status = msg.data.upper()
+        should_handoff = any(
+            key in status
+            for key in (
+                "HANDOFF_ALIGN",
+                "PLACE",
+                "PLACE_REACH",
+                "RELEASE",
+                "DONE",
+            )
+        )
+        should_reset = any(
+            key in status
+            for key in (
+                "DETECTED",
+                "BASE_APPROACH",
+                "MOVING_WITH_CARGO",
+                "TURN_WITH_CARGO",
+            )
+        )
+        if should_handoff and not self.handoff_active:
+            self.handoff_active = True
+            self.get_logger().info(
+                f"HANDOFF: closing to {self.handoff_distance_m:.2f} m for cargo transfer"
+            )
+        elif should_reset and self.handoff_active:
+            self.handoff_active = False
+            self.get_logger().info(
+                f"FOLLOW: returning to {self.target_distance_m:.2f} m spacing"
+            )
+
     def _timer_cb(self):
         if self.leader_pose is None or not self.initialized:
             return
@@ -140,8 +180,11 @@ class FollowerPlatooningVisualizer(Node):
             return
 
         leader_x, leader_y, leader_yaw = self.leader_pose
-        target_x = leader_x - self.target_distance_m * math.cos(leader_yaw)
-        target_y = leader_y - self.target_distance_m * math.sin(leader_yaw)
+        active_distance = (
+            self.handoff_distance_m if self.handoff_active else self.target_distance_m
+        )
+        target_x = leader_x - active_distance * math.cos(leader_yaw)
+        target_y = leader_y - active_distance * math.sin(leader_yaw)
 
         dx = target_x - self.follower_x
         dy = target_y - self.follower_y
@@ -173,7 +216,7 @@ class FollowerPlatooningVisualizer(Node):
         self.last_angular_speed = angular_speed
 
         self._publish_follower(now)
-        self._log_spacing(now, leader_x, leader_y)
+        self._log_spacing(now, leader_x, leader_y, active_distance)
 
     def _publish_follower(self, stamp):
         qx, qy, qz, qw = quaternion_from_yaw(self.follower_yaw)
@@ -202,7 +245,7 @@ class FollowerPlatooningVisualizer(Node):
         odom.twist.twist.angular.z = self.last_angular_speed
         self.odom_pub.publish(odom)
 
-    def _log_spacing(self, now, leader_x, leader_y):
+    def _log_spacing(self, now, leader_x, leader_y, active_distance):
         now_sec = now.nanoseconds * 1.0e-9
         if now_sec - self.last_log_time < 2.0:
             return
@@ -210,7 +253,7 @@ class FollowerPlatooningVisualizer(Node):
         spacing = math.hypot(leader_x - self.follower_x, leader_y - self.follower_y)
         self.get_logger().info(
             f"FOLLOWING: spacing={spacing:.2f} m "
-            f"target={self.target_distance_m:.2f} m "
+            f"target={active_distance:.2f} m "
             f"v={self.last_linear_speed:.2f} m/s "
             f"w={self.last_angular_speed:.2f} rad/s"
         )

@@ -96,6 +96,10 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("require_gripper_action_server", False)
         self.declare_parameter("object_size_xyz", [0.06, 0.06, 0.10])
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
+        self.declare_parameter("place_on_follower", False)
+        self.declare_parameter("follower_place_frame", "follower_base_footprint")
+        self.declare_parameter("follower_place_xyz", [0.0, 0.0, 0.12])
+        self.declare_parameter("follower_handoff_wait_s", 0.0)
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
         self.declare_parameter("gazebo_object_entity_name", "grasp_test_cube")
@@ -115,6 +119,12 @@ class SimPickPlaceDemo(Node):
             float(v) for v in self.get_parameter("object_size_xyz").value]
         self.attached_object_offset_xyz = [
             float(v) for v in self.get_parameter("attached_object_offset_xyz").value]
+        self.place_on_follower = bool(self.get_parameter("place_on_follower").value)
+        self.follower_place_frame = str(self.get_parameter("follower_place_frame").value)
+        self.follower_place_xyz = [
+            float(v) for v in self.get_parameter("follower_place_xyz").value]
+        self.follower_handoff_wait_s = max(
+            0.0, float(self.get_parameter("follower_handoff_wait_s").value))
         self.gazebo_world_origin_xyz = [
             float(v) for v in self.get_parameter("gazebo_world_origin_xyz").value]
         self.gripper_joint_lower_m = float(
@@ -275,8 +285,12 @@ class SimPickPlaceDemo(Node):
                 return
         self._status("ARRIVED_WITH_CARGO: robot reached place location")
         self._sleep(0.8)
+        if self.place_on_follower:
+            self._status("HANDOFF_ALIGN: follower closing cargo deck under arm")
+            self._sleep(self.follower_handoff_wait_s)
 
-        self._status("PLACE: rotating arm 180 degrees and lowering after transport")
+        place_target = "follower cargo deck" if self.place_on_follower else "place target"
+        self._status(f"PLACE: rotating arm 180 degrees and lowering onto {place_target}")
         if not self._send_trajectory([
             (self.pre_place_arm_positions, 2.8),
             (self.place_arm_positions, 4.8),
@@ -287,10 +301,13 @@ class SimPickPlaceDemo(Node):
         self._sleep(2.0)
 
         self._status("RELEASE: opening gripper at reached pose")
-        self.released_object_xyz = (
-            self._attached_object_odom_xyz()
-            or self._planned_object_odom_xyz(self.place_arm_positions)
-        )
+        if self.place_on_follower:
+            self.released_object_xyz = None
+        else:
+            self.released_object_xyz = (
+                self._attached_object_odom_xyz()
+                or self._planned_object_odom_xyz(self.place_arm_positions)
+            )
         if not self._send_gripper(self._object_gripper_open_position()):
             return
         self._publish_cargo_event("placed")
@@ -660,6 +677,12 @@ class SimPickPlaceDemo(Node):
             marker.pose.position.x = self.attached_object_offset_xyz[0]
             marker.pose.position.y = self.attached_object_offset_xyz[1]
             marker.pose.position.z = self.attached_object_offset_xyz[2]
+        elif placed and self.place_on_follower:
+            marker.header.frame_id = self.follower_place_frame
+            marker.frame_locked = True
+            marker.pose.position.x = self.follower_place_xyz[0]
+            marker.pose.position.y = self.follower_place_xyz[1]
+            marker.pose.position.z = self.follower_place_xyz[2]
         else:
             marker.header.frame_id = self.place_frame if placed else self.object_frame
             xyz = self._placed_object_odom_xyz() if placed else self.pick_object_xyz
@@ -672,12 +695,13 @@ class SimPickPlaceDemo(Node):
     def _place_marker(self, placed):
         marker = Marker()
         marker.header.stamp = self.get_clock().now().to_msg()
-        marker.header.frame_id = self.place_frame
+        marker.header.frame_id = self.follower_place_frame if self.place_on_follower else self.place_frame
         marker.ns = "pick_place_demo"
         marker.id = 2
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
-        xyz = self._placed_object_odom_xyz() if placed else self._planned_place_object_odom_xyz()
+        xyz = self.follower_place_xyz if self.place_on_follower else (
+            self._placed_object_odom_xyz() if placed else self._planned_place_object_odom_xyz())
         marker.pose.position.x = xyz[0]
         marker.pose.position.y = xyz[1]
         marker.pose.position.z = xyz[2]
@@ -724,6 +748,12 @@ class SimPickPlaceDemo(Node):
             marker.pose.position.x = self.attached_object_offset_xyz[0]
             marker.pose.position.y = self.attached_object_offset_xyz[1]
             marker.pose.position.z = self.attached_object_offset_xyz[2] + 0.10
+        elif placed and self.place_on_follower:
+            marker.header.frame_id = self.follower_place_frame
+            marker.frame_locked = True
+            marker.pose.position.x = self.follower_place_xyz[0]
+            marker.pose.position.y = self.follower_place_xyz[1]
+            marker.pose.position.z = self.follower_place_xyz[2] + self.object_size_xyz[2] + 0.04
         else:
             marker.header.frame_id = self.place_frame if placed else self.object_frame
             xyz = self._placed_object_odom_xyz() if placed else self.pick_object_xyz
@@ -797,13 +827,36 @@ class SimPickPlaceDemo(Node):
         ]
 
     def _placed_object_odom_xyz(self):
+        if self.place_on_follower:
+            follower_xyz = self._follower_place_object_odom_xyz()
+            if follower_xyz is not None:
+                return follower_xyz
         if self.released_object_xyz is not None:
             return self.released_object_xyz
         return self._planned_place_object_odom_xyz()
 
     def _planned_place_object_odom_xyz(self):
+        if self.place_on_follower:
+            follower_xyz = self._follower_place_object_odom_xyz()
+            if follower_xyz is not None:
+                return follower_xyz
         return self._planned_object_odom_xyz(
             self.place_arm_positions, base_pose=self.place_base_pose)
+
+    def _follower_place_object_odom_xyz(self):
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                self.odom_frame, self.follower_place_frame, Time())
+        except TransformException:
+            return None
+        translation = transform.transform.translation
+        rotation = transform.transform.rotation
+        offset = self._rotate_vector(rotation, self.follower_place_xyz)
+        return [
+            translation.x + offset[0],
+            translation.y + offset[1],
+            translation.z + offset[2],
+        ]
 
     def _planned_object_odom_xyz(self, arm_positions, base_pose=None, base_x=None):
         matrix = self._planned_end_effector_matrix(arm_positions)
