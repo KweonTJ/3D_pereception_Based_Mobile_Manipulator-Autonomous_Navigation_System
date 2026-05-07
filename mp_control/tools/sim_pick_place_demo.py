@@ -84,7 +84,14 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("return_to_stow", True)
         self.declare_parameter("base_approach_distance_m", 0.80)
         self.declare_parameter("base_approach_speed_mps", 0.12)
+        self.declare_parameter("base_transport_distance_m", 1.00)
+        self.declare_parameter("base_transport_speed_mps", 0.12)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
+        self.declare_parameter("trajectory_wait_timeout_s", 20.0)
+        self.declare_parameter("gripper_wait_timeout_s", 20.0)
+        self.declare_parameter("require_cmd_vel_subscriber", False)
+        self.declare_parameter("require_trajectory_subscriber", False)
+        self.declare_parameter("require_gripper_action_server", False)
         self.declare_parameter("object_size_xyz", [0.06, 0.06, 0.10])
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
         self.declare_parameter("sync_gazebo_object", True)
@@ -128,6 +135,10 @@ class SimPickPlaceDemo(Node):
         self.place_arm_positions = self._level_gripper_pose(-math.pi, 1.56, -0.47)
         self.base_approach_distance_m = float(
             self.get_parameter("base_approach_distance_m").value)
+        self.base_transport_distance_m = float(
+            self.get_parameter("base_transport_distance_m").value)
+        self.place_base_x = (
+            self.base_approach_distance_m + self.base_transport_distance_m)
         self.base_x = 0.0
         self.pick_object_xyz = self._planned_object_odom_xyz(
             self.grasp_arm_positions, base_x=self.base_approach_distance_m)
@@ -198,38 +209,61 @@ class SimPickPlaceDemo(Node):
         self._sleep(1.5)
 
         self._status("BASE_APPROACH: driving robot before grasp")
-        self._drive_base(
+        if not self._drive_base(
             self.base_approach_distance_m,
             float(self.get_parameter("base_approach_speed_mps").value),
-        )
+            "base approach",
+        ):
+            return
         self._status("BASE_ALIGNED: robot reached grasping distance; publishing bbox")
         self._publish_bbox(repeats=10)
 
         self._status("APPROACH: moving arm to pre-grasp pose")
-        self._send_gripper(self._object_gripper_open_position())
-        self._send_trajectory([
+        if not self._send_gripper(self._object_gripper_open_position()):
+            return
+        if not self._send_trajectory([
             (self.stay_arm_positions, 1.5),
             (self.pre_grasp_arm_positions, 3.5),
             (self.grasp_arm_positions, 5.5),
-        ])
+        ]):
+            return
         self._sleep(5.8)
         self._status("FULL_REACH: arm fully extended at target")
         self._publish_eef_bbox(repeats=10)
         self._sleep(2.0)
 
         self._status("PICK: closing gripper and attaching object marker")
-        self._send_gripper(self._object_gripper_grasp_position())
+        if not self._send_gripper(self._object_gripper_grasp_position()):
+            return
         self._publish_cargo_event("picked")
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
 
-        self._status("PLACE: rotating arm 180 degrees and lowering at reached pose")
-        self._send_trajectory([
-            (self.pre_grasp_arm_positions, 1.6),
-            (self.pre_place_arm_positions, 4.2),
-            (self.place_arm_positions, 6.2),
-        ])
-        self._sleep(6.4)
+        self._status("CARRY: lifting object into transport pose")
+        if not self._send_trajectory([
+            (self.pre_grasp_arm_positions, 1.8),
+        ]):
+            return
+        self._sleep(2.0)
+
+        if abs(self.base_transport_distance_m) > 0.001:
+            self._status("MOVING_WITH_CARGO: driving to place location")
+            if not self._drive_base(
+                self.base_transport_distance_m,
+                float(self.get_parameter("base_transport_speed_mps").value),
+                "cargo transport",
+            ):
+                return
+        self._status("ARRIVED_WITH_CARGO: robot reached place location")
+        self._sleep(0.8)
+
+        self._status("PLACE: rotating arm 180 degrees and lowering after transport")
+        if not self._send_trajectory([
+            (self.pre_place_arm_positions, 2.8),
+            (self.place_arm_positions, 4.8),
+        ]):
+            return
+        self._sleep(5.0)
         self._status("PLACE_REACH: arm fully extended behind robot")
         self._sleep(2.0)
 
@@ -238,17 +272,19 @@ class SimPickPlaceDemo(Node):
             self._attached_object_odom_xyz()
             or self._planned_object_odom_xyz(self.place_arm_positions)
         )
-        self._send_gripper(self._object_gripper_open_position())
+        if not self._send_gripper(self._object_gripper_open_position()):
+            return
         self._publish_cargo_event("placed")
         self._publish_markers(attached=False, placed=True)
         self._sleep(1.2)
 
         if bool(self.get_parameter("return_to_stow").value):
             self._status("STAY: returning arm to saved navigation pose")
-            self._send_trajectory([
+            if not self._send_trajectory([
                 (self.pre_place_arm_positions, 1.6),
                 (self.stay_arm_positions, 4.0),
-            ])
+            ]):
+                return
             self._sleep(4.2)
             self._status("DONE: object placed; arm in stay pose")
         else:
@@ -314,12 +350,14 @@ class SimPickPlaceDemo(Node):
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.1)
 
-    def _drive_base(self, distance_m, speed_mps):
+    def _drive_base(self, distance_m, speed_mps, stage_name):
         speed = abs(speed_mps)
         if speed < 0.01:
             speed = 0.10
         direction = 1.0 if distance_m >= 0.0 else -1.0
         duration_s = abs(distance_m) / speed
+        require_subscriber = bool(
+            self.get_parameter("require_cmd_vel_subscriber").value)
 
         wait_until = time.monotonic() + float(
             self.get_parameter("cmd_vel_wait_timeout_s").value)
@@ -332,8 +370,15 @@ class SimPickPlaceDemo(Node):
             self._publish_markers()
             rclpy.spin_once(self, timeout_sec=0.1)
         if self.cmd_vel_pub.get_subscription_count() == 0:
+            if require_subscriber:
+                topic = str(self.get_parameter("cmd_vel_topic").value)
+                self._status(
+                    "ERROR: {} cmd_vel subscriber unavailable on {}".format(
+                        stage_name, topic))
+                return False
             self.get_logger().warn(
-                "no /cmd_vel subscriber; publishing RViz demo TF for base approach")
+                "no /cmd_vel subscriber; publishing RViz demo TF for {}".format(
+                    stage_name))
 
         end = time.monotonic() + duration_s
         last = time.monotonic()
@@ -352,6 +397,7 @@ class SimPickPlaceDemo(Node):
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.05)
         self._stop_base()
+        return True
 
     def _stop_base(self):
         stop = Twist()
@@ -445,7 +491,8 @@ class SimPickPlaceDemo(Node):
             point.time_from_start = duration(float(t))
             msg.points.append(point)
 
-        wait_until = time.monotonic() + 2.0
+        wait_until = time.monotonic() + float(
+            self.get_parameter("trajectory_wait_timeout_s").value)
         while (
             self.traj_pub.get_subscription_count() == 0
             and rclpy.ok()
@@ -456,9 +503,15 @@ class SimPickPlaceDemo(Node):
         if self.traj_pub.get_subscription_count() > 0:
             self.traj_pub.publish(msg)
         else:
+            if bool(self.get_parameter("require_trajectory_subscriber").value):
+                topic = str(self.get_parameter("trajectory_topic").value)
+                self._status(
+                    "ERROR: arm trajectory subscriber unavailable on {}".format(topic))
+                return False
             self.get_logger().warn(
                 "arm trajectory subscriber is not available; using RViz demo joint states")
         self._start_demo_trajectory(points)
+        return True
 
     def _send_gripper(self, position):
         position = max(
@@ -466,14 +519,21 @@ class SimPickPlaceDemo(Node):
             min(float(position), self.gripper_joint_upper_m),
         )
         self.gripper_position = position
-        if not self.gripper.wait_for_server(timeout_sec=1.0):
+        timeout = float(self.get_parameter("gripper_wait_timeout_s").value)
+        if not self.gripper.wait_for_server(timeout_sec=timeout):
+            if bool(self.get_parameter("require_gripper_action_server").value):
+                action = str(self.get_parameter("gripper_action_name").value)
+                self._status(
+                    "ERROR: gripper action server unavailable on {}".format(action))
+                return False
             self.get_logger().warn("gripper action server is not available")
-            return
+            return True
 
         goal = GripperCommand.Goal()
         goal.command.position = float(position)
         goal.command.max_effort = -1.0
         self.gripper.send_goal_async(goal)
+        return True
 
     def _object_width_m(self):
         return max(0.0, float(self.object_size_xyz[1]))
@@ -558,8 +618,7 @@ class SimPickPlaceDemo(Node):
         marker.id = 2
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
-        xyz = self._placed_object_odom_xyz() if placed else self._planned_object_odom_xyz(
-            self.place_arm_positions)
+        xyz = self._placed_object_odom_xyz() if placed else self._planned_place_object_odom_xyz()
         marker.pose.position.x = xyz[0]
         marker.pose.position.y = xyz[1]
         marker.pose.position.z = xyz[2]
@@ -650,7 +709,7 @@ class SimPickPlaceDemo(Node):
         if attached:
             xyz = self._attached_object_odom_xyz()
             if xyz is None:
-                return None
+                xyz = self._planned_object_odom_xyz(self.arm_positions)
         elif placed:
             xyz = self._placed_object_odom_xyz()
         else:
@@ -681,7 +740,11 @@ class SimPickPlaceDemo(Node):
     def _placed_object_odom_xyz(self):
         if self.released_object_xyz is not None:
             return self.released_object_xyz
-        return self._planned_object_odom_xyz(self.place_arm_positions)
+        return self._planned_place_object_odom_xyz()
+
+    def _planned_place_object_odom_xyz(self):
+        return self._planned_object_odom_xyz(
+            self.place_arm_positions, base_x=self.place_base_x)
 
     def _planned_object_odom_xyz(self, arm_positions, base_x=None):
         matrix = self._planned_end_effector_matrix(arm_positions)
