@@ -135,6 +135,14 @@ private:
       return;
     }
 
+    if (contains_any(status, {"HANDOFF", "WAIT_FOLLOWER"})) {
+      set_cargo_state("GRASPED");
+      set_task_state("WAIT_FOLLOWER");
+      set_follower_enable(true);
+      set_platoon_mode("STANDBY");
+      return;
+    }
+
     if (contains_any(status, {"PLACE_DONE", "LOAD_DONE", "LOADED"})) {
       set_task_state("CARGO_LOADED");
       set_cargo_state("LOADED");
@@ -163,6 +171,14 @@ private:
     }
 
     if (contains_any(status, {"PLACING", "PLACE"})) {
+      set_task_state("PLACING_ON_FOLLOWER");
+      set_cargo_state("LOADING");
+      set_follower_enable(true);
+      set_platoon_mode("STANDBY");
+      return;
+    }
+
+    if (contains_any(status, {"RELEASE", "LOADING"})) {
       set_task_state("PLACING_ON_FOLLOWER");
       set_cargo_state("LOADING");
       set_follower_enable(true);
