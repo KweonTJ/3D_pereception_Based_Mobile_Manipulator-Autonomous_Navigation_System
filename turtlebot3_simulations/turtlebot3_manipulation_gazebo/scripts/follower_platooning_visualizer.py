@@ -171,7 +171,6 @@ class FollowerPlatooningVisualizer(Node):
             "PLACE",
             "PLACE_REACH",
             "RELEASE",
-            "DONE",
         }
         should_reset = stage in {
             "DETECTED",
@@ -182,6 +181,7 @@ class FollowerPlatooningVisualizer(Node):
             "STAY",
             "POST_PLACE_MOVE",
             "POST_PLACE_ARRIVED",
+            "DONE",
         }
         if should_handoff and not self.handoff_active:
             self.handoff_active = True
