@@ -84,8 +84,6 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("return_to_stow", True)
         self.declare_parameter("base_approach_distance_m", 0.80)
         self.declare_parameter("base_approach_speed_mps", 0.12)
-        self.declare_parameter("base_transport_distance_m", 1.00)
-        self.declare_parameter("base_transport_speed_mps", 0.12)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("object_size_xyz", [0.06, 0.06, 0.10])
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
@@ -130,10 +128,6 @@ class SimPickPlaceDemo(Node):
         self.place_arm_positions = self._level_gripper_pose(-math.pi, 1.56, -0.47)
         self.base_approach_distance_m = float(
             self.get_parameter("base_approach_distance_m").value)
-        self.base_transport_distance_m = float(
-            self.get_parameter("base_transport_distance_m").value)
-        self.place_base_x = (
-            self.base_approach_distance_m + self.base_transport_distance_m)
         self.base_x = 0.0
         self.pick_object_xyz = self._planned_object_odom_xyz(
             self.grasp_arm_positions, base_x=self.base_approach_distance_m)
@@ -229,27 +223,13 @@ class SimPickPlaceDemo(Node):
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
 
-        self._status("CARRY: lifting object into transport pose")
+        self._status("PLACE: rotating arm 180 degrees and lowering at reached pose")
         self._send_trajectory([
-            (self.pre_grasp_arm_positions, 1.8),
+            (self.pre_grasp_arm_positions, 1.6),
+            (self.pre_place_arm_positions, 4.2),
+            (self.place_arm_positions, 6.2),
         ])
-        self._sleep(2.0)
-
-        if abs(self.base_transport_distance_m) > 0.001:
-            self._status("MOVING_WITH_CARGO: driving to place location")
-            self._drive_base(
-                self.base_transport_distance_m,
-                float(self.get_parameter("base_transport_speed_mps").value),
-            )
-        self._status("ARRIVED_WITH_CARGO: robot reached place location")
-        self._sleep(0.8)
-
-        self._status("PLACE: rotating arm 180 degrees and lowering after transport")
-        self._send_trajectory([
-            (self.pre_place_arm_positions, 2.8),
-            (self.place_arm_positions, 4.8),
-        ])
-        self._sleep(5.0)
+        self._sleep(6.4)
         self._status("PLACE_REACH: arm fully extended behind robot")
         self._sleep(2.0)
 
@@ -578,7 +558,8 @@ class SimPickPlaceDemo(Node):
         marker.id = 2
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
-        xyz = self._placed_object_odom_xyz() if placed else self._planned_place_object_odom_xyz()
+        xyz = self._placed_object_odom_xyz() if placed else self._planned_object_odom_xyz(
+            self.place_arm_positions)
         marker.pose.position.x = xyz[0]
         marker.pose.position.y = xyz[1]
         marker.pose.position.z = xyz[2]
@@ -669,7 +650,7 @@ class SimPickPlaceDemo(Node):
         if attached:
             xyz = self._attached_object_odom_xyz()
             if xyz is None:
-                xyz = self._planned_object_odom_xyz(self.arm_positions)
+                return None
         elif placed:
             xyz = self._placed_object_odom_xyz()
         else:
@@ -700,11 +681,7 @@ class SimPickPlaceDemo(Node):
     def _placed_object_odom_xyz(self):
         if self.released_object_xyz is not None:
             return self.released_object_xyz
-        return self._planned_place_object_odom_xyz()
-
-    def _planned_place_object_odom_xyz(self):
-        return self._planned_object_odom_xyz(
-            self.place_arm_positions, base_x=self.place_base_x)
+        return self._planned_object_odom_xyz(self.place_arm_positions)
 
     def _planned_object_odom_xyz(self, arm_positions, base_x=None):
         matrix = self._planned_end_effector_matrix(arm_positions)
