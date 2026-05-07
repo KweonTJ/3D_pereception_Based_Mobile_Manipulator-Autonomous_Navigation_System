@@ -48,6 +48,26 @@ def generate_launch_description():
             default_value="0.12",
             description="Base linear speed in m/s during the approach stage.",
         ),
+        DeclareLaunchArgument(
+            "base_transport_distance",
+            default_value="1.00",
+            description="Meters to drive after grasping and before placing.",
+        ),
+        DeclareLaunchArgument(
+            "base_transport_speed",
+            default_value="0.12",
+            description="Base linear speed in m/s during the transport stage.",
+        ),
+        DeclareLaunchArgument(
+            "base_turn_angle",
+            default_value="1.5708",
+            description="Radians to rotate after picking before transport. Positive turns left; 0 keeps the old straight path.",
+        ),
+        DeclareLaunchArgument(
+            "base_turn_speed",
+            default_value="0.45",
+            description="Base angular speed in rad/s during the post-pick turn.",
+        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
@@ -64,6 +84,10 @@ def generate_launch_description():
                 "return_to_stow": LaunchConfiguration("return_to_stow"),
                 "base_approach_distance": LaunchConfiguration("base_approach_distance"),
                 "base_approach_speed": LaunchConfiguration("base_approach_speed"),
+                "base_transport_distance": LaunchConfiguration("base_transport_distance"),
+                "base_transport_speed": LaunchConfiguration("base_transport_speed"),
+                "base_turn_angle": LaunchConfiguration("base_turn_angle"),
+                "base_turn_speed": LaunchConfiguration("base_turn_speed"),
             }.items(),
         ),
     ])
