@@ -115,11 +115,26 @@ private:
     });
   }
 
+  static bool starts_with(const std::string & haystack, const std::string & needle)
+  {
+    return haystack.rfind(needle, 0) == 0;
+  }
+
+  static std::string status_stage(const std::string & status)
+  {
+    const auto colon = status.find(':');
+    if (colon == std::string::npos) {
+      return status;
+    }
+    return status.substr(0, colon);
+  }
+
   void handle_mp_control_status(const std::string & raw_status)
   {
     const auto status = uppercase(raw_status);
+    const auto stage = status_stage(status);
 
-    if (contains_any(status, {"ERROR", "FAIL"})) {
+    if (contains_any(stage, {"ERROR", "FAIL"})) {
       set_task_state("ERROR");
       set_cargo_state("ERROR");
       set_follower_enable(false);
@@ -127,25 +142,25 @@ private:
       return;
     }
 
-    if (contains_any(status, {"READY", "DETECTED"})) {
+    if (stage == "READY" || stage == "DETECTED") {
       set_task_state("IDLE");
       set_platoon_mode("STOP");
       return;
     }
 
-    if (contains(status, "BASE_APPROACH")) {
+    if (stage == "BASE_APPROACH") {
       set_task_state("MOVING");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
       return;
     }
 
-    if (contains_any(status, {"BASE_ALIGNED", "APPROACH:", "FULL_REACH"})) {
+    if (stage == "BASE_ALIGNED" || stage == "APPROACH" || stage == "FULL_REACH") {
       set_task_state("PICKING");
       return;
     }
 
-    if (contains_any(status, {"GRASPED", "PICK_SUCCESS", "PICK_DONE", "PICKED"})) {
+    if (contains_any(stage, {"GRASPED", "PICK_SUCCESS", "PICK_DONE", "PICKED"})) {
       set_cargo_state("GRASPED");
       set_task_state("WAIT_FOLLOWER");
       set_follower_enable(true);
@@ -153,7 +168,7 @@ private:
       return;
     }
 
-    if (contains_any(status, {"HANDOFF", "WAIT_FOLLOWER"})) {
+    if (starts_with(stage, "HANDOFF") || stage == "WAIT_FOLLOWER") {
       set_cargo_state("GRASPED");
       set_task_state("WAIT_FOLLOWER");
       set_follower_enable(true);
@@ -161,7 +176,7 @@ private:
       return;
     }
 
-    if (contains_any(status, {"PLACE_DONE", "LOAD_DONE", "LOADED"})) {
+    if (stage == "CARGO_LOADED" || contains_any(stage, {"PLACE_DONE", "LOAD_DONE", "LOADED"})) {
       set_task_state("CARGO_LOADED");
       set_cargo_state("LOADED");
       set_follower_enable(true);
@@ -169,7 +184,7 @@ private:
       return;
     }
 
-    if (contains(status, "STAY")) {
+    if (stage == "STAY") {
       set_task_state("CARGO_LOADED");
       set_cargo_state("LOADED");
       set_follower_enable(true);
@@ -177,26 +192,26 @@ private:
       return;
     }
 
-    if (contains(status, "DONE")) {
+    if (stage == "DONE") {
       set_task_state("DONE");
       set_follower_enable(false);
       set_platoon_mode("STOP");
       return;
     }
 
-    if (contains_any(status, {"PICKING", "GRASPING", "PICK:"})) {
+    if (contains_any(stage, {"PICKING", "GRASPING", "PICK"})) {
       set_task_state("PICKING");
       return;
     }
 
-    if (contains_any(status, {"MOVING_WITH_CARGO", "POST_PLACE_MOVE", "NAVIGATING"})) {
+    if (contains_any(stage, {"MOVING_WITH_CARGO", "POST_PLACE_MOVE", "NAVIGATING"})) {
       set_task_state("MOVING");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
       return;
     }
 
-    if (contains(status, "POST_PLACE_ARRIVED")) {
+    if (stage == "POST_PLACE_ARRIVED") {
       set_task_state("CARGO_LOADED");
       set_cargo_state("LOADED");
       set_follower_enable(true);
@@ -204,7 +219,7 @@ private:
       return;
     }
 
-    if (contains_any(status, {"PLACING", "PLACE"})) {
+    if (contains_any(stage, {"PLACING", "PLACE"})) {
       set_task_state("PLACING_ON_FOLLOWER");
       set_cargo_state("LOADING");
       set_follower_enable(true);
@@ -212,7 +227,7 @@ private:
       return;
     }
 
-    if (contains_any(status, {"RELEASE", "LOADING"})) {
+    if (contains_any(stage, {"RELEASE", "LOADING"})) {
       set_task_state("PLACING_ON_FOLLOWER");
       set_cargo_state("LOADING");
       set_follower_enable(true);
