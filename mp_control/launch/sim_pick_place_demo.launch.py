@@ -48,6 +48,16 @@ def generate_launch_description():
             default_value="0.12",
             description="Base linear speed in m/s during the approach stage.",
         ),
+        DeclareLaunchArgument(
+            "base_transport_distance",
+            default_value="1.00",
+            description="Meters to drive after grasping and before placing.",
+        ),
+        DeclareLaunchArgument(
+            "base_transport_speed",
+            default_value="0.12",
+            description="Base linear speed in m/s during the transport stage.",
+        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
@@ -64,6 +74,8 @@ def generate_launch_description():
                 "return_to_stow": LaunchConfiguration("return_to_stow"),
                 "base_approach_distance": LaunchConfiguration("base_approach_distance"),
                 "base_approach_speed": LaunchConfiguration("base_approach_speed"),
+                "base_transport_distance": LaunchConfiguration("base_transport_distance"),
+                "base_transport_speed": LaunchConfiguration("base_transport_speed"),
             }.items(),
         ),
     ])
