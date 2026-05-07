@@ -50,11 +50,13 @@ class FollowerPlatooningVisualizer(Node):
             "follower_wheel_joints",
             ["follower_wheel_left_joint", "follower_wheel_right_joint"],
         )
-        self.declare_parameter("target_distance_m", 1.0)
+        self.declare_parameter("target_distance_m", 0.30)
         self.declare_parameter("handoff_distance_m", 0.30)
-        self.declare_parameter("initial_offset_x_m", -1.0)
+        self.declare_parameter("initial_offset_x_m", -0.30)
         self.declare_parameter("initial_offset_y_m", 0.0)
         self.declare_parameter("initial_yaw_offset_rad", 0.0)
+        self.declare_parameter("wheel_radius_m", 0.033)
+        self.declare_parameter("wheel_separation_m", 0.288)
         self.declare_parameter("status_topic", "/mp_control/pick_place_status")
         self.declare_parameter("max_linear_speed_mps", 0.24)
         self.declare_parameter("max_angular_speed_radps", 1.2)
@@ -76,6 +78,8 @@ class FollowerPlatooningVisualizer(Node):
         self.initial_offset_x_m = self._float_param("initial_offset_x_m")
         self.initial_offset_y_m = self._float_param("initial_offset_y_m")
         self.initial_yaw_offset_rad = self._float_param("initial_yaw_offset_rad")
+        self.wheel_radius_m = max(0.001, self._float_param("wheel_radius_m"))
+        self.wheel_separation_m = max(0.0, self._float_param("wheel_separation_m"))
         self.status_topic = self._string_param("status_topic")
         self.max_linear_speed_mps = self._float_param("max_linear_speed_mps")
         self.max_angular_speed_radps = self._float_param("max_angular_speed_radps")
@@ -102,6 +106,8 @@ class FollowerPlatooningVisualizer(Node):
         self.initialized = False
         self.last_linear_speed = 0.0
         self.last_angular_speed = 0.0
+        self.left_wheel_position = 0.0
+        self.right_wheel_position = 0.0
         self.handoff_active = False
 
         self.get_logger().info(
@@ -148,25 +154,20 @@ class FollowerPlatooningVisualizer(Node):
 
     def _status_cb(self, msg):
         status = msg.data.upper()
-        should_handoff = any(
-            key in status
-            for key in (
-                "HANDOFF_ALIGN",
-                "PLACE",
-                "PLACE_REACH",
-                "RELEASE",
-                "DONE",
-            )
-        )
-        should_reset = any(
-            key in status
-            for key in (
-                "DETECTED",
-                "BASE_APPROACH",
-                "MOVING_WITH_CARGO",
-                "TURN_WITH_CARGO",
-            )
-        )
+        stage = status.split(":", 1)[0].strip()
+        should_handoff = stage in {
+            "HANDOFF_ALIGN",
+            "PLACE",
+            "PLACE_REACH",
+            "RELEASE",
+            "DONE",
+        }
+        should_reset = stage in {
+            "DETECTED",
+            "BASE_APPROACH",
+            "MOVING_WITH_CARGO",
+            "TURN_WITH_CARGO",
+        }
         if should_handoff and not self.handoff_active:
             self.handoff_active = True
             self.get_logger().info(
@@ -229,9 +230,17 @@ class FollowerPlatooningVisualizer(Node):
         self.follower_yaw = normalize_angle(self.follower_yaw + angular_speed * dt)
         self.last_linear_speed = linear_speed
         self.last_angular_speed = angular_speed
+        self._integrate_wheels(linear_speed, angular_speed, dt)
 
         self._publish_follower(now)
         self._log_spacing(now, leader_x, leader_y, active_distance)
+
+    def _integrate_wheels(self, linear_speed, angular_speed, dt):
+        half_track = 0.5 * self.wheel_separation_m
+        left_speed = linear_speed - angular_speed * half_track
+        right_speed = linear_speed + angular_speed * half_track
+        self.left_wheel_position += (left_speed / self.wheel_radius_m) * dt
+        self.right_wheel_position += (right_speed / self.wheel_radius_m) * dt
 
     def _publish_follower(self, stamp):
         qx, qy, qz, qw = quaternion_from_yaw(self.follower_yaw)
@@ -263,7 +272,13 @@ class FollowerPlatooningVisualizer(Node):
         joint_state = JointState()
         joint_state.header.stamp = stamp.to_msg()
         joint_state.name = self.follower_wheel_joints
-        joint_state.position = [0.0] * len(self.follower_wheel_joints)
+        joint_positions = {
+            "follower_wheel_left_joint": self.left_wheel_position,
+            "follower_wheel_right_joint": self.right_wheel_position,
+        }
+        joint_state.position = [
+            joint_positions.get(name, 0.0) for name in self.follower_wheel_joints
+        ]
         self.joint_state_pub.publish(joint_state)
 
     def _log_spacing(self, now, leader_x, leader_y, active_distance):

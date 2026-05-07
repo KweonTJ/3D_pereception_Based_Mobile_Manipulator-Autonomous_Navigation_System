@@ -214,7 +214,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_x",
-            default_value="-1.00",
+            default_value="-0.30",
             description="Follower visualization x offset from the leader base_footprint frame.",
         ),
         DeclareLaunchArgument(
@@ -229,7 +229,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_distance",
-            default_value="1.00",
+            default_value="0.30",
             description="Target following distance behind the leader in meters.",
         ),
         DeclareLaunchArgument(
