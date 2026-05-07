@@ -169,6 +169,14 @@ private:
       return;
     }
 
+    if (contains(status, "STAY")) {
+      set_task_state("CARGO_LOADED");
+      set_cargo_state("LOADED");
+      set_follower_enable(true);
+      set_platoon_mode("FOLLOW");
+      return;
+    }
+
     if (contains(status, "DONE")) {
       set_task_state("DONE");
       set_follower_enable(false);
@@ -181,8 +189,16 @@ private:
       return;
     }
 
-    if (contains_any(status, {"MOVING_WITH_CARGO", "NAVIGATING"})) {
+    if (contains_any(status, {"MOVING_WITH_CARGO", "POST_PLACE_MOVE", "NAVIGATING"})) {
       set_task_state("MOVING");
+      set_follower_enable(true);
+      set_platoon_mode("FOLLOW");
+      return;
+    }
+
+    if (contains(status, "POST_PLACE_ARRIVED")) {
+      set_task_state("CARGO_LOADED");
+      set_cargo_state("LOADED");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
       return;
