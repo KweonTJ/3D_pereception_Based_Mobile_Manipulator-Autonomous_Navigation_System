@@ -42,7 +42,7 @@ def generate_launch_description():
     )
 
     demo_node = Node(
-        package="turtlebot3_manipulation_gazebo",
+        package="mp_control",
         executable="sim_pick_place_demo.py",
         name="sim_pick_place_demo",
         output="screen",

@@ -14,15 +14,6 @@
   <author email="thlim@robotis.com">Darby Lim</author>
   <author email="hjkim@robotis.com">Hye-jong KIM</author>
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <exec_depend>builtin_interfaces</exec_depend>
-  <exec_depend>control_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>hybrid_csrt_ibvs</exec_depend>
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
-  <exec_depend>mp_control</exec_depend>
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>ros_gz_interfaces</exec_depend>
   <exec_depend>astra_camera</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>gripper_controllers</exec_depend>
@@ -33,12 +24,7 @@
   <exec_depend>ros2_control</exec_depend>
   <exec_depend>ros2_controllers</exec_depend>
   <exec_depend>rviz2</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>trajectory_msgs</exec_depend>
   <exec_depend>turtlebot3_manipulation_description</exec_depend>
-  <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>xacro</exec_depend>
   <export>
     <build_type>ament_cmake</build_type>
