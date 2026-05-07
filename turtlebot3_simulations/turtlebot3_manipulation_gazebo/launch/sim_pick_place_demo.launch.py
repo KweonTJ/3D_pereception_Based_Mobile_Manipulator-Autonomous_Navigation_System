@@ -29,6 +29,9 @@ def generate_launch_description():
     follower_x = LaunchConfiguration("follower_x")
     follower_y = LaunchConfiguration("follower_y")
     follower_yaw = LaunchConfiguration("follower_yaw")
+    follower_distance = LaunchConfiguration("follower_distance")
+    follower_max_speed = LaunchConfiguration("follower_max_speed")
+    follower_max_turn_speed = LaunchConfiguration("follower_max_turn_speed")
 
     follower_description = ParameterValue(
         Command([
@@ -108,19 +111,28 @@ def generate_launch_description():
         ],
     )
 
-    follower_anchor_tf = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="follower_anchor_tf",
+    follower_platooning_node = Node(
+        package="turtlebot3_manipulation_gazebo",
+        executable="follower_platooning_visualizer.py",
+        name="follower_platooning_visualizer",
         output="screen",
         condition=IfCondition(show_follower),
-        arguments=[
-            "--x", follower_x,
-            "--y", follower_y,
-            "--z", "0.0",
-            "--yaw", follower_yaw,
-            "--frame-id", "base_footprint",
-            "--child-frame-id", "follower_base_footprint",
+        parameters=[
+            {"use_sim_time": True},
+            {"leader_odom_topic": "/odom"},
+            {"parent_frame": "odom"},
+            {"follower_frame": "follower_base_footprint"},
+            {"follower_odom_topic": "/follower/odom"},
+            {"target_distance_m": follower_distance},
+            {"initial_offset_x_m": follower_x},
+            {"initial_offset_y_m": follower_y},
+            {"initial_yaw_offset_rad": follower_yaw},
+            {"max_linear_speed_mps": follower_max_speed},
+            {"max_angular_speed_radps": follower_max_turn_speed},
+            {"linear_gain": 0.85},
+            {"angular_gain": 2.4},
+            {"distance_deadband_m": 0.03},
+            {"publish_rate_hz": 30.0},
         ],
     )
 
@@ -204,8 +216,23 @@ def generate_launch_description():
             default_value="0.00",
             description="Follower visualization yaw offset from the leader base_footprint frame.",
         ),
+        DeclareLaunchArgument(
+            "follower_distance",
+            default_value="1.00",
+            description="Target following distance behind the leader in meters.",
+        ),
+        DeclareLaunchArgument(
+            "follower_max_speed",
+            default_value="0.24",
+            description="Follower visualization maximum linear speed in m/s.",
+        ),
+        DeclareLaunchArgument(
+            "follower_max_turn_speed",
+            default_value="1.20",
+            description="Follower visualization maximum angular speed in rad/s.",
+        ),
         follower_state_publisher,
-        follower_anchor_tf,
+        follower_platooning_node,
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
     ])
