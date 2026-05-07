@@ -99,6 +99,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("place_on_follower", False)
         self.declare_parameter("follower_place_frame", "follower_base_footprint")
         self.declare_parameter("follower_place_xyz", [0.0, 0.0, 0.12])
+        self.declare_parameter("follower_place_z_m", 0.12)
         self.declare_parameter("follower_handoff_wait_s", 0.0)
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
@@ -123,6 +124,8 @@ class SimPickPlaceDemo(Node):
         self.follower_place_frame = str(self.get_parameter("follower_place_frame").value)
         self.follower_place_xyz = [
             float(v) for v in self.get_parameter("follower_place_xyz").value]
+        self.follower_place_xyz[2] = float(
+            self.get_parameter("follower_place_z_m").value)
         self.follower_handoff_wait_s = max(
             0.0, float(self.get_parameter("follower_handoff_wait_s").value))
         self.gazebo_world_origin_xyz = [
