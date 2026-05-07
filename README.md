@@ -148,7 +148,7 @@ turtlebot3_ws/src
 ```
 # RUN
 ## Simulation
-- 시뮬레이션은 아래 런치 파일 활용해 활성화 할 수 있다.
+- 시뮬레이션은 아래 런치 파일 사용한다.
 ```
 ros2 launch turtlebot3_manipulation_gazebo sim_pick_place_demo.launch.py
 ```
