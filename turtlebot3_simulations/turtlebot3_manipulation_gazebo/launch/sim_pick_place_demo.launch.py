@@ -19,6 +19,8 @@ def generate_launch_description():
     base_approach_speed = LaunchConfiguration("base_approach_speed")
     base_transport_distance = LaunchConfiguration("base_transport_distance")
     base_transport_speed = LaunchConfiguration("base_transport_speed")
+    base_turn_angle = LaunchConfiguration("base_turn_angle")
+    base_turn_speed = LaunchConfiguration("base_turn_speed")
 
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -54,6 +56,8 @@ def generate_launch_description():
             {"base_approach_speed_mps": base_approach_speed},
             {"base_transport_distance_m": base_transport_distance},
             {"base_transport_speed_mps": base_transport_speed},
+            {"base_turn_angle_rad": base_turn_angle},
+            {"base_turn_speed_radps": base_turn_speed},
             {"cmd_vel_topic": "/diff_drive_controller/cmd_vel_unstamped"},
             {"cmd_vel_wait_timeout_s": 90.0},
             {"trajectory_wait_timeout_s": 90.0},
@@ -116,6 +120,16 @@ def generate_launch_description():
             "base_transport_speed",
             default_value="0.12",
             description="Base linear speed in m/s during the transport stage.",
+        ),
+        DeclareLaunchArgument(
+            "base_turn_angle",
+            default_value="1.5708",
+            description="Radians to rotate after picking before transport. Positive turns left; 0 keeps the old straight path.",
+        ),
+        DeclareLaunchArgument(
+            "base_turn_speed",
+            default_value="0.45",
+            description="Base angular speed in rad/s during the post-pick turn.",
         ),
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
