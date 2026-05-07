@@ -146,11 +146,18 @@ turtlebot3_ws/src
 ├── turtlebot3_simulations
 └── DynamixelSDK
 ```
-## Run
+# RUN
+## Simulation
+- 시뮬레이션은 아래 런치 파일 활용해 활성화 할 수 있다.
+```
+ros2 launch turtlebot3_manipulation_gazebo sim_pick_place_demo.launch.py
+```
+- 해당 시뮬레이션은 정제된 환경에서 Gazebo, RViz2를 활용하여 로봇이 물체까지 이동 -> 물체를 Pick-and-Place -> 특정 위치로 이동 까지가 하나의 프로세서로 작동한다.
+
+## Sim2Real
 
 
-
-
+---
 ## Point ROS2 Topic
 ### Perception
 
