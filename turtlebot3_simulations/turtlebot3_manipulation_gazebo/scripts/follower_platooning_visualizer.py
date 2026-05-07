@@ -7,6 +7,7 @@ from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.time import Time
 from rclpy._rclpy_pybind11 import RCLError
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
@@ -55,9 +56,9 @@ class FollowerPlatooningVisualizer(Node):
             "follower_wheel_joints",
             ["follower_wheel_left_joint", "follower_wheel_right_joint"],
         )
-        self.declare_parameter("target_distance_m", 0.30)
-        self.declare_parameter("handoff_distance_m", 0.30)
-        self.declare_parameter("initial_offset_x_m", -0.30)
+        self.declare_parameter("target_distance_m", 0.45)
+        self.declare_parameter("handoff_distance_m", 0.45)
+        self.declare_parameter("initial_offset_x_m", -0.45)
         self.declare_parameter("initial_offset_y_m", 0.0)
         self.declare_parameter("initial_yaw_offset_rad", 0.0)
         self.declare_parameter("wheel_radius_m", 0.033)
@@ -251,7 +252,7 @@ class FollowerPlatooningVisualizer(Node):
             transform = self.tf_buffer.lookup_transform(
                 self.parent_frame,
                 frame_id,
-                rclpy.time.Time(),
+                Time(),
             )
         except TransformException:
             return None
