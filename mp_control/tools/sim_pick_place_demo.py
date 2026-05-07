@@ -88,6 +88,8 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("base_transport_speed_mps", 0.12)
         self.declare_parameter("base_turn_angle_rad", 1.5708)
         self.declare_parameter("base_turn_speed_radps", 0.45)
+        self.declare_parameter("post_place_move_distance_m", 1.00)
+        self.declare_parameter("post_place_move_speed_mps", 0.12)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("trajectory_wait_timeout_s", 20.0)
         self.declare_parameter("gripper_wait_timeout_s", 20.0)
@@ -161,6 +163,10 @@ class SimPickPlaceDemo(Node):
             self.get_parameter("base_turn_angle_rad").value)
         self.base_turn_speed_radps = float(
             self.get_parameter("base_turn_speed_radps").value)
+        self.post_place_move_distance_m = float(
+            self.get_parameter("post_place_move_distance_m").value)
+        self.post_place_move_speed_mps = float(
+            self.get_parameter("post_place_move_speed_mps").value)
         self.base_x = 0.0
         self.base_y = 0.0
         self.base_yaw = 0.0
@@ -341,9 +347,22 @@ class SimPickPlaceDemo(Node):
             ]):
                 return
             self._sleep(4.2)
-            self._status("DONE: object placed; arm in stay pose")
+            self._status("CARGO_LOADED: object placed; arm in stay pose")
         else:
-            self._status("DONE: object placed; holding fully extended pose")
+            self._status("CARGO_LOADED: object placed; holding fully extended pose")
+
+        if abs(self.post_place_move_distance_m) > 0.001:
+            self._status("POST_PLACE_MOVE: driving after follower cargo handoff")
+            if not self._drive_base(
+                self.post_place_move_distance_m,
+                self.post_place_move_speed_mps,
+                "post-place move",
+            ):
+                return
+            self._status("POST_PLACE_ARRIVED: leader completed post-handoff move")
+            self._sleep(0.8)
+
+        self._status("DONE: object placed and platoon moved after handoff")
 
     def _publish_ready_markers(self, repeats=3):
         msg = String()
