@@ -67,8 +67,16 @@ class BridgeEndpoint:
             signal_handler_options=SignalHandlerOptions.NO,
         )
 
-        self.from_node = Node(f"{self.name}_from_d{self.from_domain}", context=self.from_context)
-        self.to_node = Node(f"{self.name}_to_d{self.to_domain}", context=self.to_context)
+        self.from_node = Node(
+            f"{self.name}_from_d{self.from_domain}",
+            context=self.from_context,
+            use_global_arguments=False,
+        )
+        self.to_node = Node(
+            f"{self.name}_to_d{self.to_domain}",
+            context=self.to_context,
+            use_global_arguments=False,
+        )
         self.publishers = []
         self.subscriptions = []
         self._create_topic_bridges()
