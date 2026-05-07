@@ -15,7 +15,6 @@
   <author email="hjkim@robotis.com">Hye-jong KIM</author>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>astra_camera</exec_depend>
-  <exec_depend>domain_bridge</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>
   <exec_depend>gripper_controllers</exec_depend>

@@ -14,6 +14,7 @@ from rclpy.qos import DurabilityPolicy
 from rclpy.qos import QoSProfile
 from rclpy.qos import ReliabilityPolicy
 from rclpy.signals import SignalHandlerOptions
+from rclpy.utilities import remove_ros_args
 
 
 def message_type(type_name):
@@ -125,11 +126,12 @@ class BridgeEndpoint:
 
 
 def main():
-    if len(sys.argv) != 2:
+    args = remove_ros_args(args=sys.argv)[1:]
+    if len(args) != 1:
         print("usage: leader_to_follower_domain_bridge.py <bridge_config.yaml>", file=sys.stderr)
         return 2
 
-    bridge = BridgeEndpoint(sys.argv[1])
+    bridge = BridgeEndpoint(args[0])
     bridge.spin()
     return 0
 
