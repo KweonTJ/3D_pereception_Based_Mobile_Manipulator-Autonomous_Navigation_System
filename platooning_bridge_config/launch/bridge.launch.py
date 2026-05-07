@@ -25,8 +25,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         Node(
-            package="domain_bridge",
-            executable="domain_bridge",
+            package="platooning_bridge_config",
+            executable="leader_to_follower_domain_bridge.py",
             name="leader_to_follower_bridge",
             output="screen",
             arguments=[bridge_config],
