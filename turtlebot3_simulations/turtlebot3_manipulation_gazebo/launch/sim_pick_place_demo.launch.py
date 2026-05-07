@@ -27,6 +27,8 @@ def generate_launch_description():
     base_transport_speed = LaunchConfiguration("base_transport_speed")
     base_turn_angle = LaunchConfiguration("base_turn_angle")
     base_turn_speed = LaunchConfiguration("base_turn_speed")
+    post_place_move_distance = LaunchConfiguration("post_place_move_distance")
+    post_place_move_speed = LaunchConfiguration("post_place_move_speed")
     show_follower = LaunchConfiguration("show_follower")
     follower_x = LaunchConfiguration("follower_x")
     follower_y = LaunchConfiguration("follower_y")
@@ -95,6 +97,8 @@ def generate_launch_description():
             {"base_transport_speed_mps": base_transport_speed},
             {"base_turn_angle_rad": base_turn_angle},
             {"base_turn_speed_radps": base_turn_speed},
+            {"post_place_move_distance_m": post_place_move_distance},
+            {"post_place_move_speed_mps": post_place_move_speed},
             {"place_on_follower": place_on_follower},
             {"follower_place_frame": "follower_base_footprint"},
             {"follower_place_xyz": [0.0, 0.0, 0.12]},
@@ -277,6 +281,16 @@ def generate_launch_description():
             "base_turn_speed",
             default_value="0.45",
             description="Base angular speed in rad/s during the post-pick turn.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_move_distance",
+            default_value="1.00",
+            description="Meters to drive after placing cargo on the follower.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_move_speed",
+            default_value="0.12",
+            description="Base linear speed in m/s after placing cargo on the follower.",
         ),
         DeclareLaunchArgument(
             "show_follower",
