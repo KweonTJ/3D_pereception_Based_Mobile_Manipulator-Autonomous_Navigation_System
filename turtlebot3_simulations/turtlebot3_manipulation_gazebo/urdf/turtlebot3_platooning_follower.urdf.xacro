@@ -3,7 +3,7 @@
   <xacro:arg name="prefix" default="follower_"/>
 
   <xacro:include filename="$(find turtlebot3_manipulation_gazebo)/gazebo/materials.xacro"/>
-  <xacro:include filename="$(find turtlebot3_manipulation_gazebo)/urdf/turtlebot3_waffle_pi.urdf.xacro"/>
+  <xacro:include filename="$(find turtlebot3_manipulation_description)/xacro/turtlebot3_platooning.xacro"/>
 
-  <xacro:turtlebot3_waffle_pi prefix="$(arg prefix)" wheel_joint_type="fixed"/>
+  <xacro:turtlebot3_waffle_pi prefix="$(arg prefix)"/>
 </robot>

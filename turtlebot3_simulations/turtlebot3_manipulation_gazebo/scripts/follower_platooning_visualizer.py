@@ -8,6 +8,7 @@ from nav_msgs.msg import Odometry
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy._rclpy_pybind11 import RCLError
+from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 from tf2_ros import TransformBroadcaster
 
@@ -44,8 +45,13 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("parent_frame", "odom")
         self.declare_parameter("follower_frame", "follower_base_footprint")
         self.declare_parameter("follower_odom_topic", "/follower/odom")
+        self.declare_parameter("follower_joint_state_topic", "/follower/joint_states")
+        self.declare_parameter(
+            "follower_wheel_joints",
+            ["follower_wheel_left_joint", "follower_wheel_right_joint"],
+        )
         self.declare_parameter("target_distance_m", 1.0)
-        self.declare_parameter("handoff_distance_m", 0.20)
+        self.declare_parameter("handoff_distance_m", 0.30)
         self.declare_parameter("initial_offset_x_m", -1.0)
         self.declare_parameter("initial_offset_y_m", 0.0)
         self.declare_parameter("initial_yaw_offset_rad", 0.0)
@@ -61,6 +67,10 @@ class FollowerPlatooningVisualizer(Node):
         self.parent_frame = self._string_param("parent_frame")
         self.follower_frame = self._string_param("follower_frame")
         self.follower_odom_topic = self._string_param("follower_odom_topic")
+        self.follower_joint_state_topic = self._string_param("follower_joint_state_topic")
+        self.follower_wheel_joints = [
+            str(name) for name in self.get_parameter("follower_wheel_joints").value
+        ]
         self.target_distance_m = self._float_param("target_distance_m")
         self.handoff_distance_m = self._float_param("handoff_distance_m")
         self.initial_offset_x_m = self._float_param("initial_offset_x_m")
@@ -76,6 +86,9 @@ class FollowerPlatooningVisualizer(Node):
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.odom_pub = self.create_publisher(Odometry, self.follower_odom_topic, 10)
+        self.joint_state_pub = self.create_publisher(
+            JointState, self.follower_joint_state_topic, 10
+        )
         self.create_subscription(Odometry, self.leader_odom_topic, self._leader_odom_cb, 10)
         self.create_subscription(String, self.status_topic, self._status_cb, 10)
         self.timer = self.create_timer(1.0 / publish_rate_hz, self._timer_cb)
@@ -246,6 +259,12 @@ class FollowerPlatooningVisualizer(Node):
         odom.twist.twist.linear.x = self.last_linear_speed
         odom.twist.twist.angular.z = self.last_angular_speed
         self.odom_pub.publish(odom)
+
+        joint_state = JointState()
+        joint_state.header.stamp = stamp.to_msg()
+        joint_state.name = self.follower_wheel_joints
+        joint_state.position = [0.0] * len(self.follower_wheel_joints)
+        self.joint_state_pub.publish(joint_state)
 
     def _log_spacing(self, now, leader_x, leader_y, active_distance):
         now_sec = now.nanoseconds * 1.0e-9

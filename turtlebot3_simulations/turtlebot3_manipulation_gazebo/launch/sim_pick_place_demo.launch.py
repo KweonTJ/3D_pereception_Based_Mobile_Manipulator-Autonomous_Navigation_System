@@ -234,7 +234,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_handoff_distance",
-            default_value="0.20",
+            default_value="0.30",
             description="Follower spacing used while the leader places cargo on the follower deck.",
         ),
         DeclareLaunchArgument(
