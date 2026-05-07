@@ -97,6 +97,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("object_size_xyz", [0.06, 0.06, 0.10])
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
         self.declare_parameter("place_on_follower", False)
+        self.declare_parameter("direct_place_on_follower", False)
         self.declare_parameter("follower_place_frame", "follower_base_footprint")
         self.declare_parameter("follower_place_xyz", [0.0, 0.0, 0.12])
         self.declare_parameter("follower_place_z_m", 0.12)
@@ -121,6 +122,10 @@ class SimPickPlaceDemo(Node):
         self.attached_object_offset_xyz = [
             float(v) for v in self.get_parameter("attached_object_offset_xyz").value]
         self.place_on_follower = bool(self.get_parameter("place_on_follower").value)
+        self.direct_place_on_follower = (
+            bool(self.get_parameter("direct_place_on_follower").value)
+            and self.place_on_follower
+        )
         self.follower_place_frame = str(self.get_parameter("follower_place_frame").value)
         self.follower_place_xyz = [
             float(v) for v in self.get_parameter("follower_place_xyz").value]
@@ -261,39 +266,50 @@ class SimPickPlaceDemo(Node):
         self._publish_markers(attached=True, placed=False)
         self._sleep(1.5)
 
-        self._status("CARRY: lifting object into transport pose")
-        if not self._send_trajectory([
-            (self.pre_grasp_arm_positions, 1.8),
-        ]):
-            return
-        self._sleep(2.0)
-
-        if abs(self.base_turn_angle_rad) > 0.001:
-            self._status("TURN_WITH_CARGO: rotating robot before transport")
-            if not self._turn_base(
-                self.base_turn_angle_rad,
-                self.base_turn_speed_radps,
-                "cargo turn",
-            ):
-                return
-            self._sleep(0.5)
-
-        if abs(self.base_transport_distance_m) > 0.001:
-            self._status("MOVING_WITH_CARGO: driving turned heading to place location")
-            if not self._drive_base(
-                self.base_transport_distance_m,
-                float(self.get_parameter("base_transport_speed_mps").value),
-                "cargo transport",
-            ):
-                return
-        self._status("ARRIVED_WITH_CARGO: robot reached place location")
-        self._sleep(0.8)
-        if self.place_on_follower:
-            self._status("HANDOFF_ALIGN: follower closing cargo deck under arm")
+        if self.direct_place_on_follower:
+            self._status("HANDOFF_ALIGN: follower cargo deck ready behind leader")
             self._sleep(self.follower_handoff_wait_s)
+            self._status("HANDOFF_LIFT: lifting object clear for direct follower placement")
+            if not self._send_trajectory([
+                (self.pre_grasp_arm_positions, 1.8),
+            ]):
+                return
+            self._sleep(2.0)
+        else:
+            self._status("CARRY: lifting object into transport pose")
+            if not self._send_trajectory([
+                (self.pre_grasp_arm_positions, 1.8),
+            ]):
+                return
+            self._sleep(2.0)
+
+            if abs(self.base_turn_angle_rad) > 0.001:
+                self._status("TURN_WITH_CARGO: rotating robot before transport")
+                if not self._turn_base(
+                    self.base_turn_angle_rad,
+                    self.base_turn_speed_radps,
+                    "cargo turn",
+                ):
+                    return
+                self._sleep(0.5)
+
+            if abs(self.base_transport_distance_m) > 0.001:
+                self._status("MOVING_WITH_CARGO: driving turned heading to place location")
+                if not self._drive_base(
+                    self.base_transport_distance_m,
+                    float(self.get_parameter("base_transport_speed_mps").value),
+                    "cargo transport",
+                ):
+                    return
+            self._status("ARRIVED_WITH_CARGO: robot reached place location")
+            self._sleep(0.8)
+            if self.place_on_follower:
+                self._status("HANDOFF_ALIGN: follower closing cargo deck under arm")
+                self._sleep(self.follower_handoff_wait_s)
 
         place_target = "follower cargo deck" if self.place_on_follower else "place target"
-        self._status(f"PLACE: rotating arm 180 degrees and lowering onto {place_target}")
+        place_action = "directly lowering" if self.direct_place_on_follower else "rotating arm 180 degrees and lowering"
+        self._status(f"PLACE: {place_action} onto {place_target}")
         if not self._send_trajectory([
             (self.pre_place_arm_positions, 2.8),
             (self.place_arm_positions, 4.8),
