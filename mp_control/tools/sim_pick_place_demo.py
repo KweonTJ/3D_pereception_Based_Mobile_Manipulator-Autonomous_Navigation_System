@@ -86,6 +86,8 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("base_approach_speed_mps", 0.12)
         self.declare_parameter("base_transport_distance_m", 1.00)
         self.declare_parameter("base_transport_speed_mps", 0.12)
+        self.declare_parameter("base_turn_angle_rad", 1.5708)
+        self.declare_parameter("base_turn_speed_radps", 0.45)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("trajectory_wait_timeout_s", 20.0)
         self.declare_parameter("gripper_wait_timeout_s", 20.0)
@@ -137,11 +139,18 @@ class SimPickPlaceDemo(Node):
             self.get_parameter("base_approach_distance_m").value)
         self.base_transport_distance_m = float(
             self.get_parameter("base_transport_distance_m").value)
-        self.place_base_x = (
-            self.base_approach_distance_m + self.base_transport_distance_m)
+        self.base_turn_angle_rad = float(
+            self.get_parameter("base_turn_angle_rad").value)
+        self.base_turn_speed_radps = float(
+            self.get_parameter("base_turn_speed_radps").value)
         self.base_x = 0.0
+        self.base_y = 0.0
+        self.base_yaw = 0.0
+        self.place_base_pose = self._planned_base_pose_after_transport()
         self.pick_object_xyz = self._planned_object_odom_xyz(
-            self.grasp_arm_positions, base_x=self.base_approach_distance_m)
+            self.grasp_arm_positions,
+            base_pose=(self.base_approach_distance_m, 0.0, 0.0),
+        )
         self.released_object_xyz = None
         self.status_text = "READY"
         self.cargo_id = ""
@@ -246,8 +255,18 @@ class SimPickPlaceDemo(Node):
             return
         self._sleep(2.0)
 
+        if abs(self.base_turn_angle_rad) > 0.001:
+            self._status("TURN_WITH_CARGO: rotating robot before transport")
+            if not self._turn_base(
+                self.base_turn_angle_rad,
+                self.base_turn_speed_radps,
+                "cargo turn",
+            ):
+                return
+            self._sleep(0.5)
+
         if abs(self.base_transport_distance_m) > 0.001:
-            self._status("MOVING_WITH_CARGO: driving to place location")
+            self._status("MOVING_WITH_CARGO: driving turned heading to place location")
             if not self._drive_base(
                 self.base_transport_distance_m,
                 float(self.get_parameter("base_transport_speed_mps").value),
@@ -350,12 +369,7 @@ class SimPickPlaceDemo(Node):
             rclpy.spin_once(self, timeout_sec=0.05)
             time.sleep(0.1)
 
-    def _drive_base(self, distance_m, speed_mps, stage_name):
-        speed = abs(speed_mps)
-        if speed < 0.01:
-            speed = 0.10
-        direction = 1.0 if distance_m >= 0.0 else -1.0
-        duration_s = abs(distance_m) / speed
+    def _wait_for_cmd_vel_subscriber(self, stage_name):
         require_subscriber = bool(
             self.get_parameter("require_cmd_vel_subscriber").value)
 
@@ -379,6 +393,16 @@ class SimPickPlaceDemo(Node):
             self.get_logger().warn(
                 "no /cmd_vel subscriber; publishing RViz demo TF for {}".format(
                     stage_name))
+        return True
+
+    def _drive_base(self, distance_m, speed_mps, stage_name):
+        speed = abs(speed_mps)
+        if speed < 0.01:
+            speed = 0.10
+        direction = 1.0 if distance_m >= 0.0 else -1.0
+        duration_s = abs(distance_m) / speed
+        if not self._wait_for_cmd_vel_subscriber(stage_name):
+            return False
 
         end = time.monotonic() + duration_s
         last = time.monotonic()
@@ -386,11 +410,45 @@ class SimPickPlaceDemo(Node):
             now = time.monotonic()
             dt = now - last
             last = now
-            self.base_x += direction * speed * dt
+            distance_step = direction * speed * dt
+            self.base_x += distance_step * math.cos(self.base_yaw)
+            self.base_y += distance_step * math.sin(self.base_yaw)
             self.wheel_left += direction * speed * dt / 0.033
             self.wheel_right += direction * speed * dt / 0.033
             msg = Twist()
             msg.linear.x = direction * speed
+            self.cmd_vel_pub.publish(msg)
+            self._publish_demo_state()
+            self._publish_markers()
+            rclpy.spin_once(self, timeout_sec=0.05)
+            time.sleep(0.05)
+        self._stop_base()
+        return True
+
+    def _turn_base(self, angle_rad, speed_radps, stage_name):
+        speed = abs(speed_radps)
+        if speed < 0.05:
+            speed = 0.30
+        direction = 1.0 if angle_rad >= 0.0 else -1.0
+        duration_s = abs(angle_rad) / speed
+        if not self._wait_for_cmd_vel_subscriber(stage_name):
+            return False
+
+        wheel_separation_m = 0.287
+        wheel_radius_m = 0.033
+        end = time.monotonic() + duration_s
+        last = time.monotonic()
+        while rclpy.ok() and time.monotonic() < end:
+            now = time.monotonic()
+            dt = now - last
+            last = now
+            yaw_step = direction * speed * dt
+            self.base_yaw = self._normalize_angle(self.base_yaw + yaw_step)
+            wheel_step = yaw_step * 0.5 * wheel_separation_m / wheel_radius_m
+            self.wheel_left -= wheel_step
+            self.wheel_right += wheel_step
+            msg = Twist()
+            msg.angular.z = direction * speed
             self.cmd_vel_pub.publish(msg)
             self._publish_demo_state()
             self._publish_markers()
@@ -420,9 +478,10 @@ class SimPickPlaceDemo(Node):
         transform.header.frame_id = self.odom_frame
         transform.child_frame_id = self.base_frame
         transform.transform.translation.x = self.base_x
-        transform.transform.translation.y = 0.0
+        transform.transform.translation.y = self.base_y
         transform.transform.translation.z = 0.0
-        transform.transform.rotation.w = 1.0
+        transform.transform.rotation.z = math.sin(0.5 * self.base_yaw)
+        transform.transform.rotation.w = math.cos(0.5 * self.base_yaw)
         self.tf_broadcaster.sendTransform(transform)
 
     def _publish_demo_joint_states(self):
@@ -744,18 +803,35 @@ class SimPickPlaceDemo(Node):
 
     def _planned_place_object_odom_xyz(self):
         return self._planned_object_odom_xyz(
-            self.place_arm_positions, base_x=self.place_base_x)
+            self.place_arm_positions, base_pose=self.place_base_pose)
 
-    def _planned_object_odom_xyz(self, arm_positions, base_x=None):
+    def _planned_object_odom_xyz(self, arm_positions, base_pose=None, base_x=None):
         matrix = self._planned_end_effector_matrix(arm_positions)
         translation = [matrix[0][3], matrix[1][3], matrix[2][3]]
         offset = self._rotate_matrix_vector(matrix, self.attached_object_offset_xyz)
-        base_x = self.base_x if base_x is None else float(base_x)
+        if base_pose is None:
+            if base_x is not None:
+                base_pose = (float(base_x), 0.0, 0.0)
+            else:
+                base_pose = (self.base_x, self.base_y, self.base_yaw)
+        base_x, base_y, base_yaw = base_pose
+        local_x = translation[0] + offset[0]
+        local_y = translation[1] + offset[1]
+        rotated_x, rotated_y = self._rotate_xy(local_x, local_y, base_yaw)
         return [
-            base_x + translation[0] + offset[0],
-            translation[1] + offset[1],
+            base_x + rotated_x,
+            base_y + rotated_y,
             translation[2] + offset[2],
         ]
+
+    def _planned_base_pose_after_transport(self):
+        yaw = self._normalize_angle(self.base_turn_angle_rad)
+        return (
+            self.base_approach_distance_m
+            + self.base_transport_distance_m * math.cos(yaw),
+            self.base_transport_distance_m * math.sin(yaw),
+            yaw,
+        )
 
     def _planned_end_effector_matrix(self, arm_positions):
         joint1, joint2, joint3, joint4 = arm_positions
@@ -824,6 +900,14 @@ class SimPickPlaceDemo(Node):
             sum(matrix[row][idx] * vector[idx] for idx in range(3))
             for row in range(3)
         ]
+
+    def _rotate_xy(self, x, y, yaw):
+        c = math.cos(yaw)
+        s = math.sin(yaw)
+        return [c * x - s * y, s * x + c * y]
+
+    def _normalize_angle(self, angle):
+        return math.atan2(math.sin(angle), math.cos(angle))
 
     def _rotate_vector(self, quaternion, vector):
         x = quaternion.x
