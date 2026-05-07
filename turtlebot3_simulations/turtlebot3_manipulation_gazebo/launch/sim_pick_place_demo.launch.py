@@ -32,6 +32,7 @@ def generate_launch_description():
     follower_distance = LaunchConfiguration("follower_distance")
     follower_max_speed = LaunchConfiguration("follower_max_speed")
     follower_max_turn_speed = LaunchConfiguration("follower_max_turn_speed")
+    follower_leader_odom_topic = LaunchConfiguration("follower_leader_odom_topic")
 
     follower_description = ParameterValue(
         Command([
@@ -119,7 +120,7 @@ def generate_launch_description():
         condition=IfCondition(show_follower),
         parameters=[
             {"use_sim_time": True},
-            {"leader_odom_topic": "/odom"},
+            {"leader_odom_topic": follower_leader_odom_topic},
             {"parent_frame": "odom"},
             {"follower_frame": "follower_base_footprint"},
             {"follower_odom_topic": "/follower/odom"},
@@ -220,6 +221,11 @@ def generate_launch_description():
             "follower_distance",
             default_value="1.00",
             description="Target following distance behind the leader in meters.",
+        ),
+        DeclareLaunchArgument(
+            "follower_leader_odom_topic",
+            default_value="/diff_drive_controller/odom",
+            description="Leader odometry topic used by the follower platooning visualizer.",
         ),
         DeclareLaunchArgument(
             "follower_max_speed",
