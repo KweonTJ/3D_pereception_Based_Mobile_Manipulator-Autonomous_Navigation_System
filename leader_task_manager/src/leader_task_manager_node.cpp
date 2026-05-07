@@ -127,6 +127,24 @@ private:
       return;
     }
 
+    if (contains_any(status, {"READY", "DETECTED"})) {
+      set_task_state("IDLE");
+      set_platoon_mode("STOP");
+      return;
+    }
+
+    if (contains(status, "BASE_APPROACH")) {
+      set_task_state("MOVING");
+      set_follower_enable(true);
+      set_platoon_mode("FOLLOW");
+      return;
+    }
+
+    if (contains_any(status, {"BASE_ALIGNED", "APPROACH:", "FULL_REACH"})) {
+      set_task_state("PICKING");
+      return;
+    }
+
     if (contains_any(status, {"GRASPED", "PICK_SUCCESS", "PICK_DONE", "PICKED"})) {
       set_cargo_state("GRASPED");
       set_task_state("WAIT_FOLLOWER");
@@ -163,7 +181,7 @@ private:
       return;
     }
 
-    if (contains_any(status, {"MOVING", "NAVIGATING"})) {
+    if (contains_any(status, {"MOVING_WITH_CARGO", "NAVIGATING"})) {
       set_task_state("MOVING");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
@@ -198,6 +216,11 @@ private:
       set_task_state("ERROR");
       set_follower_enable(false);
       set_platoon_mode("STOP");
+      return;
+    }
+
+    if (contains(event, "ASSIGNED")) {
+      set_cargo_state("EMPTY");
       return;
     }
 
