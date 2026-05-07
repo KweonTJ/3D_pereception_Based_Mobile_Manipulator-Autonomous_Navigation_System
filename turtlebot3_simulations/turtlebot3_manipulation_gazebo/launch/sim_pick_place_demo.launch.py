@@ -209,7 +209,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        SetEnvironmentVariable("ROS_DOMAIN_ID", leader_domain_id),
         DeclareLaunchArgument(
             "leader_domain_id",
             default_value="10",
@@ -359,6 +358,7 @@ def generate_launch_description():
             default_value="true",
             description="Bridge /leader topics from leader domain 10 to follower domain 20.",
         ),
+        SetEnvironmentVariable("ROS_DOMAIN_ID", leader_domain_id),
         leader_task_manager_node,
         leader_beacon_node,
         domain_bridge_launch,
