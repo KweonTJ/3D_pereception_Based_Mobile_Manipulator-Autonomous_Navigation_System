@@ -148,11 +148,11 @@ turtlebot3_ws/src
 ```
 # RUN
 ## Simulation
-- 시뮬레이션은 아래 런치 파일 사용한다.
+- 시뮬레이션 데모는 `turtlebot3_simulations/turtlebot3_manipulation_gazebo`에서 관리하고, 아래 런치 파일을 사용한다.
 ```
 ros2 launch turtlebot3_manipulation_gazebo sim_pick_place_demo.launch.py
 ```
-- 해당 시뮬레이션은 정제된 환경에서 Gazebo, RViz2를 활용하여 로봇이 물체까지 이동 -> 물체를 Pick-and-Place -> 특정 위치로 이동 까지가 하나의 프로세서로 작동한다.
+- 해당 시뮬레이션은 Gazebo, RViz2를 활용하여 로봇이 물체까지 접근 -> 물체를 집기 -> 물체를 들고 이동 -> 목표 위치에 놓기까지 하나의 프로세스로 작동한다.
 
 ## Sim2Real
 
