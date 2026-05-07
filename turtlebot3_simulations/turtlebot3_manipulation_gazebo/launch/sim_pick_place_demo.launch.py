@@ -108,22 +108,6 @@ def generate_launch_description():
         ],
     )
 
-    follower_joint_publisher = Node(
-        package="joint_state_publisher",
-        executable="joint_state_publisher",
-        name="follower_joint_state_publisher",
-        output="screen",
-        condition=IfCondition(show_follower),
-        parameters=[
-            {"robot_description": follower_description},
-            {"use_sim_time": True},
-        ],
-        remappings=[
-            ("robot_description", "/follower/robot_description"),
-            ("joint_states", "/follower/joint_states"),
-        ],
-    )
-
     follower_anchor_tf = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
@@ -221,7 +205,6 @@ def generate_launch_description():
             description="Follower visualization yaw offset from the leader base_footprint frame.",
         ),
         follower_state_publisher,
-        follower_joint_publisher,
         follower_anchor_tf,
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),

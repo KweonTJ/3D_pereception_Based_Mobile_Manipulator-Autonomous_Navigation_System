@@ -6,7 +6,7 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="turtlebot3_waffle_pi" params="prefix">
+  <xacro:macro name="turtlebot3_waffle_pi" params="prefix wheel_joint_type:=continuous">
 
   <xacro:property
     name="meshes_file_direction"
@@ -45,7 +45,7 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
     </inertial>
   </link>
 
-  <joint name="${prefix}wheel_left_joint" type="continuous">
+  <joint name="${prefix}wheel_left_joint" type="${wheel_joint_type}">
     <parent link="${prefix}base_link"/>
     <child link="${prefix}wheel_left_link"/>
     <origin xyz="0.0 0.144 0.023" rpy="-1.57 0 0"/>
@@ -77,7 +77,7 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
       </inertial>
   </link>
 
-  <joint name="${prefix}wheel_right_joint" type="continuous">
+  <joint name="${prefix}wheel_right_joint" type="${wheel_joint_type}">
     <parent link="${prefix}base_link"/>
     <child link="${prefix}wheel_right_link"/>
     <origin xyz="0.0 -0.144 0.023" rpy="-1.57 0 0"/>
