@@ -246,6 +246,7 @@ def generate_launch_description():
             {"gazebo_world_origin_xyz": [-2.0, -0.5, 0.0]},
             {"gazebo_pose_z_m": follower_gazebo_z},
             {"gazebo_pose_update_period_s": 0.033},
+            {"gazebo_pose_smoothing_alpha": 0.35},
         ],
     )
 
