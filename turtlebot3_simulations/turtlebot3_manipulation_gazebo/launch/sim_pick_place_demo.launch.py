@@ -6,6 +6,7 @@ from launch.actions import TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command
+from launch.substitutions import EnvironmentVariable
 from launch.substitutions import FindExecutable
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
@@ -50,6 +51,14 @@ def generate_launch_description():
     start_leader_task_manager = LaunchConfiguration("start_leader_task_manager")
     start_leader_beacon = LaunchConfiguration("start_leader_beacon")
     start_domain_bridge = LaunchConfiguration("start_domain_bridge")
+    description_share_parent = PathJoinSubstitution([
+        FindPackageShare("turtlebot3_manipulation_description"),
+        "..",
+    ])
+    gazebo_share_parent = PathJoinSubstitution([
+        FindPackageShare("turtlebot3_manipulation_gazebo"),
+        "..",
+    ])
 
     follower_description = ParameterValue(
         Command([
@@ -419,6 +428,26 @@ def generate_launch_description():
             "start_domain_bridge",
             default_value="true",
             description="Bridge /leader topics from leader domain 10 to follower domain 20.",
+        ),
+        SetEnvironmentVariable(
+            "GZ_SIM_RESOURCE_PATH",
+            [
+                description_share_parent,
+                ":",
+                gazebo_share_parent,
+                ":",
+                EnvironmentVariable("GZ_SIM_RESOURCE_PATH", default_value=""),
+            ],
+        ),
+        SetEnvironmentVariable(
+            "IGN_GAZEBO_RESOURCE_PATH",
+            [
+                description_share_parent,
+                ":",
+                gazebo_share_parent,
+                ":",
+                EnvironmentVariable("IGN_GAZEBO_RESOURCE_PATH", default_value=""),
+            ],
         ),
         SetEnvironmentVariable("ROS_DOMAIN_ID", leader_domain_id),
         leader_task_manager_node,
