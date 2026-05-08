@@ -98,6 +98,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("require_gripper_action_server", False)
         self.declare_parameter("object_size_xyz", [0.06, 0.06, 0.10])
         self.declare_parameter("attached_object_offset_xyz", [-0.02, 0.0, 0.0])
+        self.declare_parameter("grasp_accuracy_tolerance_m", 0.03)
         self.declare_parameter("place_on_follower", False)
         self.declare_parameter("direct_place_on_follower", False)
         self.declare_parameter("follower_place_frame", "follower_base_footprint")
@@ -151,6 +152,8 @@ class SimPickPlaceDemo(Node):
             0.0, float(self.get_parameter("gripper_pre_grasp_clearance_m").value))
         self.gripper_grasp_compression_m = max(
             0.0, float(self.get_parameter("gripper_grasp_compression_m").value))
+        self.grasp_accuracy_tolerance_m = max(
+            0.001, float(self.get_parameter("grasp_accuracy_tolerance_m").value))
         self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
         self.pre_grasp_arm_positions = self._level_gripper_pose(0.0, 0.82, -0.58)
         self.grasp_arm_positions = self._level_gripper_pose(0.0, 1.32, -0.94)
@@ -271,7 +274,12 @@ class SimPickPlaceDemo(Node):
         self._publish_eef_bbox(repeats=10)
         self._sleep(2.0)
 
-        self._status("PICK: closing gripper and attaching object marker")
+        grasp_error_m, grasp_accuracy_percent = self._grasp_accuracy()
+        self._status(
+            "PICK: closing gripper and attaching object marker; "
+            f"grasp_error_m={grasp_error_m:.4f}; "
+            f"grasp_accuracy_percent={grasp_accuracy_percent:.2f}"
+        )
         if not self._send_gripper(self._object_gripper_grasp_position()):
             return
         self._publish_cargo_event("picked")
@@ -682,6 +690,18 @@ class SimPickPlaceDemo(Node):
                 self._object_gripper_grasp_position(),
             )
         )
+
+    def _grasp_accuracy(self):
+        grasp_xyz = self._carried_object_odom_xyz()
+        target_xyz = self.pick_object_xyz
+        error_m = math.sqrt(
+            sum((grasp_xyz[idx] - target_xyz[idx]) ** 2 for idx in range(3))
+        )
+        accuracy = 100.0 * max(
+            0.0,
+            1.0 - error_m / self.grasp_accuracy_tolerance_m,
+        )
+        return error_m, min(100.0, accuracy)
 
     def _publish_markers(self, attached=None, placed=None):
         self._publish_demo_state()
