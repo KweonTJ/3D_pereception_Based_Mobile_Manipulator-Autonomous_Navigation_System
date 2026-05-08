@@ -336,7 +336,7 @@ class SimPickPlaceDemo(Node):
             self.released_object_xyz = None
         else:
             self.released_object_xyz = (
-                self._attached_object_odom_xyz()
+                self._carried_object_odom_xyz()
                 or self._planned_object_odom_xyz(self.place_arm_positions)
             )
         if not self._send_gripper(self._object_gripper_open_position()):
