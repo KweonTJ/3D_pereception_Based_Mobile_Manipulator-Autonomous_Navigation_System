@@ -85,6 +85,7 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("gazebo_world_origin_xyz", [-2.0, -0.5, 0.0])
         self.declare_parameter("gazebo_pose_z_m", 0.0)
         self.declare_parameter("gazebo_pose_update_period_s", 0.033)
+        self.declare_parameter("gazebo_pose_smoothing_alpha", 0.35)
 
         self.leader_odom_topic = self._string_param("leader_odom_topic")
         self.parent_frame = self._string_param("parent_frame")
@@ -120,6 +121,8 @@ class FollowerPlatooningVisualizer(Node):
         self.gazebo_pose_z_m = self._float_param("gazebo_pose_z_m")
         self.gazebo_pose_update_period_s = max(
             0.02, self._float_param("gazebo_pose_update_period_s"))
+        self.gazebo_pose_smoothing_alpha = clamp(
+            self._float_param("gazebo_pose_smoothing_alpha"), 0.05, 1.0)
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
@@ -154,6 +157,11 @@ class FollowerPlatooningVisualizer(Node):
         self.last_gazebo_pose_update = 0.0
         self.warned_gazebo_pose_unavailable = False
         self.logged_gazebo_pose_ready = False
+        self.gazebo_pose_future = None
+        self.gazebo_pose_initialized = False
+        self.gazebo_pose_x = 0.0
+        self.gazebo_pose_y = 0.0
+        self.gazebo_pose_yaw = 0.0
 
         self.get_logger().info(
             "Follower platooning visualizer started: "
@@ -362,9 +370,9 @@ class FollowerPlatooningVisualizer(Node):
             joint_positions.get(name, 0.0) for name in self.follower_wheel_joints
         ]
         self.joint_state_pub.publish(joint_state)
-        self._sync_gazebo_follower_pose(qx, qy, qz, qw)
+        self._sync_gazebo_follower_pose(self.follower_yaw)
 
-    def _sync_gazebo_follower_pose(self, qx, qy, qz, qw):
+    def _sync_gazebo_follower_pose(self, target_yaw):
         if self.gazebo_pose_client is None:
             return
 
@@ -372,6 +380,9 @@ class FollowerPlatooningVisualizer(Node):
         if now - self.last_gazebo_pose_update < self.gazebo_pose_update_period_s:
             return
         self.last_gazebo_pose_update = now
+
+        if self.gazebo_pose_future is not None and not self.gazebo_pose_future.done():
+            return
 
         if not self.gazebo_pose_client.service_is_ready():
             if not self.warned_gazebo_pose_unavailable:
@@ -389,10 +400,29 @@ class FollowerPlatooningVisualizer(Node):
             )
             self.logged_gazebo_pose_ready = True
 
+        target_x = self.gazebo_world_origin_xyz[0] + self.follower_x
+        target_y = self.gazebo_world_origin_xyz[1] + self.follower_y
+        target_z = self.gazebo_world_origin_xyz[2] + self.gazebo_pose_z_m
+
+        if not self.gazebo_pose_initialized:
+            self.gazebo_pose_x = target_x
+            self.gazebo_pose_y = target_y
+            self.gazebo_pose_yaw = target_yaw
+            self.gazebo_pose_initialized = True
+        else:
+            alpha = self.gazebo_pose_smoothing_alpha
+            self.gazebo_pose_x += alpha * (target_x - self.gazebo_pose_x)
+            self.gazebo_pose_y += alpha * (target_y - self.gazebo_pose_y)
+            self.gazebo_pose_yaw = normalize_angle(
+                self.gazebo_pose_yaw
+                + alpha * normalize_angle(target_yaw - self.gazebo_pose_yaw))
+
+        qx, qy, qz, qw = quaternion_from_yaw(self.gazebo_pose_yaw)
+
         pose = Pose()
-        pose.position.x = self.gazebo_world_origin_xyz[0] + self.follower_x
-        pose.position.y = self.gazebo_world_origin_xyz[1] + self.follower_y
-        pose.position.z = self.gazebo_world_origin_xyz[2] + self.gazebo_pose_z_m
+        pose.position.x = self.gazebo_pose_x
+        pose.position.y = self.gazebo_pose_y
+        pose.position.z = target_z
         pose.orientation.x = qx
         pose.orientation.y = qy
         pose.orientation.z = qz
@@ -402,7 +432,7 @@ class FollowerPlatooningVisualizer(Node):
         request.entity.name = self.gazebo_entity_name
         request.entity.type = Entity.MODEL
         request.pose = pose
-        self.gazebo_pose_client.call_async(request)
+        self.gazebo_pose_future = self.gazebo_pose_client.call_async(request)
 
     def _log_spacing(self, now, leader_x, leader_y, active_distance):
         now_sec = now.nanoseconds * 1.0e-9
