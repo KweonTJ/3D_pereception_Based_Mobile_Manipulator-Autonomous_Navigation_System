@@ -83,8 +83,8 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
         self.declare_parameter("gazebo_entity_name", "turtlebot3_platooning_follower")
         self.declare_parameter("gazebo_world_origin_xyz", [-2.0, -0.5, 0.0])
-        self.declare_parameter("gazebo_pose_z_m", 0.01)
-        self.declare_parameter("gazebo_pose_update_period_s", 0.10)
+        self.declare_parameter("gazebo_pose_z_m", 0.0)
+        self.declare_parameter("gazebo_pose_update_period_s", 0.033)
 
         self.leader_odom_topic = self._string_param("leader_odom_topic")
         self.parent_frame = self._string_param("parent_frame")

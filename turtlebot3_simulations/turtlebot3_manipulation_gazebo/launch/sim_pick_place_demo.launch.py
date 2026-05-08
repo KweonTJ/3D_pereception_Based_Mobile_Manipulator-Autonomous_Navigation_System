@@ -245,7 +245,7 @@ def generate_launch_description():
             {"gazebo_entity_name": follower_gazebo_entity_name},
             {"gazebo_world_origin_xyz": [-2.0, -0.5, 0.0]},
             {"gazebo_pose_z_m": follower_gazebo_z},
-            {"gazebo_pose_update_period_s": 0.10},
+            {"gazebo_pose_update_period_s": 0.033},
         ],
     )
 
@@ -411,7 +411,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_gazebo_z",
-            default_value="0.01",
+            default_value="0.00",
             description="Initial Gazebo world z position for the platooning follower.",
         ),
         DeclareLaunchArgument(
