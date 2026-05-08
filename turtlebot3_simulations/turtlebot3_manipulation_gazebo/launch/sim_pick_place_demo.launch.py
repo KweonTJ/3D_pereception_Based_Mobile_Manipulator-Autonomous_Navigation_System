@@ -126,6 +126,7 @@ def generate_launch_description():
             {"require_gripper_action_server": True},
             {"publish_demo_base_tf": False},
             {"publish_demo_joint_states": False},
+            {"gazebo_pose_update_period_s": 0.033},
             {"cargo_id_prefix": "SIM-PKG"},
         ],
     )
