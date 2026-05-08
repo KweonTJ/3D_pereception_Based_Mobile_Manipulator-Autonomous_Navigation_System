@@ -6,4 +6,8 @@
   <xacro:include filename="$(find turtlebot3_manipulation_description)/xacro/turtlebot3_platooning.xacro"/>
 
   <xacro:turtlebot3_waffle_pi prefix="$(arg prefix)"/>
+
+  <gazebo>
+    <static>true</static>
+  </gazebo>
 </robot>
