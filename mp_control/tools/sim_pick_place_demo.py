@@ -188,6 +188,9 @@ class SimPickPlaceDemo(Node):
         self.last_gazebo_pose_update = 0.0
         self.warned_gazebo_pose_unavailable = False
         self.logged_gazebo_pose_ready = False
+        self.gazebo_pose_future = None
+        self.attached = False
+        self.placed = False
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
@@ -525,6 +528,7 @@ class SimPickPlaceDemo(Node):
             time.sleep(0.03)
 
     def _publish_demo_state(self):
+        self._update_demo_trajectory()
         self._publish_base_tf()
         self._publish_demo_joint_states()
 
@@ -545,7 +549,6 @@ class SimPickPlaceDemo(Node):
     def _publish_demo_joint_states(self):
         if not self.publish_demo_joint_states:
             return
-        self._update_demo_trajectory()
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "base_link"
@@ -713,11 +716,11 @@ class SimPickPlaceDemo(Node):
         marker.color.a = 0.95
 
         if attached:
-            marker.header.frame_id = "end_effector_link"
-            marker.frame_locked = True
-            marker.pose.position.x = self.attached_object_offset_xyz[0]
-            marker.pose.position.y = self.attached_object_offset_xyz[1]
-            marker.pose.position.z = self.attached_object_offset_xyz[2]
+            marker.header.frame_id = self.odom_frame
+            xyz = self._carried_object_odom_xyz()
+            marker.pose.position.x = xyz[0]
+            marker.pose.position.y = xyz[1]
+            marker.pose.position.z = xyz[2]
         elif placed and self.place_on_follower:
             marker.header.frame_id = self.follower_place_frame
             marker.frame_locked = True
@@ -784,11 +787,11 @@ class SimPickPlaceDemo(Node):
         marker.type = Marker.TEXT_VIEW_FACING
         marker.action = Marker.ADD
         if attached:
-            marker.header.frame_id = "end_effector_link"
-            marker.frame_locked = True
-            marker.pose.position.x = self.attached_object_offset_xyz[0]
-            marker.pose.position.y = self.attached_object_offset_xyz[1]
-            marker.pose.position.z = self.attached_object_offset_xyz[2] + 0.10
+            marker.header.frame_id = self.odom_frame
+            xyz = self._carried_object_odom_xyz()
+            marker.pose.position.x = xyz[0]
+            marker.pose.position.y = xyz[1]
+            marker.pose.position.z = xyz[2] + 0.10
         elif placed and self.place_on_follower:
             marker.header.frame_id = self.follower_place_frame
             marker.frame_locked = True
@@ -818,6 +821,8 @@ class SimPickPlaceDemo(Node):
         if now - self.last_gazebo_pose_update < max(update_period, 0.02):
             return
         self.last_gazebo_pose_update = now
+        if self.gazebo_pose_future is not None and not self.gazebo_pose_future.done():
+            return
 
         pose = self._gazebo_object_pose(attached, placed)
         if pose is None:
@@ -841,7 +846,7 @@ class SimPickPlaceDemo(Node):
         request.entity.name = str(self.get_parameter("gazebo_object_entity_name").value)
         request.entity.type = Entity.MODEL
         request.pose = pose
-        self.gazebo_pose_client.call_async(request)
+        self.gazebo_pose_future = self.gazebo_pose_client.call_async(request)
 
     def _wait_for_gazebo_pose_service(self):
         if self.gazebo_pose_client is None:
@@ -870,9 +875,7 @@ class SimPickPlaceDemo(Node):
 
     def _gazebo_object_pose(self, attached, placed):
         if attached:
-            xyz = self._attached_object_odom_xyz()
-            if xyz is None:
-                xyz = self._planned_object_odom_xyz(self.arm_positions)
+            xyz = self._carried_object_odom_xyz()
         elif placed:
             xyz = self._placed_object_odom_xyz()
         else:
@@ -884,6 +887,9 @@ class SimPickPlaceDemo(Node):
         pose.position.z = xyz[2] + self.gazebo_world_origin_xyz[2]
         pose.orientation.w = 1.0
         return pose
+
+    def _carried_object_odom_xyz(self):
+        return self._planned_object_odom_xyz(self.arm_positions)
 
     def _attached_object_odom_xyz(self):
         try:
