@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import math
+import time
 
 import rclpy
+from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.executors import ExternalShutdownException
@@ -15,6 +17,13 @@ from tf2_ros import Buffer
 from tf2_ros import TransformBroadcaster
 from tf2_ros import TransformException
 from tf2_ros import TransformListener
+
+try:
+    from ros_gz_interfaces.msg import Entity
+    from ros_gz_interfaces.srv import SetEntityPose
+except ImportError:
+    Entity = None
+    SetEntityPose = None
 
 
 def clamp(value, lower, upper):
@@ -70,6 +79,12 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("angular_gain", 2.4)
         self.declare_parameter("distance_deadband_m", 0.03)
         self.declare_parameter("publish_rate_hz", 30.0)
+        self.declare_parameter("sync_gazebo_entity", True)
+        self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
+        self.declare_parameter("gazebo_entity_name", "turtlebot3_platooning_follower")
+        self.declare_parameter("gazebo_world_origin_xyz", [-2.0, -0.5, 0.0])
+        self.declare_parameter("gazebo_pose_z_m", 0.01)
+        self.declare_parameter("gazebo_pose_update_period_s", 0.10)
 
         self.leader_odom_topic = self._string_param("leader_odom_topic")
         self.parent_frame = self._string_param("parent_frame")
@@ -95,10 +110,27 @@ class FollowerPlatooningVisualizer(Node):
         self.angular_gain = self._float_param("angular_gain")
         self.distance_deadband_m = self._float_param("distance_deadband_m")
         publish_rate_hz = max(1.0, self._float_param("publish_rate_hz"))
+        self.sync_gazebo_entity = bool(
+            self.get_parameter("sync_gazebo_entity").value)
+        self.gazebo_set_pose_service = self._string_param("gazebo_set_pose_service")
+        self.gazebo_entity_name = self._string_param("gazebo_entity_name")
+        self.gazebo_world_origin_xyz = [
+            float(v) for v in self.get_parameter("gazebo_world_origin_xyz").value
+        ]
+        self.gazebo_pose_z_m = self._float_param("gazebo_pose_z_m")
+        self.gazebo_pose_update_period_s = max(
+            0.02, self._float_param("gazebo_pose_update_period_s"))
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.gazebo_pose_client = None
+        if self.sync_gazebo_entity and SetEntityPose is not None:
+            self.gazebo_pose_client = self.create_client(
+                SetEntityPose, self.gazebo_set_pose_service)
+        elif self.sync_gazebo_entity:
+            self.get_logger().warn(
+                "ros_gz_interfaces is not available; Gazebo follower sync disabled")
         self.odom_pub = self.create_publisher(Odometry, self.follower_odom_topic, 10)
         self.joint_state_pub = self.create_publisher(
             JointState, self.follower_joint_state_topic, 10
@@ -119,13 +151,17 @@ class FollowerPlatooningVisualizer(Node):
         self.left_wheel_position = 0.0
         self.right_wheel_position = 0.0
         self.handoff_active = False
+        self.last_gazebo_pose_update = 0.0
+        self.warned_gazebo_pose_unavailable = False
+        self.logged_gazebo_pose_ready = False
 
         self.get_logger().info(
             "Follower platooning visualizer started: "
             f"target_distance={self.target_distance_m:.2f} m, "
             f"handoff_distance={self.handoff_distance_m:.2f} m, "
             f"reference={self.leader_reference_frame}->{self.follower_reference_frame}, "
-            f"leader_odom={self.leader_odom_topic}"
+            f"leader_odom={self.leader_odom_topic}, "
+            f"gazebo_entity={self.gazebo_entity_name if self.gazebo_pose_client else 'disabled'}"
         )
 
     def _string_param(self, name):
@@ -326,6 +362,47 @@ class FollowerPlatooningVisualizer(Node):
             joint_positions.get(name, 0.0) for name in self.follower_wheel_joints
         ]
         self.joint_state_pub.publish(joint_state)
+        self._sync_gazebo_follower_pose(qx, qy, qz, qw)
+
+    def _sync_gazebo_follower_pose(self, qx, qy, qz, qw):
+        if self.gazebo_pose_client is None:
+            return
+
+        now = time.monotonic()
+        if now - self.last_gazebo_pose_update < self.gazebo_pose_update_period_s:
+            return
+        self.last_gazebo_pose_update = now
+
+        if not self.gazebo_pose_client.service_is_ready():
+            if not self.warned_gazebo_pose_unavailable:
+                self.get_logger().warn(
+                    f"Gazebo set_pose service {self.gazebo_set_pose_service} "
+                    "is not ready; follower will remain RViz-only until it is available"
+                )
+                self.warned_gazebo_pose_unavailable = True
+            return
+
+        if not self.logged_gazebo_pose_ready:
+            self.get_logger().info(
+                f"syncing Gazebo follower {self.gazebo_entity_name} through "
+                f"{self.gazebo_set_pose_service}"
+            )
+            self.logged_gazebo_pose_ready = True
+
+        pose = Pose()
+        pose.position.x = self.gazebo_world_origin_xyz[0] + self.follower_x
+        pose.position.y = self.gazebo_world_origin_xyz[1] + self.follower_y
+        pose.position.z = self.gazebo_world_origin_xyz[2] + self.gazebo_pose_z_m
+        pose.orientation.x = qx
+        pose.orientation.y = qy
+        pose.orientation.z = qz
+        pose.orientation.w = qw
+
+        request = SetEntityPose.Request()
+        request.entity.name = self.gazebo_entity_name
+        request.entity.type = Entity.MODEL
+        request.pose = pose
+        self.gazebo_pose_client.call_async(request)
 
     def _log_spacing(self, now, leader_x, leader_y, active_distance):
         now_sec = now.nanoseconds * 1.0e-9
