@@ -180,6 +180,14 @@ def generate_launch_description():
             package='ros_gz_bridge',
             executable='parameter_bridge',
             arguments=[
+                '/world/default/set_pose@ros_gz_interfaces/srv/SetEntityPose',
+            ],
+            output='screen',
+        ),
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            arguments=[
                 'camera/color/image_raw@sensor_msgs/msg/Image@gz.msgs.Image',
                 'camera/color/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
                 'camera/depth/image_raw@sensor_msgs/msg/Image@gz.msgs.Image',
