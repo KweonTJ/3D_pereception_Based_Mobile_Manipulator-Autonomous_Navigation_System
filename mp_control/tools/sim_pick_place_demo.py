@@ -109,6 +109,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("gazebo_object_entity_name", "grasp_test_cube")
         self.declare_parameter("gazebo_world_origin_xyz", [-2.0, -0.5, 0.0])
         self.declare_parameter("gazebo_pose_update_period_s", 0.10)
+        self.declare_parameter("gazebo_pose_wait_timeout_s", 8.0)
 
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
         self.eef_bbox = [float(v) for v in self.get_parameter("eef_bbox").value]
@@ -186,6 +187,7 @@ class SimPickPlaceDemo(Node):
         self.active_trajectory = None
         self.last_gazebo_pose_update = 0.0
         self.warned_gazebo_pose_unavailable = False
+        self.logged_gazebo_pose_ready = False
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
@@ -232,6 +234,7 @@ class SimPickPlaceDemo(Node):
         return [float(joint1), float(joint2), float(joint3), -float(joint2) - float(joint3)]
 
     def run(self):
+        self._wait_for_gazebo_pose_service()
         self._publish_ready_markers()
         self._sleep(float(self.get_parameter("start_delay_s").value))
         self._assign_cargo_id()
@@ -821,16 +824,49 @@ class SimPickPlaceDemo(Node):
             return
         if not self.gazebo_pose_client.service_is_ready():
             if not self.warned_gazebo_pose_unavailable:
+                service_name = str(self.get_parameter("gazebo_set_pose_service").value)
                 self.get_logger().warn(
-                    "Gazebo set_pose service is not ready; RViz marker will still show the grasp")
+                    "Gazebo set_pose service {} is not ready; RViz marker will still show the grasp".format(
+                        service_name))
                 self.warned_gazebo_pose_unavailable = True
             return
+        if not self.logged_gazebo_pose_ready:
+            service_name = str(self.get_parameter("gazebo_set_pose_service").value)
+            object_name = str(self.get_parameter("gazebo_object_entity_name").value)
+            self.get_logger().info(
+                "syncing Gazebo object {} through {}".format(object_name, service_name))
+            self.logged_gazebo_pose_ready = True
 
         request = SetEntityPose.Request()
         request.entity.name = str(self.get_parameter("gazebo_object_entity_name").value)
         request.entity.type = Entity.MODEL
         request.pose = pose
         self.gazebo_pose_client.call_async(request)
+
+    def _wait_for_gazebo_pose_service(self):
+        if self.gazebo_pose_client is None:
+            return
+        timeout_s = max(
+            0.0, float(self.get_parameter("gazebo_pose_wait_timeout_s").value))
+        service_name = str(self.get_parameter("gazebo_set_pose_service").value)
+        if timeout_s <= 0.0:
+            return
+
+        deadline = time.monotonic() + timeout_s
+        while (
+            rclpy.ok()
+            and not self.gazebo_pose_client.service_is_ready()
+            and time.monotonic() < deadline
+        ):
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        if self.gazebo_pose_client.service_is_ready():
+            self.get_logger().info(
+                "Gazebo object pose service {} is ready".format(service_name))
+        else:
+            self.get_logger().warn(
+                "Gazebo object pose service {} was not ready after {:.1f}s".format(
+                    service_name, timeout_s))
 
     def _gazebo_object_pose(self, attached, placed):
         if attached:
