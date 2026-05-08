@@ -151,9 +151,20 @@
     </model>
 
     <model name="grasp_test_cube">
-      <static>1</static>
+      <static>0</static>
       <pose>-1.45 -0.50 0.217 0 0 0</pose>
       <link name="link">
+        <inertial>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.000054</ixx>
+            <iyy>0.000054</iyy>
+            <izz>0.000030</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
         <collision name="collision">
           <geometry>
             <box>
