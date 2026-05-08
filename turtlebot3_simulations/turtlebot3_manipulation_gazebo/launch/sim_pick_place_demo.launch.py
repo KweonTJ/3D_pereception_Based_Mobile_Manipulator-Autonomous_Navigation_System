@@ -37,6 +37,10 @@ def generate_launch_description():
     follower_handoff_distance = LaunchConfiguration("follower_handoff_distance")
     follower_max_speed = LaunchConfiguration("follower_max_speed")
     follower_max_turn_speed = LaunchConfiguration("follower_max_turn_speed")
+    follower_gazebo_entity_name = LaunchConfiguration("follower_gazebo_entity_name")
+    follower_gazebo_x = LaunchConfiguration("follower_gazebo_x")
+    follower_gazebo_y = LaunchConfiguration("follower_gazebo_y")
+    follower_gazebo_z = LaunchConfiguration("follower_gazebo_z")
     follower_leader_odom_topic = LaunchConfiguration("follower_leader_odom_topic")
     follower_leader_reference_frame = LaunchConfiguration("follower_leader_reference_frame")
     follower_reference_frame = LaunchConfiguration("follower_reference_frame")
@@ -183,6 +187,24 @@ def generate_launch_description():
         ],
     )
 
+    follower_gazebo_spawn = Node(
+        package="ros_gz_sim",
+        executable="create",
+        name="spawn_platooning_follower",
+        output="screen",
+        condition=IfCondition(show_follower),
+        arguments=[
+            "-name", follower_gazebo_entity_name,
+            "-topic", "/follower/robot_description",
+            "-x", follower_gazebo_x,
+            "-y", follower_gazebo_y,
+            "-z", follower_gazebo_z,
+            "-R", "0.0",
+            "-P", "0.0",
+            "-Y", follower_yaw,
+        ],
+    )
+
     follower_platooning_node = Node(
         package="turtlebot3_manipulation_gazebo",
         executable="follower_platooning_visualizer.py",
@@ -209,6 +231,12 @@ def generate_launch_description():
             {"angular_gain": 2.4},
             {"distance_deadband_m": 0.03},
             {"publish_rate_hz": 30.0},
+            {"sync_gazebo_entity": True},
+            {"gazebo_set_pose_service": "/world/default/set_pose"},
+            {"gazebo_entity_name": follower_gazebo_entity_name},
+            {"gazebo_world_origin_xyz": [-2.0, -0.5, 0.0]},
+            {"gazebo_pose_z_m": follower_gazebo_z},
+            {"gazebo_pose_update_period_s": 0.10},
         ],
     )
 
@@ -295,7 +323,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "show_follower",
             default_value="true",
-            description="Show a follower TurtleBot3 model in RViz for platooning visualization.",
+            description="Show and spawn a follower TurtleBot3 model for platooning visualization.",
         ),
         DeclareLaunchArgument(
             "follower_x",
@@ -358,6 +386,26 @@ def generate_launch_description():
             description="Follower visualization maximum angular speed in rad/s.",
         ),
         DeclareLaunchArgument(
+            "follower_gazebo_entity_name",
+            default_value="turtlebot3_platooning_follower",
+            description="Gazebo entity name used for the spawned platooning follower.",
+        ),
+        DeclareLaunchArgument(
+            "follower_gazebo_x",
+            default_value="-2.45",
+            description="Initial Gazebo world x position for the platooning follower.",
+        ),
+        DeclareLaunchArgument(
+            "follower_gazebo_y",
+            default_value="-0.50",
+            description="Initial Gazebo world y position for the platooning follower.",
+        ),
+        DeclareLaunchArgument(
+            "follower_gazebo_z",
+            default_value="0.01",
+            description="Initial Gazebo world z position for the platooning follower.",
+        ),
+        DeclareLaunchArgument(
             "start_leader_task_manager",
             default_value="true",
             description="Publish leader task/cargo/platoon state for follower communication.",
@@ -377,6 +425,7 @@ def generate_launch_description():
         leader_beacon_node,
         domain_bridge_launch,
         follower_state_publisher,
+        TimerAction(period=2.0, actions=[follower_gazebo_spawn]),
         follower_platooning_node,
         sim_launch,
         TimerAction(period=2.0, actions=[demo_node]),
