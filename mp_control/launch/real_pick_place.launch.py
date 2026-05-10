@@ -62,6 +62,11 @@ def generate_launch_description():
     auto_init_depth_max_m = LaunchConfiguration("auto_init_depth_max_m")
     auto_init_depth_near_percentile = LaunchConfiguration("auto_init_depth_near_percentile")
     auto_init_depth_band_m = LaunchConfiguration("auto_init_depth_band_m")
+    auto_init_box_min_fill_ratio = LaunchConfiguration("auto_init_box_min_fill_ratio")
+    auto_init_box_max_depth_std_m = LaunchConfiguration("auto_init_box_max_depth_std_m")
+    auto_init_box_center_weight = LaunchConfiguration("auto_init_box_center_weight")
+    auto_init_box_area_weight = LaunchConfiguration("auto_init_box_area_weight")
+    auto_init_box_depth_weight = LaunchConfiguration("auto_init_box_depth_weight")
     start_auto_eef_init_bbox = LaunchConfiguration("start_auto_eef_init_bbox")
     auto_eef_init_bbox_start_delay = LaunchConfiguration("auto_eef_init_bbox_start_delay")
     auto_eef_init_bbox_image_topic = LaunchConfiguration("auto_eef_init_bbox_image_topic")
@@ -183,6 +188,11 @@ def generate_launch_description():
             "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
             "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
             "depth_band_m": ParameterValue(auto_init_depth_band_m, value_type=float),
+            "box_min_fill_ratio": ParameterValue(auto_init_box_min_fill_ratio, value_type=float),
+            "box_max_depth_std_m": ParameterValue(auto_init_box_max_depth_std_m, value_type=float),
+            "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
+            "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
+            "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
@@ -217,6 +227,11 @@ def generate_launch_description():
             "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
             "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
             "depth_band_m": ParameterValue(auto_init_depth_band_m, value_type=float),
+            "box_min_fill_ratio": ParameterValue(auto_init_box_min_fill_ratio, value_type=float),
+            "box_max_depth_std_m": ParameterValue(auto_init_box_max_depth_std_m, value_type=float),
+            "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
+            "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
+            "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
     )
@@ -363,7 +378,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_auto_init_bbox",
             default_value="true",
-            description="Automatically detect the RGB target and publish /target/init_bbox.",
+            description="Automatically detect the box target and publish /target/init_bbox.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_start_delay",
@@ -372,8 +387,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_image_topic",
-            default_value="/camera/color/image_raw",
-            description="Image topic used for automatic initial bbox detection.",
+            default_value="/camera/depth/image_raw",
+            description="Depth image topic used for automatic box initial bbox detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_topic",
@@ -387,13 +402,13 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="red",
-            description="Detection mode for the RGB initial bbox detector.",
+            default_value="box",
+            description="Detection mode for the initial bbox detector.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
             default_value="700",
-            description="Minimum color-mask pixel count required to initialize tracking.",
+            description="Minimum target-mask pixel count required to initialize tracking.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_width_px",
@@ -408,7 +423,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "auto_init_max_bbox_area_ratio",
             default_value="0.25",
-            description="Maximum bbox area ratio allowed for automatic depth detection.",
+            description="Maximum bbox area ratio allowed for automatic box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_aspect_ratio",
@@ -418,7 +433,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "auto_init_max_bbox_aspect_ratio",
             default_value="3.0",
-            description="Maximum bbox width/height ratio allowed for automatic depth detection.",
+            description="Maximum bbox width/height ratio allowed for automatic box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_roi_min_x_ratio",
@@ -489,6 +504,31 @@ def generate_launch_description():
             "auto_init_depth_band_m",
             default_value="0.08",
             description="Depth band above the near percentile used by depth_near detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_box_min_fill_ratio",
+            default_value="0.45",
+            description="Minimum filled-pixel ratio inside a depth component bbox for box detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_box_max_depth_std_m",
+            default_value="0.08",
+            description="Maximum depth standard deviation inside a box candidate.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_box_center_weight",
+            default_value="0.55",
+            description="Weight for centered box candidates.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_box_area_weight",
+            default_value="0.30",
+            description="Weight for box candidate image area.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_box_depth_weight",
+            default_value="0.15",
+            description="Weight for box candidate depth flatness.",
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
