@@ -146,7 +146,7 @@ private:
 
     if (
       stage == "READY" || stage == "DETECTED" ||
-      contains_any(stage, {"WAITING FOR FRESH", "WAITING FOR VALID DEPTH"}))
+      contains_any(stage, {"WAITING FOR FRESH", "WAITING FOR VALID DEPTH", "WAITING FOR CAMERA INFO"}))
     {
       set_task_state("IDLE");
       set_idle_platooning_state();
