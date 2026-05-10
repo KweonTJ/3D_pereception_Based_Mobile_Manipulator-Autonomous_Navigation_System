@@ -713,7 +713,7 @@ private:
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       if (!latest_bbox_) {
-        setBlockReason(block_reason, "front bbox on " + bbox_topic_);
+        setBlockReason(block_reason, bboxInputDescription());
         return std::nullopt;
       }
       if (!latest_camera_info_) {
@@ -730,7 +730,7 @@ private:
     }
 
     if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
-      setBlockReason(block_reason, "fresh front bbox on " + bbox_topic_);
+      setBlockReason(block_reason, "fresh " + bboxInputDescription());
       return std::nullopt;
     }
 
@@ -764,6 +764,15 @@ private:
     if (block_reason) {
       *block_reason = reason;
     }
+  }
+
+  std::string bboxInputDescription() const
+  {
+    std::string description = "front bbox on " + bbox_topic_;
+    if (use_fallback_bbox_for_control_ && !fallback_bbox_topic_.empty()) {
+      description += " or fallback bbox on " + fallback_bbox_topic_;
+    }
+    return description;
   }
 
   std::optional<double> medianDepthAt(
