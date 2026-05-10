@@ -973,24 +973,23 @@ private:
 
   void startMoveItServo()
   {
-    if (!servo_start_client_->wait_for_service(std::chrono::milliseconds(100))) {
+    if (!servo_start_client_->wait_for_service(std::chrono::milliseconds(500))) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "MoveIt Servo start service unavailable: /servo_node/start_servo");
       return;
     }
 
-    auto future = servo_start_client_->async_send_request(std::make_shared<Trigger::Request>());
-    const auto result = future.wait_for(std::chrono::seconds(1));
-    if (result != std::future_status::ready) {
-      RCLCPP_WARN(get_logger(), "MoveIt Servo start service call timed out");
-      return;
-    }
-
-    const auto response = future.get();
-    if (!response->success) {
-      RCLCPP_WARN(get_logger(), "MoveIt Servo start request returned false: %s", response->message.c_str());
-    }
+    servo_start_client_->async_send_request(
+      std::make_shared<Trigger::Request>(),
+      [this](rclcpp::Client<Trigger>::SharedFuture future) {
+        const auto response = future.get();
+        if (!response->success) {
+          RCLCPP_WARN(
+            get_logger(), "MoveIt Servo start request returned false: %s",
+            response->message.c_str());
+        }
+      });
   }
 
   void publishStop()
