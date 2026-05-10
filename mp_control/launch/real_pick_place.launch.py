@@ -342,8 +342,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
-            default_value="false",
-            description="Launch the optional near-field end-effector tracker when the EEF USB camera is connected.",
+            default_value="true",
+            description="Launch the near-field end-effector tracker when the EEF USB camera image is available.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -577,7 +577,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_camera_driver",
-            default_value="false",
+            default_value="true",
             description="Start the v4l2 end-effector USB camera driver.",
         ),
         DeclareLaunchArgument(
