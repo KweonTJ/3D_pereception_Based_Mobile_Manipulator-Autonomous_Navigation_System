@@ -30,6 +30,10 @@ def generate_launch_description():
     base_turn_speed = LaunchConfiguration("base_turn_speed")
     post_place_move_distance = LaunchConfiguration("post_place_move_distance")
     post_place_move_speed = LaunchConfiguration("post_place_move_speed")
+    post_place_reverse_distance = LaunchConfiguration("post_place_reverse_distance")
+    post_place_reverse_speed = LaunchConfiguration("post_place_reverse_speed")
+    post_place_turn_angle = LaunchConfiguration("post_place_turn_angle")
+    post_place_turn_speed = LaunchConfiguration("post_place_turn_speed")
     show_follower = LaunchConfiguration("show_follower")
     follower_x = LaunchConfiguration("follower_x")
     follower_y = LaunchConfiguration("follower_y")
@@ -112,6 +116,10 @@ def generate_launch_description():
             {"base_turn_speed_radps": base_turn_speed},
             {"post_place_move_distance_m": post_place_move_distance},
             {"post_place_move_speed_mps": post_place_move_speed},
+            {"post_place_reverse_distance_m": post_place_reverse_distance},
+            {"post_place_reverse_speed_mps": post_place_reverse_speed},
+            {"post_place_turn_angle_rad": post_place_turn_angle},
+            {"post_place_turn_speed_radps": post_place_turn_speed},
             {"place_on_follower": place_on_follower},
             {"follower_place_frame": "follower_base_footprint"},
             {"follower_place_xyz": [0.0, 0.0, 0.12]},
@@ -329,7 +337,27 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "post_place_move_speed",
             default_value="0.12",
-            description="Base linear speed in m/s after placing cargo on the follower.",
+            description="Base forward speed in m/s after reversing and turning.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_reverse_distance",
+            default_value="0.35",
+            description="Meters to back up after placing cargo on the follower.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_reverse_speed",
+            default_value="0.10",
+            description="Base reverse speed in m/s after placing cargo on the follower.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_turn_angle",
+            default_value="1.5708",
+            description="Radians to rotate after post-place reverse before driving forward.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_turn_speed",
+            default_value="0.45",
+            description="Base angular speed in rad/s during the post-place turn.",
         ),
         DeclareLaunchArgument(
             "show_follower",
