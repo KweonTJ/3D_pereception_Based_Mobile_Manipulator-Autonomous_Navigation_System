@@ -1,11 +1,12 @@
 csrt_ibvs_node:
   ros__parameters:
-    # Camera topics. Change these to match `ros2 topic list` on your robot.
-    image_topic: /camera/color/image_raw
+    # Use the depth stream for real-robot front tracking because the Astra color
+    # publisher can be advertised without delivering frames on this platform.
+    image_topic: /camera/depth/image_raw
     depth_topic: /camera/depth/image_raw
-    camera_info_topic: /camera/color/camera_info
+    camera_info_topic: /camera/depth/camera_info
 
-    # A bbox message is Float32MultiArray: [x, y, width, height] in RGB image pixels.
+    # A bbox message is Float32MultiArray: [x, y, width, height] in tracker image pixels.
     init_bbox_topic: /target/init_bbox
     tracked_bbox_topic: /target/tracked_bbox
 
