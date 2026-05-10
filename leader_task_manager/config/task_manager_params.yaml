@@ -13,5 +13,6 @@ leader_task_manager:
 
     initial_task_state: "IDLE"
     initial_cargo_state: "EMPTY"
-    initial_platoon_mode: "STOP"
-    initial_follower_enable: false
+    initial_platoon_mode: "FOLLOW"
+    initial_follower_enable: true
+    follow_while_idle: true
