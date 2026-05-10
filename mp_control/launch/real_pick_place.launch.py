@@ -425,7 +425,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_max_bbox_area_ratio",
-            default_value="0.25",
+            default_value="0.08",
             description="Maximum bbox area ratio allowed for automatic box detection.",
         ),
         DeclareLaunchArgument(
@@ -507,6 +507,11 @@ def generate_launch_description():
             "auto_init_depth_band_m",
             default_value="0.15",
             description="Depth band above the near percentile used by depth_near detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_box_depth_band_m",
+            default_value="0.08",
+            description="Depth band above the near percentile used by box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_box_min_fill_ratio",
