@@ -2,8 +2,8 @@ leader_platooning_beacon:
   ros__parameters:
     heartbeat_rate_hz: 10.0
 
-    publish_odom_backup: false
-    publish_cmd_vel_backup: false
+    publish_odom_backup: true
+    publish_cmd_vel_backup: true
 
     odom_topic: "/odom"
     cmd_vel_topic: "/cmd_vel"
