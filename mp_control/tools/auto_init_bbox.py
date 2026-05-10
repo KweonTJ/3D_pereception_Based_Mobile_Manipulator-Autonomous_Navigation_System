@@ -117,6 +117,7 @@ class AutoInitBbox(Node):
         if self.published:
             return
 
+        bbox = None
         if self.color_mode == "box":
             bbox = self.depth_box_bbox(msg)
             image_width = msg.width
