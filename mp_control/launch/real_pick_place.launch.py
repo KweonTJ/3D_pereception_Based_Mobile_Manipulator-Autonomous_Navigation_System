@@ -55,6 +55,9 @@ def generate_launch_description():
     auto_init_timeout_s = LaunchConfiguration("auto_init_timeout_s")
     auto_init_black_max = LaunchConfiguration("auto_init_black_max")
     auto_init_black_min_contrast = LaunchConfiguration("auto_init_black_min_contrast")
+    auto_init_red_min = LaunchConfiguration("auto_init_red_min")
+    auto_init_red_margin = LaunchConfiguration("auto_init_red_margin")
+    auto_init_red_ratio = LaunchConfiguration("auto_init_red_ratio")
     auto_init_depth_min_m = LaunchConfiguration("auto_init_depth_min_m")
     auto_init_depth_max_m = LaunchConfiguration("auto_init_depth_max_m")
     auto_init_depth_near_percentile = LaunchConfiguration("auto_init_depth_near_percentile")
@@ -173,6 +176,9 @@ def generate_launch_description():
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
+            "red_min": ParameterValue(auto_init_red_min, value_type=int),
+            "red_margin": ParameterValue(auto_init_red_margin, value_type=int),
+            "red_ratio": ParameterValue(auto_init_red_ratio, value_type=float),
             "depth_min_m": ParameterValue(auto_init_depth_min_m, value_type=float),
             "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
             "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
@@ -204,6 +210,9 @@ def generate_launch_description():
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
+            "red_min": ParameterValue(auto_init_red_min, value_type=int),
+            "red_margin": ParameterValue(auto_init_red_margin, value_type=int),
+            "red_ratio": ParameterValue(auto_init_red_ratio, value_type=float),
             "depth_min_m": ParameterValue(auto_init_depth_min_m, value_type=float),
             "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
             "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
@@ -289,9 +298,9 @@ def generate_launch_description():
             default_value=PathJoinSubstitution([
                 FindPackageShare("hybrid_csrt_ibvs"),
                 "config",
-                "turtlebot3_waffle_pi_orbbec_depth.yaml",
+                "turtlebot3_waffle_pi_orbbec.yaml",
             ]),
-            description="Real robot parameter file for the base depth tracker.",
+            description="Real robot parameter file for the base RGB-D tracker.",
         ),
         DeclareLaunchArgument(
             "eef_hybrid_config_file",
@@ -354,7 +363,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_auto_init_bbox",
             default_value="true",
-            description="Automatically detect the depth target and publish /target/init_bbox.",
+            description="Automatically detect the RGB target and publish /target/init_bbox.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_start_delay",
@@ -363,7 +372,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_image_topic",
-            default_value="/camera/depth/image_raw",
+            default_value="/camera/color/image_raw",
             description="Image topic used for automatic initial bbox detection.",
         ),
         DeclareLaunchArgument(
@@ -378,13 +387,13 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="depth_near",
-            description="Detection mode. Real robot default uses depth_near, not color.",
+            default_value="red",
+            description="Detection mode for the RGB initial bbox detector.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
             default_value="700",
-            description="Minimum depth-mask pixel count required to initialize tracking.",
+            description="Minimum color-mask pixel count required to initialize tracking.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_width_px",
@@ -413,17 +422,17 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_roi_min_x_ratio",
-            default_value="0.18",
+            default_value="0.30",
             description="Left boundary of the automatic detection ROI as an image-width ratio.",
         ),
         DeclareLaunchArgument(
             "auto_init_roi_max_x_ratio",
-            default_value="0.82",
+            default_value="0.70",
             description="Right boundary of the automatic detection ROI as an image-width ratio.",
         ),
         DeclareLaunchArgument(
             "auto_init_roi_min_y_ratio",
-            default_value="0.15",
+            default_value="0.20",
             description="Top boundary of the automatic detection ROI as an image-height ratio.",
         ),
         DeclareLaunchArgument(
@@ -445,6 +454,21 @@ def generate_launch_description():
             "auto_init_black_min_contrast",
             default_value="20",
             description="Minimum luma contrast against the scene median for black target detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_red_min",
+            default_value="80",
+            description="Minimum red-channel value for red target detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_red_margin",
+            default_value="35",
+            description="Minimum red-channel margin over other channels.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_red_ratio",
+            default_value="1.25",
+            description="Minimum red-channel ratio against green and blue.",
         ),
         DeclareLaunchArgument(
             "auto_init_depth_min_m",
