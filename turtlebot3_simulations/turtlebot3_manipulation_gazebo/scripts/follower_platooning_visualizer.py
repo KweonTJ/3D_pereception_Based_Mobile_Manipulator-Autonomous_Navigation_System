@@ -86,6 +86,10 @@ class FollowerPlatooningVisualizer(Node):
         self.declare_parameter("gazebo_pose_z_m", 0.0)
         self.declare_parameter("gazebo_pose_update_period_s", 0.033)
         self.declare_parameter("gazebo_pose_smoothing_alpha", 0.35)
+        self.declare_parameter("post_place_reverse_distance_m", 0.35)
+        self.declare_parameter("post_place_reverse_speed_mps", 0.10)
+        self.declare_parameter("post_place_turn_angle_rad", 1.5708)
+        self.declare_parameter("post_place_turn_speed_radps", 0.45)
 
         self.leader_odom_topic = self._string_param("leader_odom_topic")
         self.parent_frame = self._string_param("parent_frame")
@@ -123,6 +127,13 @@ class FollowerPlatooningVisualizer(Node):
             0.02, self._float_param("gazebo_pose_update_period_s"))
         self.gazebo_pose_smoothing_alpha = clamp(
             self._float_param("gazebo_pose_smoothing_alpha"), 0.05, 1.0)
+        self.post_place_reverse_distance_m = abs(
+            self._float_param("post_place_reverse_distance_m"))
+        self.post_place_reverse_speed_mps = abs(
+            self._float_param("post_place_reverse_speed_mps"))
+        self.post_place_turn_angle_rad = self._float_param("post_place_turn_angle_rad")
+        self.post_place_turn_speed_radps = abs(
+            self._float_param("post_place_turn_speed_radps"))
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
@@ -162,6 +173,9 @@ class FollowerPlatooningVisualizer(Node):
         self.gazebo_pose_x = 0.0
         self.gazebo_pose_y = 0.0
         self.gazebo_pose_yaw = 0.0
+        self.post_place_phase = None
+        self.post_place_reverse_progress_m = 0.0
+        self.post_place_turn_progress_rad = 0.0
 
         self.get_logger().info(
             "Follower platooning visualizer started: "
@@ -210,6 +224,24 @@ class FollowerPlatooningVisualizer(Node):
     def _status_cb(self, msg):
         status = msg.data.upper()
         stage = status.split(":", 1)[0].strip()
+        if stage == "POST_PLACE_MOVE":
+            if self.handoff_active:
+                self.handoff_active = False
+                self.get_logger().info(
+                    f"FOLLOW: returning to {self.target_distance_m:.2f} m spacing"
+                )
+            if "BACKING UP" in status:
+                self._set_post_place_phase("reverse")
+            elif "CHANGING DIRECTION" in status:
+                self._set_post_place_phase("turn")
+            elif "DRIVING FORWARD" in status:
+                self._clear_post_place_phase(
+                    "FOLLOWER_DEPARTURE: forward segment; resuming spacing control")
+            return
+
+        if stage in {"POST_PLACE_ARRIVED", "DONE"}:
+            self._clear_post_place_phase()
+
         should_handoff = stage in {
             "HANDOFF_ALIGN",
             "PLACE",
@@ -238,6 +270,28 @@ class FollowerPlatooningVisualizer(Node):
                 f"FOLLOW: returning to {self.target_distance_m:.2f} m spacing"
             )
 
+    def _set_post_place_phase(self, phase):
+        if self.post_place_phase == phase:
+            return
+        self.post_place_phase = phase
+        if phase == "reverse":
+            self.post_place_reverse_progress_m = 0.0
+            self.get_logger().info(
+                "FOLLOWER_DEPARTURE: backing up before direction change")
+        elif phase == "turn":
+            self.post_place_turn_progress_rad = 0.0
+            self.get_logger().info(
+                "FOLLOWER_DEPARTURE: changing direction after reverse")
+
+    def _clear_post_place_phase(self, log_text=None):
+        if self.post_place_phase is None:
+            return
+        self.post_place_phase = None
+        self.post_place_reverse_progress_m = 0.0
+        self.post_place_turn_progress_rad = 0.0
+        if log_text:
+            self.get_logger().info(log_text)
+
     def _timer_cb(self):
         if self.leader_pose is None or not self.initialized:
             return
@@ -255,6 +309,10 @@ class FollowerPlatooningVisualizer(Node):
             return
 
         leader_x, leader_y, leader_yaw = self._leader_reference_pose()
+        if self.post_place_phase in {"reverse", "turn"}:
+            self._run_post_place_phase(now, dt, leader_x, leader_y)
+            return
+
         active_distance = (
             self.handoff_distance_m if self.handoff_active else self.target_distance_m
         )
@@ -294,6 +352,43 @@ class FollowerPlatooningVisualizer(Node):
 
         self._publish_follower(now)
         self._log_spacing(now, leader_x, leader_y, active_distance)
+
+    def _run_post_place_phase(self, now, dt, leader_x, leader_y):
+        linear_speed = 0.0
+        angular_speed = 0.0
+
+        if self.post_place_phase == "reverse":
+            remaining = self.post_place_reverse_distance_m - self.post_place_reverse_progress_m
+            if remaining > 0.001:
+                speed = min(
+                    self.max_linear_speed_mps,
+                    max(0.01, self.post_place_reverse_speed_mps),
+                    remaining / max(dt, 1.0e-6),
+                )
+                linear_speed = -speed
+                self.post_place_reverse_progress_m += abs(linear_speed) * dt
+        elif self.post_place_phase == "turn":
+            target_angle = abs(self.post_place_turn_angle_rad)
+            remaining = target_angle - self.post_place_turn_progress_rad
+            if remaining > 0.001:
+                direction = 1.0 if self.post_place_turn_angle_rad >= 0.0 else -1.0
+                speed = min(
+                    self.max_angular_speed_radps,
+                    max(0.05, self.post_place_turn_speed_radps),
+                    remaining / max(dt, 1.0e-6),
+                )
+                angular_speed = direction * speed
+                self.post_place_turn_progress_rad += abs(angular_speed) * dt
+
+        self.follower_x += linear_speed * math.cos(self.follower_yaw) * dt
+        self.follower_y += linear_speed * math.sin(self.follower_yaw) * dt
+        self.follower_yaw = normalize_angle(self.follower_yaw + angular_speed * dt)
+        self.last_linear_speed = linear_speed
+        self.last_angular_speed = angular_speed
+        self._integrate_wheels(linear_speed, angular_speed, dt)
+
+        self._publish_follower(now)
+        self._log_spacing(now, leader_x, leader_y, self.target_distance_m)
 
     def _lookup_pose(self, frame_id):
         try:
