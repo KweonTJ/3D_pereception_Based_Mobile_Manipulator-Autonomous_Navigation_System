@@ -189,6 +189,14 @@ private:
     camera_frame_override_ = declare_parameter<std::string>("camera_frame_override", "");
     eef_camera_frame_override_ =
       declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
+    allow_eef_camera_info_fallback_ =
+      declare_parameter<bool>("allow_eef_camera_info_fallback", true);
+    eef_camera_fallback_width_px_ =
+      declare_parameter<int>("eef_camera_fallback_width_px", 640);
+    eef_camera_fallback_height_px_ =
+      declare_parameter<int>("eef_camera_fallback_height_px", 480);
+    eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 554.0);
+    eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 554.0);
 
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
@@ -272,6 +280,10 @@ private:
     if (gripper_min_measured_object_width_m_ > gripper_max_measured_object_width_m_) {
       std::swap(gripper_min_measured_object_width_m_, gripper_max_measured_object_width_m_);
     }
+    eef_camera_fallback_width_px_ = std::max(1, eef_camera_fallback_width_px_);
+    eef_camera_fallback_height_px_ = std::max(1, eef_camera_fallback_height_px_);
+    eef_camera_fallback_fx_ = std::max(1.0, eef_camera_fallback_fx_);
+    eef_camera_fallback_fy_ = std::max(1.0, eef_camera_fallback_fy_);
     gripper_open_position_ = clampValue(
       gripper_open_position_, gripper_min_position_, gripper_max_position_);
     gripper_close_position_ = clampValue(
