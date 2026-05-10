@@ -27,9 +27,11 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
   readParameters();
 
   const auto sensor_qos = rclcpp::SensorDataQoS();
-    const auto default_qos = rclcpp::QoS(rclcpp::KeepLast(10));
-    const auto init_bbox_qos =
-      rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
+  const auto default_qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  const auto init_bbox_qos =
+    rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
+  const auto tracked_bbox_qos =
+    rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
   const auto status_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local();
 
   image_sub_ = create_subscription<sensor_msgs::msg::Image>(
@@ -50,7 +52,8 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
     init_bbox_topic_, init_bbox_qos,
     [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onInitBbox(msg); });
 
-  tracked_bbox_pub_ = create_publisher<std_msgs::msg::Float32MultiArray>(tracked_bbox_topic_, default_qos);
+  tracked_bbox_pub_ =
+    create_publisher<std_msgs::msg::Float32MultiArray>(tracked_bbox_topic_, tracked_bbox_qos);
 
   if (enable_cmd_vel_) {
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_, default_qos);
