@@ -90,6 +90,10 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("base_turn_speed_radps", 0.45)
         self.declare_parameter("post_place_move_distance_m", 1.00)
         self.declare_parameter("post_place_move_speed_mps", 0.12)
+        self.declare_parameter("post_place_reverse_distance_m", 0.35)
+        self.declare_parameter("post_place_reverse_speed_mps", 0.10)
+        self.declare_parameter("post_place_turn_angle_rad", 1.5708)
+        self.declare_parameter("post_place_turn_speed_radps", 0.45)
         self.declare_parameter("cmd_vel_wait_timeout_s", 20.0)
         self.declare_parameter("trajectory_wait_timeout_s", 20.0)
         self.declare_parameter("gripper_wait_timeout_s", 20.0)
@@ -171,6 +175,14 @@ class SimPickPlaceDemo(Node):
             self.get_parameter("post_place_move_distance_m").value)
         self.post_place_move_speed_mps = float(
             self.get_parameter("post_place_move_speed_mps").value)
+        self.post_place_reverse_distance_m = float(
+            self.get_parameter("post_place_reverse_distance_m").value)
+        self.post_place_reverse_speed_mps = float(
+            self.get_parameter("post_place_reverse_speed_mps").value)
+        self.post_place_turn_angle_rad = float(
+            self.get_parameter("post_place_turn_angle_rad").value)
+        self.post_place_turn_speed_radps = float(
+            self.get_parameter("post_place_turn_speed_radps").value)
         self.base_x = 0.0
         self.base_y = 0.0
         self.base_yaw = 0.0
@@ -365,18 +377,52 @@ class SimPickPlaceDemo(Node):
         else:
             self._status("CARGO_LOADED: object placed; holding fully extended pose")
 
+        if not self._run_post_place_departure():
+            return
+
+        self._status(
+            "DONE: object placed and platoon completed reverse-turn-forward departure")
+
+    def _run_post_place_departure(self):
+        moved = False
+        reverse_distance = abs(self.post_place_reverse_distance_m)
+        if reverse_distance > 0.001:
+            self._status("POST_PLACE_MOVE: backing up after follower cargo handoff")
+            if not self._drive_base(
+                -reverse_distance,
+                self.post_place_reverse_speed_mps,
+                "post-place reverse",
+            ):
+                return False
+            moved = True
+            self._sleep(0.4)
+
+        if abs(self.post_place_turn_angle_rad) > 0.001:
+            self._status("POST_PLACE_MOVE: changing direction after reverse")
+            if not self._turn_base(
+                self.post_place_turn_angle_rad,
+                self.post_place_turn_speed_radps,
+                "post-place turn",
+            ):
+                return False
+            moved = True
+            self._sleep(0.4)
+
         if abs(self.post_place_move_distance_m) > 0.001:
-            self._status("POST_PLACE_MOVE: driving after follower cargo handoff")
+            self._status("POST_PLACE_MOVE: driving forward after direction change")
             if not self._drive_base(
                 self.post_place_move_distance_m,
                 self.post_place_move_speed_mps,
-                "post-place move",
+                "post-place forward",
             ):
-                return
-            self._status("POST_PLACE_ARRIVED: leader completed post-handoff move")
-            self._sleep(0.8)
+                return False
+            moved = True
 
-        self._status("DONE: object placed and platoon moved after handoff")
+        if moved:
+            self._status(
+                "POST_PLACE_ARRIVED: leader completed reverse-turn-forward departure")
+            self._sleep(0.8)
+        return True
 
     def _publish_ready_markers(self, repeats=3):
         msg = String()
