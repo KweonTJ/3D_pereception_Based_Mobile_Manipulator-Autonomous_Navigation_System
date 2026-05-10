@@ -153,6 +153,13 @@ private:
       return;
     }
 
+    if (contains(stage, "GRASP SEQUENCE STARTED")) {
+      set_task_state("MOVING");
+      set_follower_enable(true);
+      set_platoon_mode("FOLLOW");
+      return;
+    }
+
     if (contains(stage, "WAITING FOR BASE APPROACH")) {
       set_task_state("MOVING");
       set_follower_enable(true);
