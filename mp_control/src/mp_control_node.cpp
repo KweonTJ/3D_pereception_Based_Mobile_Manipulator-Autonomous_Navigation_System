@@ -1093,6 +1093,7 @@ private:
   bool use_eef_refinement_{true};
   bool wait_for_base_approach_{false};
   bool auto_init_eef_tracker_from_object_{true};
+  bool allow_eef_camera_info_fallback_{true};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -1120,6 +1121,10 @@ private:
   double eef_refine_lateral_gain_{0.8};
   double eef_refine_depth_gain_{0.5};
   double eef_refine_max_linear_speed_{0.012};
+  int eef_camera_fallback_width_px_{640};
+  int eef_camera_fallback_height_px_{480};
+  double eef_camera_fallback_fx_{554.0};
+  double eef_camera_fallback_fy_{554.0};
   double gripper_open_position_{0.025};
   double gripper_close_position_{-0.015};
   double gripper_max_effort_{-1.0};
