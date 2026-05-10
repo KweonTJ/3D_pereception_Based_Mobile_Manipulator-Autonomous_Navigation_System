@@ -27,7 +27,9 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
   readParameters();
 
   const auto sensor_qos = rclcpp::SensorDataQoS();
-  const auto default_qos = rclcpp::QoS(rclcpp::KeepLast(10));
+    const auto default_qos = rclcpp::QoS(rclcpp::KeepLast(10));
+    const auto init_bbox_qos =
+      rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
   const auto status_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local();
 
   image_sub_ = create_subscription<sensor_msgs::msg::Image>(
@@ -45,7 +47,7 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
     [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onCameraInfo(msg); });
 
   init_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
-    init_bbox_topic_, default_qos,
+    init_bbox_topic_, init_bbox_qos,
     [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onInitBbox(msg); });
 
   tracked_bbox_pub_ = create_publisher<std_msgs::msg::Float32MultiArray>(tracked_bbox_topic_, default_qos);
