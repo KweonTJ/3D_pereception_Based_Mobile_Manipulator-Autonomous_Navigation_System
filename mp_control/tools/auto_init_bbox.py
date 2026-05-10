@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detect a colored target in the camera image and publish one initial bbox."""
+"""Detect a target region and publish one initial bbox."""
 
 import sys
 import time
@@ -53,6 +53,11 @@ class AutoInitBbox(Node):
         self.depth_near_percentile = float(
             self.declare_parameter("depth_near_percentile", 8.0).value)
         self.depth_band_m = float(self.declare_parameter("depth_band_m", 0.08).value)
+        self.box_min_fill_ratio = float(self.declare_parameter("box_min_fill_ratio", 0.45).value)
+        self.box_max_depth_std_m = float(self.declare_parameter("box_max_depth_std_m", 0.08).value)
+        self.box_center_weight = float(self.declare_parameter("box_center_weight", 0.55).value)
+        self.box_area_weight = float(self.declare_parameter("box_area_weight", 0.30).value)
+        self.box_depth_weight = float(self.declare_parameter("box_depth_weight", 0.15).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -112,7 +117,14 @@ class AutoInitBbox(Node):
         if self.published:
             return
 
-        if self.color_mode == "depth_near":
+        if self.color_mode == "box":
+            bbox = self.depth_box_bbox(msg)
+            image_width = msg.width
+            image_height = msg.height
+            if bbox is None:
+                return
+            mask = None
+        elif self.color_mode == "depth_near":
             mask = self.depth_near_mask(msg)
             image_width = msg.width
             image_height = msg.height
@@ -132,9 +144,10 @@ class AutoInitBbox(Node):
             self.publish_status(
                 f"receiving image: encoding={msg.encoding} size={msg.width}x{msg.height}")
 
-        bbox = self.mask_to_bbox(mask, image_width, image_height)
         if bbox is None:
-            pixels = int(np.count_nonzero(mask))
+            bbox = self.mask_to_bbox(mask, image_width, image_height)
+        if bbox is None:
+            pixels = int(np.count_nonzero(mask)) if mask is not None else 0
             self.throttled_waiting_status(f"target pixels too small: {pixels}")
             return
 
@@ -313,6 +326,100 @@ class AutoInitBbox(Node):
         band = max(0.005, self.depth_band_m)
         mask = valid & (depth <= near_depth + band)
         return mask
+
+    def depth_box_bbox(self, msg):
+        depth = self.image_to_depth_m(msg)
+        if depth is None:
+            return None
+        if cv2 is None:
+            self.throttled_waiting_status("box mode requires OpenCV connected components")
+            return None
+
+        valid = (
+            np.isfinite(depth) &
+            (depth >= self.depth_min_m) &
+            (depth <= self.depth_max_m)
+        )
+        valid = self.apply_roi(valid, msg.width, msg.height)
+        if int(np.count_nonzero(valid)) < self.min_mask_pixels:
+            self.throttled_waiting_status(
+                f"valid box depth pixels in ROI too small: {int(np.count_nonzero(valid))}")
+            return None
+
+        labels_count, labels, stats, _ = cv2.connectedComponentsWithStats(
+            valid.astype(np.uint8), 8)
+        if labels_count <= 1:
+            self.throttled_waiting_status("no box-like depth components")
+            return None
+
+        best = None
+        best_score = -1.0
+        image_area = float(max(1, msg.width * msg.height))
+        image_center_x = 0.5 * float(msg.width)
+        image_center_y = 0.5 * float(msg.height)
+        image_diag = max(1.0, float(np.hypot(msg.width, msg.height)))
+
+        for index in range(1, labels_count):
+            pixels = int(stats[index, cv2.CC_STAT_AREA])
+            if pixels < self.min_mask_pixels:
+                continue
+
+            x = int(stats[index, cv2.CC_STAT_LEFT])
+            y = int(stats[index, cv2.CC_STAT_TOP])
+            width = float(stats[index, cv2.CC_STAT_WIDTH])
+            height = float(stats[index, cv2.CC_STAT_HEIGHT])
+            if width < self.min_bbox_width_px or height < self.min_bbox_height_px:
+                continue
+
+            bbox_area = width * height
+            area_ratio = bbox_area / image_area
+            if area_ratio > self.max_bbox_area_ratio:
+                continue
+
+            aspect_ratio = width / max(1.0, height)
+            if aspect_ratio < self.min_bbox_aspect_ratio or aspect_ratio > self.max_bbox_aspect_ratio:
+                continue
+
+            fill_ratio = float(pixels) / max(1.0, bbox_area)
+            if fill_ratio < self.box_min_fill_ratio:
+                continue
+
+            component_depths = depth[labels == index]
+            component_depths = component_depths[np.isfinite(component_depths)]
+            if component_depths.size < self.min_mask_pixels:
+                continue
+            depth_std = float(np.std(component_depths))
+            if depth_std > self.box_max_depth_std_m:
+                continue
+
+            center_x = x + 0.5 * width
+            center_y = y + 0.5 * height
+            center_distance = np.hypot(
+                center_x - image_center_x,
+                center_y - image_center_y) / image_diag
+            center_score = 1.0 - min(1.0, center_distance)
+            area_score = min(1.0, area_ratio / max(0.001, self.max_bbox_area_ratio))
+            depth_score = 1.0 - min(1.0, depth_std / max(0.001, self.box_max_depth_std_m))
+            rectangular_score = min(1.0, fill_ratio)
+            score = (
+                self.box_center_weight * center_score +
+                self.box_area_weight * area_score +
+                self.box_depth_weight * depth_score
+            ) * rectangular_score
+
+            if score > best_score:
+                best_score = score
+                best = (x, y, width, height, pixels, fill_ratio, depth_std, score)
+
+        if best is None:
+            self.throttled_waiting_status("no rectangular box candidate in depth ROI")
+            return None
+
+        x, y, width, height, pixels, fill_ratio, depth_std, score = best
+        self.publish_status(
+            "box candidate: bbox=[{},{},{:.1f},{:.1f}] pixels={} fill={:.2f} depth_std={:.3f} score={:.2f}".format(
+                x, y, width, height, pixels, fill_ratio, depth_std, score))
+        return x, y, width, height, pixels
 
     def apply_roi(self, mask, image_width, image_height):
         x0 = int(np.floor(np.clip(self.roi_min_x_ratio, 0.0, 1.0) * image_width))
