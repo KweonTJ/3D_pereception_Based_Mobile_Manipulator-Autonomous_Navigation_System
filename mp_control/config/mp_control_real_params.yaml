@@ -29,7 +29,7 @@ mp_control_node:
     start_servo_on_start: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
-    use_eef_refinement: false
+    use_eef_refinement: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
 
@@ -51,8 +51,12 @@ mp_control_node:
     grasp_offset_y: 0.0
     grasp_offset_z: 0.0
 
-    # Real one-shot launch uses the base RGB-D camera only by default.
-    # Set use_eef_refinement:=true with an EEF camera config only when that stream is available.
+    # Use fallback intrinsics if the EEF USB camera publishes image_raw without camera_info.
+    allow_eef_camera_info_fallback: true
+    eef_camera_fallback_width_px: 640
+    eef_camera_fallback_height_px: 480
+    eef_camera_fallback_fx: 554.0
+    eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
     arm_start_max_error_m: 0.40
     arm_start_max_object_x_m: 0.60
