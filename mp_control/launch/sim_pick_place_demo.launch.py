@@ -68,6 +68,36 @@ def generate_launch_description():
             default_value="0.45",
             description="Base angular speed in rad/s during the post-pick turn.",
         ),
+        DeclareLaunchArgument(
+            "post_place_move_distance",
+            default_value="1.00",
+            description="Meters to drive forward after placing, reversing, and turning.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_move_speed",
+            default_value="0.12",
+            description="Base forward speed in m/s after placing, reversing, and turning.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_reverse_distance",
+            default_value="0.35",
+            description="Meters to back up after placing cargo on the follower.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_reverse_speed",
+            default_value="0.10",
+            description="Base reverse speed in m/s after placing cargo on the follower.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_turn_angle",
+            default_value="1.5708",
+            description="Radians to rotate after the post-place reverse.",
+        ),
+        DeclareLaunchArgument(
+            "post_place_turn_speed",
+            default_value="0.45",
+            description="Base angular speed in rad/s during the post-place turn.",
+        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
@@ -88,6 +118,12 @@ def generate_launch_description():
                 "base_transport_speed": LaunchConfiguration("base_transport_speed"),
                 "base_turn_angle": LaunchConfiguration("base_turn_angle"),
                 "base_turn_speed": LaunchConfiguration("base_turn_speed"),
+                "post_place_move_distance": LaunchConfiguration("post_place_move_distance"),
+                "post_place_move_speed": LaunchConfiguration("post_place_move_speed"),
+                "post_place_reverse_distance": LaunchConfiguration("post_place_reverse_distance"),
+                "post_place_reverse_speed": LaunchConfiguration("post_place_reverse_speed"),
+                "post_place_turn_angle": LaunchConfiguration("post_place_turn_angle"),
+                "post_place_turn_speed": LaunchConfiguration("post_place_turn_speed"),
             }.items(),
         ),
     ])
