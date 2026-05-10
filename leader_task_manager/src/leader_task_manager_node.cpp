@@ -144,7 +144,10 @@ private:
       return;
     }
 
-    if (stage == "READY" || stage == "DETECTED") {
+    if (
+      stage == "READY" || stage == "DETECTED" ||
+      contains_any(stage, {"WAITING FOR FRESH", "WAITING FOR VALID DEPTH"}))
+    {
       set_task_state("IDLE");
       set_idle_platooning_state();
       return;
