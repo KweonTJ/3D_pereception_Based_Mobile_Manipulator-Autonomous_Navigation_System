@@ -256,6 +256,10 @@ def generate_launch_description():
             {"gazebo_pose_z_m": follower_gazebo_z},
             {"gazebo_pose_update_period_s": 0.033},
             {"gazebo_pose_smoothing_alpha": 0.35},
+            {"post_place_reverse_distance_m": post_place_reverse_distance},
+            {"post_place_reverse_speed_mps": post_place_reverse_speed},
+            {"post_place_turn_angle_rad": post_place_turn_angle},
+            {"post_place_turn_speed_radps": post_place_turn_speed},
         ],
     )
 
