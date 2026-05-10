@@ -530,6 +530,11 @@ def generate_launch_description():
             description="Maximum depth standard deviation inside a box candidate.",
         ),
         DeclareLaunchArgument(
+            "auto_init_box_max_center_distance_ratio",
+            default_value="0.24",
+            description="Maximum normalized distance from image center for a box candidate.",
+        ),
+        DeclareLaunchArgument(
             "auto_init_box_center_weight",
             default_value="0.55",
             description="Weight for centered box candidates.",
