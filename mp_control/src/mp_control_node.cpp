@@ -1014,6 +1014,25 @@ private:
     last_status_stamp_ = stamp;
   }
 
+  std::optional<CameraInfo> fallbackEefCameraInfo() const
+  {
+    if (!allow_eef_camera_info_fallback_) {
+      return std::nullopt;
+    }
+
+    CameraInfo info;
+    info.fx = eef_camera_fallback_fx_;
+    info.fy = eef_camera_fallback_fy_;
+    info.width = static_cast<std::uint32_t>(eef_camera_fallback_width_px_);
+    info.height = static_cast<std::uint32_t>(eef_camera_fallback_height_px_);
+    info.cx = 0.5 * static_cast<double>(info.width);
+    info.cy = 0.5 * static_cast<double>(info.height);
+    info.frame_id =
+      eef_camera_frame_override_.empty() ? "eef_usb_camera_optical_frame" :
+      eef_camera_frame_override_;
+    return info;
+  }
+
   void assignCargoId()
   {
     std::ostringstream id;
