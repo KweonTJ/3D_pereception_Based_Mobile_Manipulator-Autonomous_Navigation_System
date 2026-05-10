@@ -1,5 +1,4 @@
 name: leader_to_follower_bridge
-from_domain: 10
 from_domain: 25
 to_domain: 73
 
