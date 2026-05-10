@@ -53,6 +53,7 @@ class AutoInitBbox(Node):
         self.depth_near_percentile = float(
             self.declare_parameter("depth_near_percentile", 8.0).value)
         self.depth_band_m = float(self.declare_parameter("depth_band_m", 0.08).value)
+        self.box_depth_band_m = float(self.declare_parameter("box_depth_band_m", 0.08).value)
         self.box_min_fill_ratio = float(self.declare_parameter("box_min_fill_ratio", 0.45).value)
         self.box_max_depth_std_m = float(self.declare_parameter("box_max_depth_std_m", 0.08).value)
         self.box_center_weight = float(self.declare_parameter("box_center_weight", 0.55).value)
@@ -342,13 +343,25 @@ class AutoInitBbox(Node):
             (depth <= self.depth_max_m)
         )
         valid = self.apply_roi(valid, msg.width, msg.height)
-        if int(np.count_nonzero(valid)) < self.min_mask_pixels:
+        valid_count = int(np.count_nonzero(valid))
+        if valid_count < self.min_mask_pixels:
             self.throttled_waiting_status(
-                f"valid box depth pixels in ROI too small: {int(np.count_nonzero(valid))}")
+                f"valid box depth pixels in ROI too small: {valid_count}")
+            return None
+
+        valid_depth = depth[valid]
+        percentile = min(50.0, max(0.1, self.depth_near_percentile))
+        near_depth = float(np.percentile(valid_depth, percentile))
+        band = max(0.005, self.box_depth_band_m)
+        candidate_mask = valid & (depth <= near_depth + band)
+        candidate_count = int(np.count_nonzero(candidate_mask))
+        if candidate_count < self.min_mask_pixels:
+            self.throttled_waiting_status(
+                f"near-depth box pixels too small: {candidate_count} near={near_depth:.3f} band={band:.3f}")
             return None
 
         labels_count, labels, stats, _ = cv2.connectedComponentsWithStats(
-            valid.astype(np.uint8), 8)
+            candidate_mask.astype(np.uint8), 8)
         if labels_count <= 1:
             self.throttled_waiting_status("no box-like depth components")
             return None
@@ -418,8 +431,8 @@ class AutoInitBbox(Node):
 
         x, y, width, height, pixels, fill_ratio, depth_std, score = best
         self.publish_status(
-            "box candidate: bbox=[{},{},{:.1f},{:.1f}] pixels={} fill={:.2f} depth_std={:.3f} score={:.2f}".format(
-                x, y, width, height, pixels, fill_ratio, depth_std, score))
+            "box candidate: bbox=[{},{},{:.1f},{:.1f}] pixels={} fill={:.2f} depth_std={:.3f} near={:.3f} band={:.3f} score={:.2f}".format(
+                x, y, width, height, pixels, fill_ratio, depth_std, near_depth, band, score))
         return x, y, width, height, pixels
 
     def apply_roi(self, mask, image_width, image_height):
