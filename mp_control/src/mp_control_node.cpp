@@ -519,12 +519,17 @@ private:
     std::optional<Bbox> eef_bbox;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
-      if (!latest_eef_camera_info_) {
-        publishStop();
-        publishStatus("waiting for end-effector camera info before near-field refinement");
-        return false;
+      if (latest_eef_camera_info_) {
+        info = *latest_eef_camera_info_;
+      } else {
+        auto fallback_info = fallbackEefCameraInfo();
+        if (!fallback_info) {
+          publishStop();
+          publishStatus("waiting for end-effector camera info before near-field refinement");
+          return false;
+        }
+        info = *fallback_info;
       }
-      info = *latest_eef_camera_info_;
       eef_bbox = latest_eef_bbox_;
     }
 
@@ -629,13 +634,23 @@ private:
     CameraInfo info;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
-      if (!latest_eef_bbox_ || !latest_eef_camera_info_) {
+      if (!latest_eef_bbox_) {
         publishStop();
-        publishStatus("waiting for end-effector camera bbox or camera info");
+        publishStatus("waiting for end-effector camera bbox");
         return;
       }
       bbox = *latest_eef_bbox_;
-      info = *latest_eef_camera_info_;
+      if (latest_eef_camera_info_) {
+        info = *latest_eef_camera_info_;
+      } else {
+        auto fallback_info = fallbackEefCameraInfo();
+        if (!fallback_info) {
+          publishStop();
+          publishStatus("waiting for end-effector camera info");
+          return;
+        }
+        info = *fallback_info;
+      }
     }
 
     if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
