@@ -56,6 +56,8 @@ class AutoInitBbox(Node):
         self.box_depth_band_m = float(self.declare_parameter("box_depth_band_m", 0.08).value)
         self.box_min_fill_ratio = float(self.declare_parameter("box_min_fill_ratio", 0.45).value)
         self.box_max_depth_std_m = float(self.declare_parameter("box_max_depth_std_m", 0.08).value)
+        self.box_max_center_distance_ratio = float(
+            self.declare_parameter("box_max_center_distance_ratio", 0.24).value)
         self.box_center_weight = float(self.declare_parameter("box_center_weight", 0.55).value)
         self.box_area_weight = float(self.declare_parameter("box_area_weight", 0.30).value)
         self.box_depth_weight = float(self.declare_parameter("box_depth_weight", 0.15).value)
@@ -411,6 +413,8 @@ class AutoInitBbox(Node):
             center_distance = np.hypot(
                 center_x - image_center_x,
                 center_y - image_center_y) / image_diag
+            if center_distance > self.box_max_center_distance_ratio:
+                continue
             center_score = 1.0 - min(1.0, center_distance)
             area_score = min(1.0, area_ratio / max(0.001, self.max_bbox_area_ratio))
             depth_score = 1.0 - min(1.0, depth_std / max(0.001, self.box_max_depth_std_m))
