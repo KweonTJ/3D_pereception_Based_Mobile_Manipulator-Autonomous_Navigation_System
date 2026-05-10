@@ -62,6 +62,7 @@ def generate_launch_description():
     auto_init_depth_max_m = LaunchConfiguration("auto_init_depth_max_m")
     auto_init_depth_near_percentile = LaunchConfiguration("auto_init_depth_near_percentile")
     auto_init_depth_band_m = LaunchConfiguration("auto_init_depth_band_m")
+    auto_init_box_depth_band_m = LaunchConfiguration("auto_init_box_depth_band_m")
     auto_init_box_min_fill_ratio = LaunchConfiguration("auto_init_box_min_fill_ratio")
     auto_init_box_max_depth_std_m = LaunchConfiguration("auto_init_box_max_depth_std_m")
     auto_init_box_center_weight = LaunchConfiguration("auto_init_box_center_weight")
@@ -188,6 +189,7 @@ def generate_launch_description():
             "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
             "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
             "depth_band_m": ParameterValue(auto_init_depth_band_m, value_type=float),
+            "box_depth_band_m": ParameterValue(auto_init_box_depth_band_m, value_type=float),
             "box_min_fill_ratio": ParameterValue(auto_init_box_min_fill_ratio, value_type=float),
             "box_max_depth_std_m": ParameterValue(auto_init_box_max_depth_std_m, value_type=float),
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
@@ -227,6 +229,7 @@ def generate_launch_description():
             "depth_max_m": ParameterValue(auto_init_depth_max_m, value_type=float),
             "depth_near_percentile": ParameterValue(auto_init_depth_near_percentile, value_type=float),
             "depth_band_m": ParameterValue(auto_init_depth_band_m, value_type=float),
+            "box_depth_band_m": ParameterValue(auto_init_box_depth_band_m, value_type=float),
             "box_min_fill_ratio": ParameterValue(auto_init_box_min_fill_ratio, value_type=float),
             "box_max_depth_std_m": ParameterValue(auto_init_box_max_depth_std_m, value_type=float),
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
