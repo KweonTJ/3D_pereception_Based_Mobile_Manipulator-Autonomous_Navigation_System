@@ -31,4 +31,16 @@ def generate_launch_description():
             output="screen",
             parameters=[params_file],
         ),
+        Node(
+            package="leader_platooning_beacon",
+            executable="battery_state_from_dynamic_joint_state_node",
+            name="leader_battery_state_relay",
+            output="screen",
+            parameters=[{
+                "dynamic_joint_states_topic": "/dynamic_joint_states",
+                "battery_state_topic": "/battery_state",
+                "battery_sensor_name": "battery",
+                "publish_period_s": 1.0,
+            }],
+        ),
     ])

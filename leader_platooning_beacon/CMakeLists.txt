@@ -14,6 +14,8 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(control_msgs REQUIRED)
 
 add_executable(leader_platooning_beacon_node src/leader_platooning_beacon_node.cpp)
 ament_target_dependencies(
@@ -24,8 +26,20 @@ ament_target_dependencies(
   nav_msgs
 )
 
+add_executable(
+  battery_state_from_dynamic_joint_state_node
+  src/battery_state_from_dynamic_joint_state_node.cpp
+)
+ament_target_dependencies(
+  battery_state_from_dynamic_joint_state_node
+  rclcpp
+  sensor_msgs
+  control_msgs
+)
+
 install(TARGETS
   leader_platooning_beacon_node
+  battery_state_from_dynamic_joint_state_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
