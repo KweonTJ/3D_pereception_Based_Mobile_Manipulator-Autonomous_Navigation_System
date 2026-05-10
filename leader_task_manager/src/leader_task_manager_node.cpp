@@ -40,13 +40,15 @@ public:
     declare_parameter<std::string>("platoon_mode_topic", "/leader/platoon_mode");
     declare_parameter<std::string>("initial_task_state", "IDLE");
     declare_parameter<std::string>("initial_cargo_state", "EMPTY");
-    declare_parameter<std::string>("initial_platoon_mode", "STOP");
-    declare_parameter<bool>("initial_follower_enable", false);
+    declare_parameter<std::string>("initial_platoon_mode", "FOLLOW");
+    declare_parameter<bool>("initial_follower_enable", true);
+    declare_parameter<bool>("follow_while_idle", true);
 
     task_state_ = get_parameter("initial_task_state").as_string();
     cargo_state_ = get_parameter("initial_cargo_state").as_string();
     platoon_mode_ = get_parameter("initial_platoon_mode").as_string();
     follower_enable_ = get_parameter("initial_follower_enable").as_bool();
+    follow_while_idle_ = get_parameter("follow_while_idle").as_bool();
 
     const auto state_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
     task_state_pub_ = create_publisher<std_msgs::msg::String>(
@@ -144,7 +146,7 @@ private:
 
     if (stage == "READY" || stage == "DETECTED") {
       set_task_state("IDLE");
-      set_platoon_mode("STOP");
+      set_idle_platooning_state();
       return;
     }
 
@@ -298,6 +300,17 @@ private:
     platoon_mode_pub_->publish(platoon_msg);
   }
 
+  void set_idle_platooning_state()
+  {
+    if (follow_while_idle_) {
+      set_follower_enable(true);
+      set_platoon_mode("FOLLOW");
+    } else {
+      set_follower_enable(false);
+      set_platoon_mode("STOP");
+    }
+  }
+
   void set_task_state(const std::string & value)
   {
     set_string_state("task_state", task_state_, value);
@@ -339,6 +352,7 @@ private:
   std::string platoon_mode_;
   std::string current_cargo_id_;
   bool follower_enable_{false};
+  bool follow_while_idle_{true};
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr task_state_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_state_pub_;
