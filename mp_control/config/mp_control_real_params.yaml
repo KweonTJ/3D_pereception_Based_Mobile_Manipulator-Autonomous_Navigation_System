@@ -25,7 +25,7 @@ mp_control_node:
 
     auto_start: false
     auto_start_on_bbox: true
-    use_fallback_bbox_for_control: false
+    use_fallback_bbox_for_control: true
     start_servo_on_start: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
@@ -34,7 +34,7 @@ mp_control_node:
     auto_init_eef_tracker_from_object: true
 
     command_rate_hz: 20.0
-    max_target_age_s: 0.6
+    max_target_age_s: 2.0
     linear_gain: 0.9
     max_linear_speed: 0.025
     position_tolerance_m: 0.035
