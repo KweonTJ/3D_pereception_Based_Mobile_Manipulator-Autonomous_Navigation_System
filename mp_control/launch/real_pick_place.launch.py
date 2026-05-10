@@ -342,8 +342,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
-            default_value="true",
-            description="Launch the near-field end-effector tracker. It is initialized from depth geometry, not as the main detector.",
+            default_value="false",
+            description="Launch the optional near-field end-effector tracker when the EEF USB camera is connected.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -407,7 +407,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
-            default_value="700",
+            default_value="300",
             description="Minimum target-mask pixel count required to initialize tracking.",
         ),
         DeclareLaunchArgument(
@@ -437,22 +437,22 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_roi_min_x_ratio",
-            default_value="0.30",
+            default_value="0.15",
             description="Left boundary of the automatic detection ROI as an image-width ratio.",
         ),
         DeclareLaunchArgument(
             "auto_init_roi_max_x_ratio",
-            default_value="0.70",
+            default_value="0.85",
             description="Right boundary of the automatic detection ROI as an image-width ratio.",
         ),
         DeclareLaunchArgument(
             "auto_init_roi_min_y_ratio",
-            default_value="0.20",
+            default_value="0.10",
             description="Top boundary of the automatic detection ROI as an image-height ratio.",
         ),
         DeclareLaunchArgument(
             "auto_init_roi_max_y_ratio",
-            default_value="0.95",
+            default_value="1.00",
             description="Bottom boundary of the automatic detection ROI as an image-height ratio.",
         ),
         DeclareLaunchArgument(
@@ -502,17 +502,17 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_depth_band_m",
-            default_value="0.08",
+            default_value="0.15",
             description="Depth band above the near percentile used by depth_near detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_box_min_fill_ratio",
-            default_value="0.45",
+            default_value="0.25",
             description="Minimum filled-pixel ratio inside a depth component bbox for box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_box_max_depth_std_m",
-            default_value="0.08",
+            default_value="0.16",
             description="Maximum depth standard deviation inside a box candidate.",
         ),
         DeclareLaunchArgument(
@@ -577,7 +577,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_camera_driver",
-            default_value="true",
+            default_value="false",
             description="Start the v4l2 end-effector USB camera driver.",
         ),
         DeclareLaunchArgument(
