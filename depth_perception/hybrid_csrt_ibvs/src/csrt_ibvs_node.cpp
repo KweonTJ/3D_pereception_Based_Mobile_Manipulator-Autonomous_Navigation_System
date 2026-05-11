@@ -229,6 +229,14 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
     if (stop_when_lost_) {
       publishStop();
     }
+    if (publish_debug_image_) {
+      publishDebugImageNoTrack(
+        msg,
+        frame,
+        state_ == TrackerState::LOST ?
+        "target lost; waiting for fresh bbox" :
+        "waiting for init bbox");
+    }
     return;
   }
 
@@ -247,6 +255,14 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   if (!tracking_ok || !clipped_box) {
     lost_count_ += 1;
     publishStatus("tracker uncertain; lost_count=" + std::to_string(lost_count_));
+
+    if (publish_debug_image_) {
+      if (clipped_box) {
+        publishDebugImage(msg, frame, *clipped_box, IbvsResult(), false);
+      } else {
+        publishDebugImageNoTrack(msg, frame, "tracker uncertain; no valid bbox");
+      }
+    }
 
     if (lost_count_ >= loss_frame_limit_) {
       resetTracker();
@@ -782,6 +798,50 @@ void CsrtIbvsNode::publishDebugImage(
     depth_text << " STOP";
   }
   cv::putText(debug, depth_text.str(), cv::Point(12, 56), cv::FONT_HERSHEY_SIMPLEX, 0.65, cv::Scalar(255, 255, 255), 2);
+
+  auto out_msg = cv_bridge::CvImage(src_msg->header, kBgr8, debug).toImageMsg();
+  debug_image_pub_->publish(*out_msg);
+}
+
+void CsrtIbvsNode::publishDebugImageNoTrack(
+  const sensor_msgs::msg::Image::ConstSharedPtr & src_msg,
+  const cv::Mat & frame,
+  const std::string & reason) const
+{
+  if (!debug_image_pub_) {
+    return;
+  }
+
+  cv::Mat debug = frame.clone();
+  if (debug.empty()) {
+    return;
+  }
+
+  const cv::Point desired_center(
+    static_cast<int>(std::lround(desired_u_ratio_ * debug.cols)),
+    static_cast<int>(std::lround(desired_v_ratio_ * debug.rows)));
+  cv::drawMarker(debug, desired_center, cv::Scalar(255, 0, 0), cv::MARKER_CROSS, 18, 2);
+
+  std::ostringstream state_text;
+  state_text << stateToString() << " - " << reason;
+  cv::putText(
+    debug,
+    state_text.str(),
+    cv::Point(12, 28),
+    cv::FONT_HERSHEY_SIMPLEX,
+    0.65,
+    cv::Scalar(255, 255, 255),
+    2);
+
+  const std::string topic_text = "init bbox: " + init_bbox_topic_;
+  cv::putText(
+    debug,
+    topic_text,
+    cv::Point(12, 56),
+    cv::FONT_HERSHEY_SIMPLEX,
+    0.55,
+    cv::Scalar(255, 255, 255),
+    2);
 
   auto out_msg = cv_bridge::CvImage(src_msg->header, kBgr8, debug).toImageMsg();
   debug_image_pub_->publish(*out_msg);
