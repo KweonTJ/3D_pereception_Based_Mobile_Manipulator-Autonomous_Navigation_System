@@ -65,9 +65,9 @@ class FollowerPlatooningVisualizer(Node):
             "follower_wheel_joints",
             ["follower_wheel_left_joint", "follower_wheel_right_joint"],
         )
-        self.declare_parameter("target_distance_m", 0.45)
-        self.declare_parameter("handoff_distance_m", 0.45)
-        self.declare_parameter("initial_offset_x_m", -0.45)
+        self.declare_parameter("target_distance_m", 0.47)
+        self.declare_parameter("handoff_distance_m", 0.47)
+        self.declare_parameter("initial_offset_x_m", -0.47)
         self.declare_parameter("initial_offset_y_m", 0.0)
         self.declare_parameter("initial_yaw_offset_rad", 0.0)
         self.declare_parameter("wheel_radius_m", 0.033)

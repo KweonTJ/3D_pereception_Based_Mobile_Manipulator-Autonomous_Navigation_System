@@ -370,7 +370,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_x",
-            default_value="-0.45",
+            default_value="-0.47",
             description="Follower visualization initial x offset from the leader reference frame.",
         ),
         DeclareLaunchArgument(
@@ -385,12 +385,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_distance",
-            default_value="0.45",
+            default_value="0.47",
             description="Target IMU-to-IMU following distance behind the leader in meters.",
         ),
         DeclareLaunchArgument(
             "follower_handoff_distance",
-            default_value="0.45",
+            default_value="0.47",
             description="IMU-to-IMU follower spacing used while the leader places cargo on the follower deck.",
         ),
         DeclareLaunchArgument(
