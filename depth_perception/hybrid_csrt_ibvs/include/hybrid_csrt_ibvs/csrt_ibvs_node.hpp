@@ -74,6 +74,10 @@ private:
   std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
   std::optional<double> pixelToMeters(const cv::Mat & depth, const std::string & encoding, int row, int col) const;
   void publishDebugImage(const sensor_msgs::msg::Image::ConstSharedPtr & src_msg, const cv::Mat & frame, const cv::Rect & bbox, const IbvsResult & ibvs, bool tracking_ok) const;
+  void publishDebugImageNoTrack(
+    const sensor_msgs::msg::Image::ConstSharedPtr & src_msg,
+    const cv::Mat & frame,
+    const std::string & reason) const;
   void publishStatus(const std::string & text, bool force = false);
   void publishStop(bool force = false);
   std::string stateToString() const;
