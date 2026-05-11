@@ -64,6 +64,10 @@ class AutoInitBbox(Node):
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
+        self.continuous_publish = bool(
+            self.declare_parameter("continuous_publish", False).value)
+        self.continuous_publish_period_s = float(
+            self.declare_parameter("continuous_publish_period_s", 0.5).value)
         self.timeout_s = float(self.declare_parameter("timeout_s", 0.0).value)
 
         self.red_min = int(self.declare_parameter("red_min", 80).value)
@@ -87,6 +91,7 @@ class AutoInitBbox(Node):
 
         self.start_time = time.monotonic()
         self.published = False
+        self.last_publish_time = 0.0
         self.last_warn_time = 0.0
         self.logged_first_image = False
         self.last_status = ""
@@ -102,7 +107,7 @@ class AutoInitBbox(Node):
         self.get_logger().info(text)
 
     def on_heartbeat(self):
-        if self.published:
+        if self.published and not self.continuous_publish:
             return
         if self.last_status:
             msg = String()
@@ -110,14 +115,22 @@ class AutoInitBbox(Node):
             self.status_pub.publish(msg)
 
     def on_timeout(self):
-        if self.published or self.timeout_s <= 0.0:
+        if (self.published and not self.continuous_publish) or self.timeout_s <= 0.0:
             return
         if time.monotonic() - self.start_time > self.timeout_s:
             self.publish_status("timeout waiting for auto init bbox target")
             self.published = True
 
     def on_image(self, msg):
-        if self.published:
+        if self.published and not self.continuous_publish:
+            return
+
+        now = time.monotonic()
+        if (
+            self.published
+            and self.continuous_publish
+            and now - self.last_publish_time < self.continuous_publish_period_s
+        ):
             return
 
         bbox = None
@@ -175,6 +188,7 @@ class AutoInitBbox(Node):
         bbox_msg = [float(x_min), float(y_min), width, height]
         self.publish_status(f"auto init bbox detected: {bbox_msg}; pixels={pixels}")
         self.publish_bbox_repeated(bbox_msg)
+        self.last_publish_time = time.monotonic()
         self.published = True
 
     def throttled_waiting_status(self, reason):
