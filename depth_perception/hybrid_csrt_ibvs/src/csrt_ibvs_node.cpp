@@ -276,7 +276,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   }
 
   lost_count_ = 0;
-  last_track_stamp_ = stamp;
+  last_track_stamp_ = now();
   state_ = TrackerState::TRACKING;
 
   const auto ibvs = computeIbvsCommand(*clipped_box, frame.size(), stamp);
