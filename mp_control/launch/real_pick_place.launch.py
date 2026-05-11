@@ -199,6 +199,8 @@ def generate_launch_description():
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
+            "continuous_publish": True,
+            "continuous_publish_period_s": 0.5,
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
@@ -241,6 +243,8 @@ def generate_launch_description():
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
+            "continuous_publish": True,
+            "continuous_publish_period_s": 0.5,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
     )
