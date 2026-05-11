@@ -351,12 +351,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_tracker",
             default_value="true",
-            description="Launch the base RGB-D object tracker.",
+            description="Launch the front Astra RGB-D/depth tracker used for primary object judgement.",
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
             default_value="true",
-            description="Launch the near-field end-effector tracker when the EEF USB camera image is available.",
+            description="Launch the EEF tracker for near-field refinement only; it must not initialize the primary target.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -401,7 +401,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "auto_init_bbox_image_topic",
             default_value="/camera/depth/image_raw",
-            description="Depth image topic used for automatic box initial bbox detection.",
+            description="Front Astra depth image topic used for automatic primary box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_topic",
@@ -556,7 +556,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
             default_value="false",
-            description="Automatically detect a target from the EEF RGB camera.",
+            description="Keep false for real grasp: the EEF camera is initialized only from the front-Astra object projection.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_start_delay",
