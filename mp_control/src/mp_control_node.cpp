@@ -393,8 +393,11 @@ private:
     done_ = false;
     close_sent_ = false;
     open_sent_ = false;
-    eef_refinement_requested_ = false;
-    latest_eef_bbox_.reset();
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      eef_refinement_requested_ = false;
+      latest_eef_bbox_.reset();
+    }
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
@@ -414,8 +417,11 @@ private:
   {
     active_ = false;
     done_ = false;
-    eef_refinement_requested_ = false;
-    latest_eef_bbox_.reset();
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      eef_refinement_requested_ = false;
+      latest_eef_bbox_.reset();
+    }
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
     publishStop();
@@ -711,7 +717,10 @@ private:
         }
         done_ = true;
         active_ = false;
-        eef_refinement_requested_ = false;
+        {
+          std::lock_guard<std::mutex> lock(data_mutex_);
+          eef_refinement_requested_ = false;
+        }
         publishStatus("eef camera refined grasp reached; width-aware gripper command sent", true);
       } else {
         publishStatus("eef camera aligned; holding before closing");
