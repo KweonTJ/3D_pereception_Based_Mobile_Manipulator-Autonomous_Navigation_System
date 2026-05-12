@@ -267,8 +267,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             "leader_domain_id",
-            default_value="10",
-            description="ROS_DOMAIN_ID used by the leader simulation side.",
+            default_value="25",
+            description="ROS_DOMAIN_ID used by the leader simulation side and host monitor bridge.",
         ),
         DeclareLaunchArgument(
             "world",
@@ -462,7 +462,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_domain_bridge",
             default_value="true",
-            description="Bridge /leader topics from leader domain 10 to follower domain 20.",
+            description="Bridge /leader topics from the leader simulation domain to the follower domain.",
         ),
         SetEnvironmentVariable(
             "GZ_SIM_RESOURCE_PATH",
