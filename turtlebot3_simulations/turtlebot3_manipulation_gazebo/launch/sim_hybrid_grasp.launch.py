@@ -7,6 +7,8 @@ from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -21,6 +23,14 @@ def generate_launch_description():
     mp_control_config_file = LaunchConfiguration("mp_control_config_file")
     start_tracker = LaunchConfiguration("start_tracker")
     start_eef_tracker = LaunchConfiguration("start_eef_tracker")
+    start_eef_ibvs_feature = LaunchConfiguration("start_eef_ibvs_feature")
+    eef_ibvs_feature_image_topic = LaunchConfiguration("eef_ibvs_feature_image_topic")
+    eef_ibvs_feature_bbox_topic = LaunchConfiguration("eef_ibvs_feature_bbox_topic")
+    eef_ibvs_feature_status_topic = LaunchConfiguration("eef_ibvs_feature_status_topic")
+    eef_ibvs_feature_color_mode = LaunchConfiguration("eef_ibvs_feature_color_mode")
+    eef_ibvs_feature_min_mask_pixels = LaunchConfiguration("eef_ibvs_feature_min_mask_pixels")
+    eef_ibvs_feature_min_bbox_width_px = LaunchConfiguration("eef_ibvs_feature_min_bbox_width_px")
+    eef_ibvs_feature_min_bbox_height_px = LaunchConfiguration("eef_ibvs_feature_min_bbox_height_px")
     start_servo = LaunchConfiguration("start_servo")
     start_mp_control = LaunchConfiguration("start_mp_control")
     control_start_delay = LaunchConfiguration("control_start_delay")
@@ -82,6 +92,30 @@ def generate_launch_description():
             "start_servo": start_servo,
             "start_mp_control": start_mp_control,
         }.items(),
+    )
+
+    eef_ibvs_feature_node = Node(
+        package="mp_control",
+        executable="auto_init_bbox.py",
+        name="eef_ibvs_feature",
+        output="screen",
+        parameters=[{
+            "use_sim_time": True,
+            "image_topic": eef_ibvs_feature_image_topic,
+            "bbox_topic": eef_ibvs_feature_bbox_topic,
+            "status_topic": eef_ibvs_feature_status_topic,
+            "color_mode": eef_ibvs_feature_color_mode,
+            "min_mask_pixels": ParameterValue(eef_ibvs_feature_min_mask_pixels, value_type=int),
+            "min_bbox_width_px": ParameterValue(eef_ibvs_feature_min_bbox_width_px, value_type=float),
+            "min_bbox_height_px": ParameterValue(eef_ibvs_feature_min_bbox_height_px, value_type=float),
+            "max_bbox_area_ratio": 0.65,
+            "min_bbox_aspect_ratio": 0.15,
+            "max_bbox_aspect_ratio": 6.0,
+            "continuous_publish": True,
+            "continuous_publish_period_s": 0.2,
+            "timeout_s": 0.0,
+        }],
+        condition=IfCondition(start_eef_ibvs_feature),
     )
 
     return LaunchDescription([
@@ -148,8 +182,48 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
+            default_value="false",
+            description="Launch the legacy end-effector CSRT tracker. Keep false for EEF IBVS feature correction.",
+        ),
+        DeclareLaunchArgument(
+            "start_eef_ibvs_feature",
             default_value="true",
-            description="Launch the end-effector camera tracker.",
+            description="Publish an EEF visual-feature bbox for near-field IBVS correction.",
+        ),
+        DeclareLaunchArgument(
+            "eef_ibvs_feature_image_topic",
+            default_value="/eef_camera/image_raw",
+            description="EEF image topic used for visual-feature bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "eef_ibvs_feature_bbox_topic",
+            default_value="/target/eef_ibvs_bbox",
+            description="Continuous EEF visual-feature bbox topic consumed by mp_control.",
+        ),
+        DeclareLaunchArgument(
+            "eef_ibvs_feature_status_topic",
+            default_value="/target/eef_ibvs_feature_status",
+            description="Status topic for EEF visual-feature bbox detection.",
+        ),
+        DeclareLaunchArgument(
+            "eef_ibvs_feature_color_mode",
+            default_value="auto",
+            description="Visual feature mode for the EEF RGB camera.",
+        ),
+        DeclareLaunchArgument(
+            "eef_ibvs_feature_min_mask_pixels",
+            default_value="80",
+            description="Minimum colored pixel count for EEF visual-feature detection.",
+        ),
+        DeclareLaunchArgument(
+            "eef_ibvs_feature_min_bbox_width_px",
+            default_value="6.0",
+            description="Minimum EEF visual-feature bbox width in pixels.",
+        ),
+        DeclareLaunchArgument(
+            "eef_ibvs_feature_min_bbox_height_px",
+            default_value="6.0",
+            description="Minimum EEF visual-feature bbox height in pixels.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -170,7 +244,7 @@ def generate_launch_description():
         gazebo_launch,
         TimerAction(
             period=control_start_delay,
-            actions=[grasp_stack_launch],
+            actions=[grasp_stack_launch, eef_ibvs_feature_node],
             condition=IfCondition(start_gazebo),
         ),
     ])
