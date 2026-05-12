@@ -49,7 +49,7 @@ def generate_launch_description():
             "use_sim": "true",
             "world": world,
             "gz_args": gz_args,
-            "x_pose": "-2.00",
+            "x_pose": "-2.12",
             "y_pose": "-0.50",
             "z_pose": "0.01",
             "roll": "0.00",

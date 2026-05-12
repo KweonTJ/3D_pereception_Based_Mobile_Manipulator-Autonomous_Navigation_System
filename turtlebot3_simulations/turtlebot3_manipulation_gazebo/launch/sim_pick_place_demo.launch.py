@@ -253,7 +253,7 @@ def generate_launch_description():
             {"sync_gazebo_entity": True},
             {"gazebo_set_pose_service": "/world/default/set_pose"},
             {"gazebo_entity_name": follower_gazebo_entity_name},
-            {"gazebo_world_origin_xyz": [-2.0, -0.5, 0.0]},
+            {"gazebo_world_origin_xyz": [-2.12, -0.5, 0.0]},
             {"gazebo_pose_z_m": follower_gazebo_z},
             {"gazebo_pose_update_period_s": 0.033},
             {"gazebo_pose_smoothing_alpha": 0.35},
@@ -306,7 +306,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "base_approach_distance",
-            default_value="0.18",
+            default_value="0.30",
             description="Meters to drive before grasping. Matches the hybrid depth simulation desired depth; object pose is generated from the post-drive grasp pose.",
         ),
         DeclareLaunchArgument(

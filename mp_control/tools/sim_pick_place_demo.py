@@ -82,7 +82,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("return_to_stow", True)
-        self.declare_parameter("base_approach_distance_m", 0.18)
+        self.declare_parameter("base_approach_distance_m", 0.30)
         self.declare_parameter("base_approach_speed_mps", 0.12)
         self.declare_parameter("base_transport_distance_m", 1.00)
         self.declare_parameter("base_transport_speed_mps", 0.12)
@@ -112,7 +112,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("sync_gazebo_object", True)
         self.declare_parameter("gazebo_set_pose_service", "/world/default/set_pose")
         self.declare_parameter("gazebo_object_entity_name", "grasp_test_cube")
-        self.declare_parameter("gazebo_world_origin_xyz", [-2.0, -0.5, 0.0])
+        self.declare_parameter("gazebo_world_origin_xyz", [-2.12, -0.5, 0.0])
         self.declare_parameter("gazebo_pose_update_period_s", 0.10)
         self.declare_parameter("gazebo_pose_wait_timeout_s", 8.0)
 

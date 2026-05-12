@@ -57,7 +57,7 @@ def generate_launch_description():
     world = LaunchConfiguration('world')
     gz_args = LaunchConfiguration('gz_args')
 
-    pose = {'x': LaunchConfiguration('x_pose', default='-2.00'),
+    pose = {'x': LaunchConfiguration('x_pose', default='-2.12'),
             'y': LaunchConfiguration('y_pose', default='-0.50'),
             'z': LaunchConfiguration('z_pose', default='0.01'),
             'R': LaunchConfiguration('roll', default='0.00'),
