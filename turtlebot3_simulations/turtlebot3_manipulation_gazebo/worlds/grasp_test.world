@@ -50,9 +50,119 @@
       </link>
     </model>
 
+    <model name="grasp_support_table">
+      <static>1</static>
+      <pose>-1.60 -0.50 0 0 0 0</pose>
+      <link name="top">
+        <pose>0 0 0.157 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.02</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.42 0.48 0.52 1</ambient>
+            <diffuse>0.42 0.48 0.52 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <link name="leg_front_left">
+        <pose>0.115 0.115 0.0735 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.30 0.34 0.36 1</ambient>
+            <diffuse>0.30 0.34 0.36 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <link name="leg_front_right">
+        <pose>0.115 -0.115 0.0735 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.30 0.34 0.36 1</ambient>
+            <diffuse>0.30 0.34 0.36 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <link name="leg_back_left">
+        <pose>-0.115 0.115 0.0735 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.30 0.34 0.36 1</ambient>
+            <diffuse>0.30 0.34 0.36 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <link name="leg_back_right">
+        <pose>-0.115 -0.115 0.0735 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.147</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.30 0.34 0.36 1</ambient>
+            <diffuse>0.30 0.34 0.36 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
     <model name="grasp_test_cube">
       <static>0</static>
-      <pose>-1.60 -0.50 0.125 0 0 0</pose>
+      <pose>-1.60 -0.50 0.217 0 0 0</pose>
       <link name="link">
         <gravity>false</gravity>
         <inertial>
