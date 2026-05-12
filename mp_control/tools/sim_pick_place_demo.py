@@ -158,7 +158,7 @@ class SimPickPlaceDemo(Node):
             0.0, float(self.get_parameter("gripper_grasp_compression_m").value))
         self.grasp_accuracy_tolerance_m = max(
             0.001, float(self.get_parameter("grasp_accuracy_tolerance_m").value))
-        self.stay_arm_positions = self._level_gripper_pose(0.0, 0.82, -0.58)
+        self.stay_arm_positions = self._level_gripper_pose(0.104311, 0.027612, -0.001534)
         self.pre_grasp_arm_positions = self._level_gripper_pose(0.0, 0.82, -0.58)
         self.grasp_arm_positions = self._level_gripper_pose(0.0, 1.32, -0.94)
         self.pre_place_arm_positions = self._level_gripper_pose(-math.pi, 0.82, -0.58)
