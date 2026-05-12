@@ -12,7 +12,7 @@ csrt_ibvs_node:
 
     # TurtleBot3 base command.
     cmd_vel_topic: /cmd_vel
-    enable_cmd_vel: true
+    enable_cmd_vel: false
 
     # Keep arm commands off until MoveIt Servo/OpenManipulator-X is configured.
     enable_arm_twist: false
