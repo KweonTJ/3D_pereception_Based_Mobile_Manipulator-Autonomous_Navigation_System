@@ -154,6 +154,7 @@
       <static>0</static>
       <pose>-1.45 -0.50 0.217 0 0 0</pose>
       <link name="link">
+        <gravity>false</gravity>
         <inertial>
           <mass>0.05</mass>
           <inertia>
