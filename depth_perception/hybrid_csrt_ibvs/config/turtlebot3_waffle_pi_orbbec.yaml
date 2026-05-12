@@ -27,7 +27,7 @@ csrt_ibvs_node:
     use_depth: true
     use_area_fallback: true
     stop_when_lost: true
-    allow_reverse: true
+    allow_reverse: false
     loss_frame_limit: 8
     watchdog_timeout_s: 0.7
     min_bbox_size_px: 12
