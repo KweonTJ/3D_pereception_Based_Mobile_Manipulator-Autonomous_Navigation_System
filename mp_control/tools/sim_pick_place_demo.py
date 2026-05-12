@@ -58,7 +58,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("bbox", [264.0, 91.0, 112.0, 146.0])
         self.declare_parameter("bbox_topic", "/target/init_bbox")
         self.declare_parameter("eef_bbox", [280.0, 180.0, 90.0, 120.0])
-        self.declare_parameter("eef_bbox_topic", "/target/eef_init_bbox")
+        self.declare_parameter("eef_bbox_topic", "/target/eef_ibvs_bbox")
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("trajectory_topic", "/arm_controller/joint_trajectory")
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
