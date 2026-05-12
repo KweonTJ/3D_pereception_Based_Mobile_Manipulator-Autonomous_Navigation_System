@@ -2,7 +2,7 @@ mp_control_node:
   ros__parameters:
     bbox_topic: /target/tracked_bbox
     fallback_bbox_topic: /target/init_bbox
-    eef_bbox_topic: /target/eef_tracked_bbox
+    eef_bbox_topic: /target/eef_ibvs_bbox
     eef_init_bbox_topic: /target/eef_init_bbox
     depth_topic: /camera/depth/image_raw
     camera_info_topic: /camera/depth/camera_info
@@ -31,7 +31,7 @@ mp_control_node:
     close_gripper_on_arrival: true
     use_eef_refinement: true
     wait_for_base_approach: true
-    auto_init_eef_tracker_from_object: true
+    auto_init_eef_tracker_from_object: false
 
     command_rate_hz: 20.0
     max_target_age_s: 2.0
