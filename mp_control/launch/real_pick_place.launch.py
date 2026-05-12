@@ -79,15 +79,6 @@ def generate_launch_description():
     auto_eef_init_min_mask_pixels = LaunchConfiguration("auto_eef_init_min_mask_pixels")
     auto_eef_init_min_bbox_width_px = LaunchConfiguration("auto_eef_init_min_bbox_width_px")
     auto_eef_init_min_bbox_height_px = LaunchConfiguration("auto_eef_init_min_bbox_height_px")
-    auto_eef_init_max_bbox_area_ratio = LaunchConfiguration("auto_eef_init_max_bbox_area_ratio")
-    auto_eef_init_min_bbox_aspect_ratio = LaunchConfiguration(
-        "auto_eef_init_min_bbox_aspect_ratio")
-    auto_eef_init_max_bbox_aspect_ratio = LaunchConfiguration(
-        "auto_eef_init_max_bbox_aspect_ratio")
-    auto_eef_init_roi_min_x_ratio = LaunchConfiguration("auto_eef_init_roi_min_x_ratio")
-    auto_eef_init_roi_max_x_ratio = LaunchConfiguration("auto_eef_init_roi_max_x_ratio")
-    auto_eef_init_roi_min_y_ratio = LaunchConfiguration("auto_eef_init_roi_min_y_ratio")
-    auto_eef_init_roi_max_y_ratio = LaunchConfiguration("auto_eef_init_roi_max_y_ratio")
     start_eef_camera_driver = LaunchConfiguration("start_eef_camera_driver")
     eef_camera_video_device = LaunchConfiguration("eef_camera_video_device")
     eef_camera_frame_id = LaunchConfiguration("eef_camera_frame_id")
@@ -208,16 +199,16 @@ def generate_launch_description():
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
-            "continuous_publish": True,
+            "continuous_publish": False,
             "continuous_publish_period_s": 0.5,
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
 
-    eef_ibvs_feature_node = Node(
+    auto_eef_init_bbox_node = Node(
         package="mp_control",
         executable="auto_init_bbox.py",
-        name="eef_ibvs_feature",
+        name="auto_eef_init_bbox",
         output="screen",
         parameters=[{
             "image_topic": auto_eef_init_bbox_image_topic,
@@ -227,13 +218,13 @@ def generate_launch_description():
             "min_mask_pixels": ParameterValue(auto_eef_init_min_mask_pixels, value_type=int),
             "min_bbox_width_px": ParameterValue(auto_eef_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_eef_init_min_bbox_height_px, value_type=float),
-            "max_bbox_area_ratio": ParameterValue(auto_eef_init_max_bbox_area_ratio, value_type=float),
-            "min_bbox_aspect_ratio": ParameterValue(auto_eef_init_min_bbox_aspect_ratio, value_type=float),
-            "max_bbox_aspect_ratio": ParameterValue(auto_eef_init_max_bbox_aspect_ratio, value_type=float),
-            "roi_min_x_ratio": ParameterValue(auto_eef_init_roi_min_x_ratio, value_type=float),
-            "roi_max_x_ratio": ParameterValue(auto_eef_init_roi_max_x_ratio, value_type=float),
-            "roi_min_y_ratio": ParameterValue(auto_eef_init_roi_min_y_ratio, value_type=float),
-            "roi_max_y_ratio": ParameterValue(auto_eef_init_roi_max_y_ratio, value_type=float),
+            "max_bbox_area_ratio": ParameterValue(auto_init_max_bbox_area_ratio, value_type=float),
+            "min_bbox_aspect_ratio": ParameterValue(auto_init_min_bbox_aspect_ratio, value_type=float),
+            "max_bbox_aspect_ratio": ParameterValue(auto_init_max_bbox_aspect_ratio, value_type=float),
+            "roi_min_x_ratio": ParameterValue(auto_init_roi_min_x_ratio, value_type=float),
+            "roi_max_x_ratio": ParameterValue(auto_init_roi_max_x_ratio, value_type=float),
+            "roi_min_y_ratio": ParameterValue(auto_init_roi_min_y_ratio, value_type=float),
+            "roi_max_y_ratio": ParameterValue(auto_init_roi_max_y_ratio, value_type=float),
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
@@ -252,8 +243,8 @@ def generate_launch_description():
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
-            "continuous_publish": True,
-            "continuous_publish_period_s": 0.2,
+            "continuous_publish": False,
+            "continuous_publish_period_s": 0.5,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
     )
@@ -275,6 +266,11 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            "move_to_stay_pose",
+            default_value="true",
+            description="Move the manipulator to the saved stay pose after startup.",
+        ),
         DeclareLaunchArgument(
             "start_rviz",
             default_value="false",
@@ -299,11 +295,6 @@ def generate_launch_description():
             "lidar_frame_id",
             default_value="base_scan",
             description="Frame id used by the lidar driver.",
-        ),
-        DeclareLaunchArgument(
-            "move_to_stay_pose",
-            default_value="true",
-            description="Move the manipulator to the saved stay pose after startup.",
         ),
         DeclareLaunchArgument(
             "use_camera_driver_tf",
@@ -364,8 +355,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
-            default_value="false",
-            description="Optional legacy EEF CSRT tracker. Keep false for the real robot; EEF uses IBVS visual-feature correction.",
+            default_value="true",
+            description="Launch the EEF tracker for near-field refinement only; it must not initialize the primary target.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -379,8 +370,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "control_start_delay",
-            default_value="8.0",
-            description="Seconds to wait before starting Servo, trackers, and mp_control.",
+            default_value="12.0",
+            description="Seconds to wait for manipulator alignment before starting Servo, trackers, and mp_control.",
         ),
         DeclareLaunchArgument(
             "start_leader_task_manager",
@@ -564,8 +555,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
-            default_value="true",
-            description="Start the EEF visual-feature detector used by near-field IBVS correction.",
+            default_value="false",
+            description="Keep false for real grasp: the EEF camera is initialized only from the front-Astra object projection.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_start_delay",
@@ -579,68 +570,33 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_topic",
-            default_value="/target/eef_ibvs_bbox",
-            description="Continuous EEF visual-feature bbox topic consumed directly by mp_control IBVS correction.",
+            default_value="/target/eef_init_bbox",
+            description="Initial bbox topic published for the EEF tracker.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_status_topic",
-            default_value="/target/eef_ibvs_feature_status",
-            description="Status topic for EEF visual-feature detection.",
+            default_value="/target/auto_eef_init_bbox_status",
+            description="Status topic for EEF automatic bbox detection.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_color_mode",
-            default_value="auto",
-            description="Target visual-feature mode for the EEF RGB camera.",
+            default_value="black",
+            description="Target appearance to detect from the EEF RGB camera.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_min_mask_pixels",
-            default_value="120",
+            default_value="250",
             description="Minimum colored pixel count required for EEF bbox initialization.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_min_bbox_width_px",
-            default_value="8.0",
+            default_value="12.0",
             description="Minimum EEF detected bbox width in pixels.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_min_bbox_height_px",
-            default_value="8.0",
+            default_value="12.0",
             description="Minimum EEF detected bbox height in pixels.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_max_bbox_area_ratio",
-            default_value="0.65",
-            description="Maximum image-area ratio allowed for EEF visual-feature detection.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_min_bbox_aspect_ratio",
-            default_value="0.15",
-            description="Minimum bbox width/height ratio allowed for EEF visual-feature detection.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_max_bbox_aspect_ratio",
-            default_value="6.0",
-            description="Maximum bbox width/height ratio allowed for EEF visual-feature detection.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_roi_min_x_ratio",
-            default_value="0.0",
-            description="Left boundary of the EEF visual-feature ROI as an image-width ratio.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_roi_max_x_ratio",
-            default_value="1.0",
-            description="Right boundary of the EEF visual-feature ROI as an image-width ratio.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_roi_min_y_ratio",
-            default_value="0.0",
-            description="Top boundary of the EEF visual-feature ROI as an image-height ratio.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_roi_max_y_ratio",
-            default_value="1.0",
-            description="Bottom boundary of the EEF visual-feature ROI as an image-height ratio.",
         ),
         DeclareLaunchArgument(
             "start_eef_camera_driver",
@@ -668,10 +624,10 @@ def generate_launch_description():
             description="ROS image encoding published by the end-effector camera.",
         ),
         hardware_launch,
-        eef_camera_node,
         TimerAction(
             period=control_start_delay,
             actions=[
+                eef_camera_node,
                 grasp_stack_launch,
                 leader_task_manager_launch,
                 leader_beacon_launch,
@@ -685,7 +641,7 @@ def generate_launch_description():
         ),
         TimerAction(
             period=auto_eef_init_bbox_start_delay,
-            actions=[eef_ibvs_feature_node],
+            actions=[auto_eef_init_bbox_node],
             condition=IfCondition(start_auto_eef_init_bbox),
         ),
     ])
