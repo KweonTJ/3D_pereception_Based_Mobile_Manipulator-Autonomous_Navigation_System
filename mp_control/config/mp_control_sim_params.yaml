@@ -4,7 +4,8 @@ mp_control_node:
 
     bbox_topic: /target/init_bbox
     fallback_bbox_topic: /target/init_bbox
-    eef_bbox_topic: /target/eef_tracked_bbox
+    eef_bbox_topic: /target/eef_ibvs_bbox
+    eef_init_bbox_topic: /target/eef_ibvs_bbox
     depth_topic: /camera/depth/image_raw
     camera_info_topic: /camera/color/camera_info
     eef_camera_info_topic: /eef_camera/camera_info
@@ -33,6 +34,7 @@ mp_control_node:
     # Simulation now exposes both the base RGB-D camera and the end-effector
     # USB camera stream, matching the hardware refinement flow.
     use_eef_refinement: true
+    auto_init_eef_tracker_from_object: false
 
     command_rate_hz: 20.0
     max_target_age_s: 30.0
