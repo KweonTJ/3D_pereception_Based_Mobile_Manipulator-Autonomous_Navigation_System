@@ -72,8 +72,13 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
+            default_value="false",
+            description="Launch the legacy end-effector CSRT tracker. Keep false for EEF IBVS feature correction.",
+        ),
+        DeclareLaunchArgument(
+            "start_eef_ibvs_feature",
             default_value="true",
-            description="Launch the end-effector camera tracker.",
+            description="Publish an EEF visual-feature bbox for near-field IBVS correction.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -109,6 +114,7 @@ def generate_launch_description():
                 "mp_control_config_file": LaunchConfiguration("mp_control_config_file"),
                 "start_tracker": LaunchConfiguration("start_tracker"),
                 "start_eef_tracker": LaunchConfiguration("start_eef_tracker"),
+                "start_eef_ibvs_feature": LaunchConfiguration("start_eef_ibvs_feature"),
                 "start_servo": LaunchConfiguration("start_servo"),
                 "start_mp_control": LaunchConfiguration("start_mp_control"),
                 "control_start_delay": LaunchConfiguration("control_start_delay"),
