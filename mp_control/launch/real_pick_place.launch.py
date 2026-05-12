@@ -201,6 +201,7 @@ def generate_launch_description():
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
             "continuous_publish": True,
             "continuous_publish_period_s": 0.5,
+            "reuse_last_bbox_on_loss": True,
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
