@@ -5,6 +5,7 @@ from launch.actions import TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -84,6 +85,16 @@ def generate_launch_description():
     eef_camera_frame_id = LaunchConfiguration("eef_camera_frame_id")
     eef_camera_pixel_format = LaunchConfiguration("eef_camera_pixel_format")
     eef_camera_output_encoding = LaunchConfiguration("eef_camera_output_encoding")
+    start_monitor_uploader = LaunchConfiguration("start_monitor_uploader")
+    monitor_server = LaunchConfiguration("monitor_server")
+    monitor_token = LaunchConfiguration("monitor_token")
+    monitor_video_enabled = LaunchConfiguration("monitor_video_enabled")
+    monitor_status_period = LaunchConfiguration("monitor_status_period")
+    monitor_video_period = LaunchConfiguration("monitor_video_period")
+    monitor_jpeg_quality = LaunchConfiguration("monitor_jpeg_quality")
+    monitor_image_width = LaunchConfiguration("monitor_image_width")
+    monitor_image_height = LaunchConfiguration("monitor_image_height")
+    monitor_http_timeout = LaunchConfiguration("monitor_http_timeout")
 
     hardware_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -264,6 +275,26 @@ def generate_launch_description():
             "image_size": [640, 480],
         }],
         condition=IfCondition(start_eef_camera_driver),
+    )
+
+    monitor_uploader_node = Node(
+        package="leader_platooning_beacon",
+        executable="robot_status_uploader.py",
+        name="leader_status_uploader",
+        output="screen",
+        arguments=[
+            "--robot", "leader",
+            "--server", monitor_server,
+            "--token", monitor_token,
+            "--status-period", monitor_status_period,
+            "--video-period", monitor_video_period,
+            "--jpeg-quality", monitor_jpeg_quality,
+            "--image-width", monitor_image_width,
+            "--image-height", monitor_image_height,
+            "--http-timeout", monitor_http_timeout,
+            "--video-enabled", monitor_video_enabled,
+        ],
+        condition=IfCondition(start_monitor_uploader),
     )
 
     return LaunchDescription([
@@ -624,6 +655,31 @@ def generate_launch_description():
             default_value="rgb8",
             description="ROS image encoding published by the end-effector camera.",
         ),
+        DeclareLaunchArgument(
+            "start_monitor_uploader",
+            default_value="true",
+            description="Start the upload-only Raspberry Pi monitor uploader.",
+        ),
+        DeclareLaunchArgument(
+            "monitor_server",
+            default_value=EnvironmentVariable(
+                "MONITOR_SERVER_URL",
+                default_value="http://127.0.0.1:8080",
+            ),
+            description="Upload-only monitor server URL, for example http://192.168.0.10:8080.",
+        ),
+        DeclareLaunchArgument(
+            "monitor_token",
+            default_value=EnvironmentVariable("MONITOR_TOKEN", default_value=""),
+            description="Upload-only monitor token.",
+        ),
+        DeclareLaunchArgument("monitor_video_enabled", default_value="true"),
+        DeclareLaunchArgument("monitor_status_period", default_value="0.2"),
+        DeclareLaunchArgument("monitor_video_period", default_value="0.25"),
+        DeclareLaunchArgument("monitor_jpeg_quality", default_value="65"),
+        DeclareLaunchArgument("monitor_image_width", default_value="640"),
+        DeclareLaunchArgument("monitor_image_height", default_value="480"),
+        DeclareLaunchArgument("monitor_http_timeout", default_value="1.0"),
         hardware_launch,
         TimerAction(
             period=control_start_delay,
@@ -633,6 +689,7 @@ def generate_launch_description():
                 leader_task_manager_launch,
                 leader_beacon_launch,
                 domain_bridge_launch,
+                monitor_uploader_node,
             ],
         ),
         TimerAction(
