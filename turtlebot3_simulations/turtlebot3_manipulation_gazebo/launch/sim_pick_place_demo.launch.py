@@ -306,7 +306,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "base_approach_distance",
-            default_value="0.28",
+            default_value="0.18",
             description="Meters to drive before grasping. Matches the hybrid depth simulation desired depth; object pose is generated from the post-drive grasp pose.",
         ),
         DeclareLaunchArgument(

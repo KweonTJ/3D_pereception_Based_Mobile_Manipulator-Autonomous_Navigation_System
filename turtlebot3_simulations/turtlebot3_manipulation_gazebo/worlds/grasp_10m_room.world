@@ -152,7 +152,7 @@
 
     <model name="grasp_support_table">
       <static>1</static>
-      <pose>-1.45 -0.50 0 0 0 0</pose>
+      <pose>-1.55 -0.50 0 0 0 0</pose>
       <link name="top">
         <pose>0 0 0.157 0 0 0</pose>
         <collision name="collision">
@@ -262,7 +262,7 @@
 
     <model name="grasp_test_cube">
       <static>0</static>
-      <pose>-1.45 -0.50 0.217 0 0 0</pose>
+      <pose>-1.55 -0.50 0.217 0 0 0</pose>
       <link name="link">
         <gravity>false</gravity>
         <inertial>

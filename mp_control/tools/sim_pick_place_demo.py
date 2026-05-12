@@ -82,7 +82,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("publish_demo_base_tf", True)
         self.declare_parameter("publish_demo_joint_states", True)
         self.declare_parameter("return_to_stow", True)
-        self.declare_parameter("base_approach_distance_m", 0.28)
+        self.declare_parameter("base_approach_distance_m", 0.18)
         self.declare_parameter("base_approach_speed_mps", 0.12)
         self.declare_parameter("base_transport_distance_m", 1.00)
         self.declare_parameter("base_transport_speed_mps", 0.12)
