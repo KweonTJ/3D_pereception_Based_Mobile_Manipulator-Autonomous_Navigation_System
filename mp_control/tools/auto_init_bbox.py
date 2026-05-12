@@ -68,6 +68,8 @@ class AutoInitBbox(Node):
             self.declare_parameter("continuous_publish", False).value)
         self.continuous_publish_period_s = float(
             self.declare_parameter("continuous_publish_period_s", 0.5).value)
+        self.reuse_last_bbox_on_loss = bool(
+            self.declare_parameter("reuse_last_bbox_on_loss", False).value)
         self.timeout_s = float(self.declare_parameter("timeout_s", 0.0).value)
 
         self.red_min = int(self.declare_parameter("red_min", 80).value)
@@ -95,6 +97,7 @@ class AutoInitBbox(Node):
         self.last_warn_time = 0.0
         self.logged_first_image = False
         self.last_status = ""
+        self.last_bbox = None
 
         self.publish_status(
             f"waiting for {self.color_mode} target on {self.image_topic}; publishing bbox to {self.bbox_topic}")
@@ -139,6 +142,7 @@ class AutoInitBbox(Node):
             image_width = msg.width
             image_height = msg.height
             if bbox is None:
+                self.republish_last_bbox("fresh depth box unavailable")
                 return
             mask = None
         elif self.color_mode == "depth_near":
@@ -165,6 +169,8 @@ class AutoInitBbox(Node):
             bbox = self.mask_to_bbox(mask, image_width, image_height)
         if bbox is None:
             pixels = int(np.count_nonzero(mask)) if mask is not None else 0
+            if self.republish_last_bbox(f"target pixels too small: {pixels}"):
+                return
             self.throttled_waiting_status(f"target pixels too small: {pixels}")
             return
 
@@ -186,6 +192,7 @@ class AutoInitBbox(Node):
             return
 
         bbox_msg = [float(x_min), float(y_min), width, height]
+        self.last_bbox = bbox_msg
         self.publish_status(f"auto init bbox detected: {bbox_msg}; pixels={pixels}")
         self.publish_bbox_repeated(bbox_msg)
         self.last_publish_time = time.monotonic()
@@ -205,6 +212,20 @@ class AutoInitBbox(Node):
             self.bbox_pub.publish(msg)
             rclpy.spin_once(self, timeout_sec=0.01)
             time.sleep(max(0.0, self.repeat_period_s))
+
+    def republish_last_bbox(self, reason):
+        if not self.reuse_last_bbox_on_loss or self.last_bbox is None:
+            return False
+
+        now = time.monotonic()
+        if now - self.last_warn_time >= 1.0:
+            self.last_warn_time = now
+            self.publish_status(
+                f"reusing last depth bbox: {self.last_bbox}; {reason}")
+        self.publish_bbox_repeated(self.last_bbox)
+        self.last_publish_time = time.monotonic()
+        self.published = True
+        return True
 
     def image_to_rgb(self, msg):
         encoding = msg.encoding.lower()
