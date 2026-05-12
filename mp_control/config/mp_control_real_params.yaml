@@ -80,11 +80,11 @@ mp_control_node:
     #   joint = object_gap / 2 - gripper_finger_home_half_gap_m
     # The legacy open/close positions above are used only when width control is disabled.
     gripper_width_control_enabled: true
-    gripper_fallback_object_width_m: 0.06
+    gripper_fallback_object_width_m: 0.12
     gripper_finger_home_half_gap_m: 0.021
     gripper_pre_grasp_clearance_m: 0.012
     gripper_grasp_compression_m: 0.002
     gripper_min_position: -0.010
     gripper_max_position: 0.019
     gripper_min_measured_object_width_m: 0.01
-    gripper_max_measured_object_width_m: 0.08
+    gripper_max_measured_object_width_m: 0.18
