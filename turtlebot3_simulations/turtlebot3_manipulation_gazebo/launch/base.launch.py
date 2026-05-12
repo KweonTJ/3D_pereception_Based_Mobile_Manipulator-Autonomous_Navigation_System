@@ -205,7 +205,7 @@ def generate_launch_description():
 
     stay_pose_msg = (
         '{joint_names: [joint1, joint2, joint3, joint4], '
-        'points: [{positions: [0.104311, 0.027612, -0.001534, -0.026078], '
+        'points: [{positions: [0.0, 0.82, -0.58, -0.24], '
         'time_from_start: {sec: 2}}]}'
     )
 
