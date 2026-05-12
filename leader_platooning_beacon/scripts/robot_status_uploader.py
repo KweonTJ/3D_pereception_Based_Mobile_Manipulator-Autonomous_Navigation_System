@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 from collections import deque
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 try:
     import cv2
@@ -406,13 +406,13 @@ class RobotStatusUploader(Node):
         threading.Thread(target=worker, daemon=True).start()
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser(
         description="Upload-only robot-side uploader for Platooning Raspberry Pi Monitor"
     )
     parser.add_argument("--robot", choices=["leader", "follower"], required=True)
     parser.add_argument("--server", required=True, help="예: http://192.168.0.10:8080")
-    parser.add_argument("--token", default="", help="서버 MONITOR_TOKEN 값")
+    parser.add_argument("--token", nargs="?", const="", default="", help="서버 MONITOR_TOKEN 값")
     parser.add_argument("--status-period", type=float, default=0.2)
     parser.add_argument("--video-period", type=float, default=0.25)
     parser.add_argument("--jpeg-quality", type=int, default=65)
@@ -421,11 +421,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-video", action="store_true")
     parser.add_argument("--video-enabled", choices=["true", "false"], default=None)
     parser.add_argument("--http-timeout", type=float, default=1.0)
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 def main() -> None:
-    args = parse_args()
+    args, ros_args = parse_args()
     if args.status_period <= 0:
         raise ValueError("--status-period must be > 0")
     if args.video_period <= 0:
@@ -436,7 +436,7 @@ def main() -> None:
     else:
         video_enabled = args.video_enabled.lower() == "true"
 
-    rclpy.init()
+    rclpy.init(args=ros_args)
     node = RobotStatusUploader(
         robot=args.robot,
         server=args.server,
