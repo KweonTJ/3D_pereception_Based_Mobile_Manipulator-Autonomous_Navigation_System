@@ -554,7 +554,7 @@ private:
 
     if (!auto_init_eef_tracker_from_object_) {
       publishStop();
-      publishStatus("waiting for end-effector tracker bbox near object");
+      publishStatus("waiting for end-effector visual feature bbox near object");
       return false;
     }
 
@@ -567,7 +567,7 @@ private:
     }
 
     publishStop();
-    publishStatus("waiting for end-effector tracker bbox near object");
+    publishStatus("waiting for end-effector visual feature bbox near object");
     return false;
   }
 
@@ -651,7 +651,7 @@ private:
       std::lock_guard<std::mutex> lock(data_mutex_);
       if (!latest_eef_bbox_) {
         publishStop();
-        publishStatus("waiting for end-effector camera bbox");
+        publishStatus("waiting for end-effector visual feature bbox");
         return;
       }
       bbox = *latest_eef_bbox_;
@@ -670,7 +670,7 @@ private:
 
     if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
       publishStop();
-      publishStatus("waiting for fresh end-effector camera bbox");
+      publishStatus("waiting for fresh end-effector visual feature bbox");
       return;
     }
 
