@@ -230,8 +230,8 @@ def generate_launch_description():
             "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
             "continuous_publish": True,
             "continuous_publish_period_s": 0.5,
-            "reuse_last_bbox_on_loss": True,
-            "lock_first_bbox": True,
+            "reuse_last_bbox_on_loss": False,
+            "lock_first_bbox": False,
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
@@ -467,12 +467,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "auto_init_tracked_bbox_topic",
             default_value="/target/tracked_bbox",
-            description="Tracked bbox topic updated directly by the YOLO auto detector.",
+            description="Tracked bbox topic for optional direct detector publishing.",
         ),
         DeclareLaunchArgument(
             "auto_init_publish_tracked_bbox",
-            default_value="true",
-            description="Also publish the detected bbox to the tracked-bbox topic.",
+            default_value="false",
+            description="Also publish detector bbox to tracked-bbox. Keep false when hybrid tracking is enabled.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_status_topic",
