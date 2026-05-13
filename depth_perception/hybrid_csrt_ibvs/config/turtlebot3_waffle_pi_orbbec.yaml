@@ -25,7 +25,7 @@ csrt_ibvs_node:
 
     # Hybrid tracking behavior.
     use_depth: true
-    use_area_fallback: true
+    use_area_fallback: false
     stop_when_lost: true
     allow_reverse: false
     loss_frame_limit: 8
@@ -58,6 +58,9 @@ csrt_ibvs_node:
 
     # Orbbec/Astra-style depth images are usually 16UC1 in millimeters.
     depth_roi_radius_px: 6
+    depth_bbox_inner_scale: 0.70
+    depth_sample_percentile: 25.0
+    depth_min_valid_pixels: 5
     depth_unit_scale: 0.001
     min_valid_depth_m: 0.12
     max_valid_depth_m: 3.0
