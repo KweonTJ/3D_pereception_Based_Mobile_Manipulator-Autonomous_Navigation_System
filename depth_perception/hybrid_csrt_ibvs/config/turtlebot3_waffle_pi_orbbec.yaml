@@ -33,6 +33,7 @@ csrt_ibvs_node:
     reinitialize_while_tracking: true
     reinit_min_iou: 0.02
     reinit_max_center_jump_ratio: 0.75
+    force_straight_approach: true
     loss_frame_limit: 8
     watchdog_timeout_s: 0.7
     min_bbox_size_px: 12
@@ -52,6 +53,8 @@ csrt_ibvs_node:
     depth_deadband_m: 0.035
     area_deadband_ratio: 0.01
     approach_yaw_gate_norm: 0.0
+    straight_approach_depth_m: 1.20
+    min_forward_approach_x: 0.045
     max_linear_x: 0.10
     max_angular_z: 0.0
 
