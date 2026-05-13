@@ -74,10 +74,14 @@ class AutoInitBbox(Node):
         self.yolo_max_detections = int(self.declare_parameter("yolo_max_detections", 5).value)
         self.yolo_lock_target = bool(
             self.declare_parameter("yolo_lock_target", True).value)
+        self.yolo_min_accept_confidence = float(
+            self.declare_parameter("yolo_min_accept_confidence", 0.30).value)
+        self.yolo_locked_min_accept_confidence = float(
+            self.declare_parameter("yolo_locked_min_accept_confidence", 0.35).value)
         self.yolo_max_center_jump_ratio = float(
-            self.declare_parameter("yolo_max_center_jump_ratio", 0.35).value)
+            self.declare_parameter("yolo_max_center_jump_ratio", 0.12).value)
         self.yolo_min_reselect_iou = float(
-            self.declare_parameter("yolo_min_reselect_iou", 0.02).value)
+            self.declare_parameter("yolo_min_reselect_iou", 0.10).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -584,6 +588,7 @@ class AutoInitBbox(Node):
         rejected = {
             "small": 0,
             "class": 0,
+            "conf": 0,
             "area": 0,
             "aspect": 0,
             "roi": 0,
@@ -626,6 +631,15 @@ class AutoInitBbox(Node):
                 continue
 
             confidence = float(box.conf[0].detach().cpu().item()) if box.conf is not None else 0.0
+            min_accept_confidence = (
+                self.yolo_locked_min_accept_confidence
+                if self.yolo_lock_target and self.last_bbox is not None
+                else self.yolo_min_accept_confidence
+            )
+            if confidence < min_accept_confidence:
+                rejected["conf"] += 1
+                continue
+
             center_distance = np.hypot(
                 center_x - image_center_x,
                 center_y - image_center_y) / image_diag
