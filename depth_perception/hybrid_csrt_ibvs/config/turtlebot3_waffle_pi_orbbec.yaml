@@ -30,7 +30,9 @@ csrt_ibvs_node:
     use_area_fallback: true
     stop_when_lost: true
     allow_reverse: false
-    reinitialize_while_tracking: false
+    reinitialize_while_tracking: true
+    reinit_min_iou: 0.02
+    reinit_max_center_jump_ratio: 0.75
     loss_frame_limit: 8
     watchdog_timeout_s: 0.7
     min_bbox_size_px: 12
@@ -41,17 +43,17 @@ csrt_ibvs_node:
     desired_depth_m: 0.45
     desired_area_ratio: 0.06
 
-    # Move forward from the tracked bbox first, then correct heading gently.
-    yaw_gain: 0.65
+    # Real pickup should approach the YOLO/CSRT bbox straight first.
+    yaw_gain: 0.0
     linear_gain: 0.65
     area_gain: 1.2
     x_deadband_norm: 0.055
     y_deadband_norm: 0.035
     depth_deadband_m: 0.035
     area_deadband_ratio: 0.01
-    approach_yaw_gate_norm: 1.00
+    approach_yaw_gate_norm: 0.0
     max_linear_x: 0.10
-    max_angular_z: 0.22
+    max_angular_z: 0.0
 
     # Optional OpenManipulator-X / MoveIt Servo tuning.
     arm_lateral_gain: 0.05
