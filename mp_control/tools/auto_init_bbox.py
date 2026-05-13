@@ -72,6 +72,12 @@ class AutoInitBbox(Node):
         self.yolo_imgsz = int(self.declare_parameter("yolo_imgsz", 640).value)
         self.yolo_class_name = str(self.declare_parameter("yolo_class_name", "box").value)
         self.yolo_max_detections = int(self.declare_parameter("yolo_max_detections", 5).value)
+        self.yolo_lock_target = bool(
+            self.declare_parameter("yolo_lock_target", True).value)
+        self.yolo_max_center_jump_ratio = float(
+            self.declare_parameter("yolo_max_center_jump_ratio", 0.35).value)
+        self.yolo_min_reselect_iou = float(
+            self.declare_parameter("yolo_min_reselect_iou", 0.02).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -573,6 +579,7 @@ class AutoInitBbox(Node):
         image_diag = max(1.0, float(np.hypot(msg.width, msg.height)))
         best = None
         best_score = -1.0
+        candidates = []
         wanted_class = self.yolo_class_name.strip().lower()
         rejected = {
             "small": 0,
@@ -624,11 +631,13 @@ class AutoInitBbox(Node):
                 center_y - image_center_y) / image_diag
             center_score = 1.0 - min(1.0, center_distance)
             score = confidence * (0.65 + 0.35 * center_score)
+            candidate = (x0, y0, width, height, int(width * height), confidence, cls_name, score)
+            candidates.append(candidate)
             if score > best_score:
                 best_score = score
-                best = (x0, y0, width, height, int(width * height), confidence, cls_name)
+                best = candidate
 
-        if best is None:
+        if not candidates:
             reject_text = " ".join(
                 f"{key}={value}" for key, value in rejected.items() if value)
             if not reject_text:
@@ -641,11 +650,63 @@ class AutoInitBbox(Node):
                 f"y[{self.roi_min_y_ratio:.2f},{self.roi_max_y_ratio:.2f}]")
             return None
 
-        x, y, width, height, pixels, confidence, cls_name = best
+        if self.yolo_lock_target and self.last_bbox is not None:
+            locked_best = None
+            locked_score = -1.0e9
+            max_jump = max(0.01, self.yolo_max_center_jump_ratio)
+            min_iou = max(0.0, self.yolo_min_reselect_iou)
+            for candidate in candidates:
+                candidate_bbox = candidate[:4]
+                iou = self.bbox_iou(self.last_bbox, candidate_bbox)
+                jump = self.bbox_center_jump_ratio(self.last_bbox, candidate_bbox, msg.width, msg.height)
+                if iou < min_iou and jump > max_jump:
+                    continue
+                score = candidate[7] + (0.70 * iou) - (0.35 * jump)
+                if score > locked_score:
+                    locked_score = score
+                    locked_best = candidate
+
+            if locked_best is None:
+                self.throttled_waiting_status(
+                    "YOLO target locked; no same-object box near last bbox")
+                return None
+            best = locked_best
+
+        x, y, width, height, pixels, confidence, cls_name, _ = best
         self.publish_status(
             "YOLO box: class={} conf={:.2f} bbox=[{:.0f},{:.0f},{:.1f},{:.1f}]".format(
                 cls_name, confidence, x, y, width, height))
         return int(round(x)), int(round(y)), float(width), float(height), pixels
+
+    @staticmethod
+    def bbox_iou(a, b):
+        ax0, ay0, aw, ah = [float(v) for v in a[:4]]
+        bx0, by0, bw, bh = [float(v) for v in b[:4]]
+        ax1 = ax0 + max(0.0, aw)
+        ay1 = ay0 + max(0.0, ah)
+        bx1 = bx0 + max(0.0, bw)
+        by1 = by0 + max(0.0, bh)
+        ix0 = max(ax0, bx0)
+        iy0 = max(ay0, by0)
+        ix1 = min(ax1, bx1)
+        iy1 = min(ay1, by1)
+        inter = max(0.0, ix1 - ix0) * max(0.0, iy1 - iy0)
+        union = max(0.0, aw) * max(0.0, ah) + max(0.0, bw) * max(0.0, bh) - inter
+        if union <= 0.0:
+            return 0.0
+        return inter / union
+
+    @staticmethod
+    def bbox_center_jump_ratio(a, b, image_width, image_height):
+        ax, ay, aw, ah = [float(v) for v in a[:4]]
+        bx, by, bw, bh = [float(v) for v in b[:4]]
+        acx = ax + 0.5 * aw
+        acy = ay + 0.5 * ah
+        bcx = bx + 0.5 * bw
+        bcy = by + 0.5 * bh
+        distance = float(np.hypot(acx - bcx, acy - bcy))
+        image_diag = max(1.0, float(np.hypot(image_width, image_height)))
+        return distance / image_diag
 
     def load_yolo_model(self):
         if self.yolo_model is not None:
