@@ -109,6 +109,7 @@ private:
   bool stop_when_lost_{true};
   bool allow_reverse_{true};
   bool reinitialize_while_tracking_{false};
+  bool force_straight_approach_{false};
   double reinit_min_iou_{0.02};
   double reinit_max_center_jump_ratio_{0.75};
   int loss_frame_limit_{8};
@@ -132,6 +133,8 @@ private:
   double depth_deadband_m_{0.035};
   double area_deadband_ratio_{0.01};
   double approach_yaw_gate_norm_{0.28};
+  double straight_approach_depth_m_{1.2};
+  double min_forward_approach_x_{0.0};
   double max_linear_x_{0.12};
   double max_angular_z_{0.55};
   double max_arm_linear_{0.025};
