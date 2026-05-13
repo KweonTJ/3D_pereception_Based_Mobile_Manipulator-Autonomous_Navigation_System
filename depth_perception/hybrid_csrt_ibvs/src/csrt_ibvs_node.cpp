@@ -130,6 +130,9 @@ void CsrtIbvsNode::readParameters()
   max_arm_linear_ = declare_parameter<double>("max_arm_linear", 0.025);
 
   depth_roi_radius_px_ = declare_parameter<int>("depth_roi_radius_px", 6);
+  depth_bbox_inner_scale_ = declare_parameter<double>("depth_bbox_inner_scale", 0.7);
+  depth_sample_percentile_ = declare_parameter<double>("depth_sample_percentile", 25.0);
+  depth_min_valid_pixels_ = declare_parameter<int>("depth_min_valid_pixels", 5);
   depth_unit_scale_ = declare_parameter<double>("depth_unit_scale", 0.001);
   min_valid_depth_m_ = declare_parameter<double>("min_valid_depth_m", 0.12);
   max_valid_depth_m_ = declare_parameter<double>("max_valid_depth_m", 3.0);
@@ -142,6 +145,9 @@ void CsrtIbvsNode::readParameters()
   max_linear_x_ = std::max(0.0, max_linear_x_);
   max_angular_z_ = std::max(0.0, max_angular_z_);
   max_arm_linear_ = std::max(0.0, max_arm_linear_);
+  depth_bbox_inner_scale_ = clampValue(depth_bbox_inner_scale_, 0.1, 1.0);
+  depth_sample_percentile_ = clampValue(depth_sample_percentile_, 0.0, 100.0);
+  depth_min_valid_pixels_ = std::max(1, depth_min_valid_pixels_);
 }
 
 void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
@@ -619,6 +625,8 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     if (std::abs(area_error) > area_deadband_ratio_) {
       linear_x = area_gain_ * area_error;
     }
+  } else {
+    angular_z = 0.0;
   }
 
   if (linear_x > 0.0 && approach_yaw_gate_norm_ > 1e-6) {
@@ -683,17 +691,20 @@ std::optional<double> CsrtIbvsNode::estimateDepthMeters(
     }
   }
 
-  const double scale_x = static_cast<double>(sample->image.cols) / static_cast<double>(std::max(1, image_size.width));
-  const double scale_y = static_cast<double>(sample->image.rows) / static_cast<double>(std::max(1, image_size.height));
-  const int center_x = static_cast<int>(std::lround((bbox.x + 0.5 * bbox.width) * scale_x));
-  const int center_y = static_cast<int>(std::lround((bbox.y + 0.5 * bbox.height) * scale_y));
-
   const cv::Rect depth_bounds(0, 0, sample->image.cols, sample->image.rows);
+  const double scale_x =
+    static_cast<double>(sample->image.cols) / static_cast<double>(std::max(1, image_size.width));
+  const double scale_y =
+    static_cast<double>(sample->image.rows) / static_cast<double>(std::max(1, image_size.height));
+  const double center_x = (static_cast<double>(bbox.x) + 0.5 * static_cast<double>(bbox.width)) * scale_x;
+  const double center_y = (static_cast<double>(bbox.y) + 0.5 * static_cast<double>(bbox.height)) * scale_y;
+  const double roi_width = std::max(1.0, static_cast<double>(bbox.width) * scale_x * depth_bbox_inner_scale_);
+  const double roi_height = std::max(1.0, static_cast<double>(bbox.height) * scale_y * depth_bbox_inner_scale_);
   const cv::Rect roi(
-    center_x - depth_roi_radius_px_,
-    center_y - depth_roi_radius_px_,
-    2 * depth_roi_radius_px_ + 1,
-    2 * depth_roi_radius_px_ + 1);
+    static_cast<int>(std::floor(center_x - 0.5 * roi_width)),
+    static_cast<int>(std::floor(center_y - 0.5 * roi_height)),
+    static_cast<int>(std::ceil(roi_width)),
+    static_cast<int>(std::ceil(roi_height)));
   const cv::Rect clipped_roi = roi & depth_bounds;
   if (clipped_roi.empty()) {
     return std::nullopt;
@@ -701,9 +712,10 @@ std::optional<double> CsrtIbvsNode::estimateDepthMeters(
 
   std::vector<double> valid_depths;
   valid_depths.reserve(static_cast<size_t>(clipped_roi.width * clipped_roi.height));
+  const int step = std::max(1, std::min(clipped_roi.width, clipped_roi.height) / 32);
 
-  for (int r = clipped_roi.y; r < clipped_roi.y + clipped_roi.height; ++r) {
-    for (int c = clipped_roi.x; c < clipped_roi.x + clipped_roi.width; ++c) {
+  for (int r = clipped_roi.y; r < clipped_roi.y + clipped_roi.height; r += step) {
+    for (int c = clipped_roi.x; c < clipped_roi.x + clipped_roi.width; c += step) {
       const auto meters = pixelToMeters(sample->image, sample->encoding, r, c);
       if (meters) {
         valid_depths.push_back(*meters);
@@ -711,12 +723,16 @@ std::optional<double> CsrtIbvsNode::estimateDepthMeters(
     }
   }
 
-  if (valid_depths.empty()) {
+  if (static_cast<int>(valid_depths.size()) < depth_min_valid_pixels_) {
     return std::nullopt;
   }
 
   std::sort(valid_depths.begin(), valid_depths.end());
-  return valid_depths[valid_depths.size() / 2];
+  const double ratio = depth_sample_percentile_ / 100.0;
+  const size_t index = std::min(
+    valid_depths.size() - 1,
+    static_cast<size_t>(std::lround(ratio * static_cast<double>(valid_depths.size() - 1))));
+  return valid_depths[index];
 }
 
 std::optional<double> CsrtIbvsNode::pixelToMeters(
@@ -797,7 +813,7 @@ void CsrtIbvsNode::publishDebugImage(
   if (ibvs.depth_m) {
     depth_text << std::fixed << std::setprecision(3) << *ibvs.depth_m << "m";
   } else {
-    depth_text << "area fallback";
+    depth_text << (use_area_fallback_ ? "area fallback" : "missing in bbox");
   }
   if (ibvs.depth_too_close) {
     depth_text << " STOP";
