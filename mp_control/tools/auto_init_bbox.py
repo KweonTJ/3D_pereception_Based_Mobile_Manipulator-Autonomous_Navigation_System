@@ -183,6 +183,11 @@ class AutoInitBbox(Node):
             self.published = True
             return
 
+        if not self.logged_first_image:
+            self.logged_first_image = True
+            self.publish_status(
+                f"receiving image: topic={source_topic or self.image_topic} encoding={msg.encoding} size={msg.width}x{msg.height}")
+
         bbox = None
         if self.color_mode == "box":
             bbox = self.depth_box_bbox(msg)
@@ -214,11 +219,6 @@ class AutoInitBbox(Node):
             image_width = image.shape[1]
             image_height = image.shape[0]
             mask = self.apply_roi(mask, image_width, image_height)
-
-        if not self.logged_first_image:
-            self.logged_first_image = True
-            self.publish_status(
-                f"receiving image: topic={source_topic or self.image_topic} encoding={msg.encoding} size={msg.width}x{msg.height}")
 
         if bbox is None:
             bbox = self.mask_to_bbox(mask, image_width, image_height)
