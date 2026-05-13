@@ -228,10 +228,10 @@ def generate_launch_description():
             "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
             "yolo_class_name": auto_init_yolo_class_name,
             "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
-            "continuous_publish": True,
+            "continuous_publish": False,
             "continuous_publish_period_s": 0.5,
             "reuse_last_bbox_on_loss": False,
-            "lock_first_bbox": False,
+            "lock_first_bbox": True,
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
