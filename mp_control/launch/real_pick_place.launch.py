@@ -71,6 +71,11 @@ def generate_launch_description():
     auto_init_box_center_weight = LaunchConfiguration("auto_init_box_center_weight")
     auto_init_box_area_weight = LaunchConfiguration("auto_init_box_area_weight")
     auto_init_box_depth_weight = LaunchConfiguration("auto_init_box_depth_weight")
+    auto_init_yolo_model_path = LaunchConfiguration("auto_init_yolo_model_path")
+    auto_init_yolo_confidence = LaunchConfiguration("auto_init_yolo_confidence")
+    auto_init_yolo_imgsz = LaunchConfiguration("auto_init_yolo_imgsz")
+    auto_init_yolo_class_name = LaunchConfiguration("auto_init_yolo_class_name")
+    auto_init_yolo_max_detections = LaunchConfiguration("auto_init_yolo_max_detections")
     start_auto_eef_init_bbox = LaunchConfiguration("start_auto_eef_init_bbox")
     auto_eef_init_bbox_start_delay = LaunchConfiguration("auto_eef_init_bbox_start_delay")
     auto_eef_init_bbox_image_topic = LaunchConfiguration("auto_eef_init_bbox_image_topic")
@@ -210,6 +215,11 @@ def generate_launch_description():
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
+            "yolo_model_path": auto_init_yolo_model_path,
+            "yolo_confidence": ParameterValue(auto_init_yolo_confidence, value_type=float),
+            "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
+            "yolo_class_name": auto_init_yolo_class_name,
+            "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
             "continuous_publish": True,
             "continuous_publish_period_s": 0.5,
             "reuse_last_bbox_on_loss": True,
@@ -433,8 +443,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_image_topic",
-            default_value="/camera/depth/image_raw",
-            description="Front Astra depth image topic used for automatic primary box detection.",
+            default_value="/camera/color/image_raw",
+            description="Front Astra image topic used for automatic primary box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_topic",
@@ -448,7 +458,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="box",
+            default_value="yolo",
             description="Detection mode for the initial bbox detector.",
         ),
         DeclareLaunchArgument(
@@ -585,6 +595,35 @@ def generate_launch_description():
             "auto_init_box_depth_weight",
             default_value="0.15",
             description="Weight for box candidate depth flatness.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_model_path",
+            default_value=PathJoinSubstitution([
+                FindPackageShare("mp_control"),
+                "models",
+                "cardboard_box_yolov8_best.pt",
+            ]),
+            description="YOLO model path used when auto_init_color_mode:=yolo.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_confidence",
+            default_value="0.35",
+            description="Minimum YOLO confidence for automatic box detection.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_imgsz",
+            default_value="640",
+            description="YOLO inference image size.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_class_name",
+            default_value="box",
+            description="YOLO class name to accept.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_max_detections",
+            default_value="5",
+            description="Maximum YOLO detections to inspect per frame.",
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
