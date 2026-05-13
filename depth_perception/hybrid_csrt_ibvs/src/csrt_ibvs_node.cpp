@@ -787,14 +787,10 @@ void CsrtIbvsNode::publishDebugImage(
 
   cv::Mat debug = frame.clone();
   const cv::Point target_center(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2);
-  const cv::Point desired_center(
-    static_cast<int>(std::lround(desired_u_ratio_ * debug.cols)),
-    static_cast<int>(std::lround(desired_v_ratio_ * debug.rows)));
 
   cv::rectangle(debug, bbox, tracking_ok ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255), 2);
+  cv::drawMarker(debug, target_center, cv::Scalar(0, 255, 255), cv::MARKER_CROSS, 18, 2);
   cv::circle(debug, target_center, 4, cv::Scalar(0, 255, 255), -1);
-  cv::drawMarker(debug, desired_center, cv::Scalar(255, 0, 0), cv::MARKER_CROSS, 18, 2);
-  cv::line(debug, desired_center, target_center, cv::Scalar(255, 255, 0), 1);
 
   std::ostringstream overlay;
   overlay << stateToString()
