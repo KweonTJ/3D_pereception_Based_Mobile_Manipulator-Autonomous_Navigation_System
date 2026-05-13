@@ -132,6 +132,7 @@ void CsrtIbvsNode::readParameters()
   stop_when_lost_ = declare_parameter<bool>("stop_when_lost", true);
   allow_reverse_ = declare_parameter<bool>("allow_reverse", true);
   reinitialize_while_tracking_ = declare_parameter<bool>("reinitialize_while_tracking", false);
+  force_straight_approach_ = declare_parameter<bool>("force_straight_approach", false);
   reinit_min_iou_ = declare_parameter<double>("reinit_min_iou", 0.02);
   reinit_max_center_jump_ratio_ = declare_parameter<double>("reinit_max_center_jump_ratio", 0.75);
   loss_frame_limit_ = declare_parameter<int>("loss_frame_limit", 8);
@@ -154,6 +155,8 @@ void CsrtIbvsNode::readParameters()
   depth_deadband_m_ = declare_parameter<double>("depth_deadband_m", 0.035);
   area_deadband_ratio_ = declare_parameter<double>("area_deadband_ratio", 0.01);
   approach_yaw_gate_norm_ = declare_parameter<double>("approach_yaw_gate_norm", 0.28);
+  straight_approach_depth_m_ = declare_parameter<double>("straight_approach_depth_m", 1.2);
+  min_forward_approach_x_ = declare_parameter<double>("min_forward_approach_x", 0.0);
   max_linear_x_ = declare_parameter<double>("max_linear_x", 0.12);
   max_angular_z_ = declare_parameter<double>("max_angular_z", 0.55);
   max_arm_linear_ = declare_parameter<double>("max_arm_linear", 0.025);
@@ -174,6 +177,8 @@ void CsrtIbvsNode::readParameters()
   max_linear_x_ = std::max(0.0, max_linear_x_);
   max_angular_z_ = std::max(0.0, max_angular_z_);
   max_arm_linear_ = std::max(0.0, max_arm_linear_);
+  straight_approach_depth_m_ = std::max(0.0, straight_approach_depth_m_);
+  min_forward_approach_x_ = std::max(0.0, min_forward_approach_x_);
   reinit_min_iou_ = clampValue(reinit_min_iou_, 0.0, 1.0);
   reinit_max_center_jump_ratio_ = std::max(0.01, reinit_max_center_jump_ratio_);
   depth_bbox_inner_scale_ = clampValue(depth_bbox_inner_scale_, 0.1, 1.0);
