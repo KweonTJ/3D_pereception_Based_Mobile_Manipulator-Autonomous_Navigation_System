@@ -109,6 +109,8 @@ private:
   bool stop_when_lost_{true};
   bool allow_reverse_{true};
   bool reinitialize_while_tracking_{false};
+  double reinit_min_iou_{0.02};
+  double reinit_max_center_jump_ratio_{0.75};
   int loss_frame_limit_{8};
   int min_bbox_size_px_{12};
   double watchdog_timeout_s_{0.7};
@@ -172,6 +174,7 @@ private:
 
   mutable std::mutex bbox_mutex_;
   std::optional<cv::Rect> pending_init_bbox_;
+  std::optional<cv::Rect> last_tracked_bbox_;
 
   mutable std::mutex depth_mutex_;
   std::optional<DepthSample> latest_depth_;
