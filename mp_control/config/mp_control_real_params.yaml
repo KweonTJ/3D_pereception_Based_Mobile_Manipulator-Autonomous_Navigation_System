@@ -30,7 +30,7 @@ mp_control_node:
     open_gripper_on_start: true
     close_gripper_on_arrival: true
     use_eef_refinement: true
-    wait_for_base_approach: false
+    wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
 
     command_rate_hz: 20.0
@@ -58,8 +58,8 @@ mp_control_node:
     eef_camera_fallback_fx: 554.0
     eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
-    arm_start_max_error_m: 0.40
-    arm_start_max_object_x_m: 0.60
+    arm_start_max_error_m: 0.34
+    arm_start_max_object_x_m: 0.34
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
