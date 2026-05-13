@@ -70,6 +70,8 @@ class AutoInitBbox(Node):
             self.declare_parameter("continuous_publish_period_s", 0.5).value)
         self.reuse_last_bbox_on_loss = bool(
             self.declare_parameter("reuse_last_bbox_on_loss", False).value)
+        self.lock_first_bbox = bool(
+            self.declare_parameter("lock_first_bbox", False).value)
         self.timeout_s = float(self.declare_parameter("timeout_s", 0.0).value)
 
         self.red_min = int(self.declare_parameter("red_min", 80).value)
@@ -134,6 +136,15 @@ class AutoInitBbox(Node):
             and self.continuous_publish
             and now - self.last_publish_time < self.continuous_publish_period_s
         ):
+            return
+
+        if self.lock_first_bbox and self.last_bbox is not None:
+            if now - self.last_warn_time >= 1.0:
+                self.last_warn_time = now
+                self.publish_status(f"locked target bbox: {self.last_bbox}")
+            self.publish_bbox_repeated(self.last_bbox)
+            self.last_publish_time = time.monotonic()
+            self.published = True
             return
 
         bbox = None
