@@ -133,6 +133,7 @@ void CsrtIbvsNode::readParameters()
   allow_reverse_ = declare_parameter<bool>("allow_reverse", true);
   reinitialize_while_tracking_ = declare_parameter<bool>("reinitialize_while_tracking", false);
   force_straight_approach_ = declare_parameter<bool>("force_straight_approach", false);
+  enable_base_yaw_ = declare_parameter<bool>("enable_base_yaw", false);
   reinit_min_iou_ = declare_parameter<double>("reinit_min_iou", 0.02);
   reinit_max_center_jump_ratio_ = declare_parameter<double>("reinit_max_center_jump_ratio", 0.75);
   loss_frame_limit_ = declare_parameter<int>("loss_frame_limit", 8);
@@ -708,6 +709,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
 
   if (!allow_reverse_ && linear_x < 0.0) {
     linear_x = 0.0;
+  }
+  if (!enable_base_yaw_) {
+    angular_z = 0.0;
   }
 
   result.base_cmd.linear.x = clampValue(linear_x, allow_reverse_ ? -max_linear_x_ : 0.0, max_linear_x_);
