@@ -254,6 +254,32 @@ class RobotStatusUploader(Node):
         with self.pending_lock:
             self.event_queue.append(value)
 
+    def _subscribe_image_stream(
+        self,
+        stream_key: str,
+        topics: List[str],
+        live_qos: QoSProfile,
+    ) -> None:
+        unique_topics: List[str] = []
+        for topic in topics:
+            topic = str(topic).strip()
+            if topic and topic not in unique_topics:
+                unique_topics.append(topic)
+
+        if not unique_topics:
+            return
+
+        self._set_pending(f"video.{stream_key}_topics", unique_topics)
+        for topic in unique_topics:
+            self.create_subscription(
+                Image,
+                topic,
+                lambda msg, key=stream_key, source_topic=topic: self._image_callback(
+                    key, msg, source_topic
+                ),
+                live_qos,
+            )
+
     def _subscribe_leader(self, state_qos: QoSProfile, live_qos: QoSProfile) -> None:
         self.create_subscription(String, "/leader/task_state", lambda msg: self._set_pending("task_state", msg.data), state_qos)
         self.create_subscription(String, "/leader/cargo_state", lambda msg: self._set_pending("cargo_state", msg.data), state_qos)
@@ -271,11 +297,36 @@ class RobotStatusUploader(Node):
         self.create_subscription(String, "/cargo/events", lambda msg: self._append_event(msg.data), live_qos)
 
         if self.video_enabled:
-            self.create_subscription(Image, "/hybrid_csrt_ibvs/debug_image", lambda msg: self._image_callback("leader_debug", msg), live_qos)
-            self.create_subscription(Image, "/camera/color/image_raw", lambda msg: self._image_callback("leader_raw", msg), live_qos)
-            self.create_subscription(Image, "/camera/depth/image_raw", lambda msg: self._image_callback("leader_depth", msg), live_qos)
-            self.create_subscription(Image, "/eef_camera/image_raw", lambda msg: self._image_callback("eef_raw", msg), live_qos)
-            self.create_subscription(Image, "/eef_hybrid_csrt_ibvs/debug_image", lambda msg: self._image_callback("eef_debug", msg), live_qos)
+            self._subscribe_image_stream(
+                "leader_debug",
+                ["/hybrid_csrt_ibvs/debug_image"],
+                live_qos,
+            )
+            self._subscribe_image_stream(
+                "leader_raw",
+                [
+                    "/camera/color/image_raw",
+                    "/camera/rgb/image_raw",
+                    "/camera/image_raw",
+                    "/camera/color/image",
+                ],
+                live_qos,
+            )
+            self._subscribe_image_stream(
+                "leader_depth",
+                ["/camera/depth/image_raw", "/camera/depth/image"],
+                live_qos,
+            )
+            self._subscribe_image_stream(
+                "eef_raw",
+                ["/eef_camera/image_raw"],
+                live_qos,
+            )
+            self._subscribe_image_stream(
+                "eef_debug",
+                ["/eef_hybrid_csrt_ibvs/debug_image"],
+                live_qos,
+            )
 
     def _subscribe_follower(self, state_qos: QoSProfile, live_qos: QoSProfile) -> None:
         self.create_subscription(String, "/follower/status", lambda msg: self._set_pending("status", msg.data), live_qos)
@@ -291,7 +342,11 @@ class RobotStatusUploader(Node):
         self.create_subscription(Float32, "/follower/target_offset_x", lambda msg: self._set_pending("target_offset_x", finite_float(msg.data)), live_qos)
 
         if self.video_enabled:
-            self.create_subscription(Image, "/follower/camera/image_raw", lambda msg: self._image_callback("follower_raw", msg), live_qos)
+            self._subscribe_image_stream(
+                "follower_raw",
+                ["/follower/camera/image_raw", "/camera/image_raw", "/image_raw"],
+                live_qos,
+            )
 
     def _json_headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -369,9 +424,12 @@ class RobotStatusUploader(Node):
             self.last_status_error_log = now
             self.get_logger().warn(text)
 
-    def _image_callback(self, stream_key: str, msg: Image) -> None:
+    def _image_callback(self, stream_key: str, msg: Image, source_topic: Optional[str] = None) -> None:
         if not self.video_enabled:
             return
+
+        if source_topic:
+            self._set_pending(f"video.{stream_key}_topic", source_topic)
 
         now = time.monotonic()
         if now - self.last_video_sent.get(stream_key, 0.0) < self.video_period_s:
