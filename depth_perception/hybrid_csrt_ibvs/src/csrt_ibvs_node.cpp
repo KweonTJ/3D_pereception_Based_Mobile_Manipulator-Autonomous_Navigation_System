@@ -672,6 +672,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
 
   double linear_x = 0.0;
   result.depth_m = estimateDepthMeters(bbox, image_size, stamp);
+  const bool straight_depth_approach =
+    force_straight_approach_ &&
+    (!result.depth_m || straight_approach_depth_m_ <= 0.0 || *result.depth_m <= straight_approach_depth_m_);
 
   if (result.depth_m) {
     if (*result.depth_m < emergency_stop_depth_m_) {
@@ -693,7 +696,12 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     angular_z = 0.0;
   }
 
-  if (linear_x > 0.0 && approach_yaw_gate_norm_ > 1e-6) {
+  if (straight_depth_approach) {
+    angular_z = 0.0;
+    if (linear_x > 0.0 && min_forward_approach_x_ > 0.0) {
+      linear_x = std::max(linear_x, min_forward_approach_x_);
+    }
+  } else if (linear_x > 0.0 && approach_yaw_gate_norm_ > 1e-6) {
     const double gate = clampValue(1.0 - std::abs(result.x_error_norm) / approach_yaw_gate_norm_, 0.0, 1.0);
     linear_x *= gate;
   }
