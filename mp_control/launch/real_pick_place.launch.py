@@ -291,10 +291,7 @@ def generate_launch_description():
             "camera_frame_id": eef_camera_frame_id,
             "pixel_format": eef_camera_pixel_format,
             "output_encoding": eef_camera_output_encoding,
-            "image_size": [
-                ParameterValue(eef_camera_image_width, value_type=int),
-                ParameterValue(eef_camera_image_height, value_type=int),
-            ],
+            "image_size": [eef_camera_image_width, eef_camera_image_height],
         }],
         condition=IfCondition(start_eef_camera_driver),
     )
