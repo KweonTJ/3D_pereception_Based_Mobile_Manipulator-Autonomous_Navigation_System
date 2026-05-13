@@ -198,17 +198,37 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
     return;
   }
 
-  if (state_ == TrackerState::TRACKING && hasTracker() && !reinitialize_while_tracking_) {
-    publishStatus("tracking active; ignoring new init bbox");
-    return;
-  }
+  const cv::Rect new_bbox(x, y, w, h);
 
   {
     std::lock_guard<std::mutex> lock(bbox_mutex_);
-    pending_init_bbox_ = cv::Rect(x, y, w, h);
+    if (state_ == TrackerState::TRACKING && hasTracker()) {
+      if (!reinitialize_while_tracking_) {
+        publishStatus("tracking active; ignoring new init bbox");
+        return;
+      }
+
+      if (last_tracked_bbox_) {
+        const double iou = rectIou(*last_tracked_bbox_, new_bbox);
+        const double jump = centerJumpRatio(*last_tracked_bbox_, new_bbox);
+        if (iou < reinit_min_iou_ && jump > reinit_max_center_jump_ratio_) {
+          std::ostringstream status;
+          status << "tracking active; ignoring unrelated init bbox"
+                 << " iou=" << std::fixed << std::setprecision(2) << iou
+                 << " jump=" << std::fixed << std::setprecision(2) << jump;
+          publishStatus(status.str());
+          return;
+        }
+      }
+    }
+
+    pending_init_bbox_ = new_bbox;
   }
 
-  publishStatus("bbox received; tracker will initialize on the next image");
+  publishStatus(
+    state_ == TrackerState::TRACKING ?
+    "bbox correction received; tracker will refresh on the next image" :
+    "bbox received; tracker will initialize on the next image");
 }
 
 void CsrtIbvsNode::onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
