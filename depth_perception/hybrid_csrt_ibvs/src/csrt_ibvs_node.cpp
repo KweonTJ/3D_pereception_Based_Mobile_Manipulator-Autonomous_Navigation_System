@@ -387,7 +387,8 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
     status << (use_area_fallback_ ? "area" : "no_depth_in_bbox");
   }
   status << " vx=" << ibvs.base_cmd.linear.x
-         << " wz=" << ibvs.base_cmd.angular.z;
+         << " wz=" << ibvs.base_cmd.angular.z
+         << " yaw_enabled=" << (enable_base_yaw_ ? "true" : "false");
   publishStatus(status.str());
 }
 
