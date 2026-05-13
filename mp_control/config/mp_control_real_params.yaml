@@ -30,7 +30,7 @@ mp_control_node:
     open_gripper_on_start: true
     close_gripper_on_arrival: true
     use_eef_refinement: true
-    wait_for_base_approach: true
+    wait_for_base_approach: false
     auto_init_eef_tracker_from_object: true
 
     command_rate_hz: 20.0
