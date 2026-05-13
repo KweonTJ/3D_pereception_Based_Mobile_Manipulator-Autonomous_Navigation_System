@@ -167,17 +167,12 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
     return;
   }
 
-  if (state_ == TrackerState::TRACKING && hasTracker()) {
-    publishStatus("tracking active; ignoring auto init bbox");
-    return;
-  }
-
   {
     std::lock_guard<std::mutex> lock(bbox_mutex_);
     pending_init_bbox_ = cv::Rect(x, y, w, h);
   }
 
-  publishStatus("bbox received; tracker will initialize on the next image", true);
+  publishStatus("bbox received; tracker will initialize on the next image");
 }
 
 void CsrtIbvsNode::onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
