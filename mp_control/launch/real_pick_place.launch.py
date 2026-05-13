@@ -40,7 +40,10 @@ def generate_launch_description():
     start_auto_init_bbox = LaunchConfiguration("start_auto_init_bbox")
     auto_init_bbox_start_delay = LaunchConfiguration("auto_init_bbox_start_delay")
     auto_init_bbox_image_topic = LaunchConfiguration("auto_init_bbox_image_topic")
+    auto_init_alternate_image_topics = LaunchConfiguration("auto_init_alternate_image_topics")
     auto_init_bbox_topic = LaunchConfiguration("auto_init_bbox_topic")
+    auto_init_tracked_bbox_topic = LaunchConfiguration("auto_init_tracked_bbox_topic")
+    auto_init_publish_tracked_bbox = LaunchConfiguration("auto_init_publish_tracked_bbox")
     auto_init_bbox_status_topic = LaunchConfiguration("auto_init_bbox_status_topic")
     auto_init_color_mode = LaunchConfiguration("auto_init_color_mode")
     auto_init_min_mask_pixels = LaunchConfiguration("auto_init_min_mask_pixels")
@@ -184,7 +187,10 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "image_topic": auto_init_bbox_image_topic,
+            "alternate_image_topics": auto_init_alternate_image_topics,
             "bbox_topic": auto_init_bbox_topic,
+            "tracked_bbox_topic": auto_init_tracked_bbox_topic,
+            "publish_tracked_bbox": ParameterValue(auto_init_publish_tracked_bbox, value_type=bool),
             "status_topic": auto_init_bbox_status_topic,
             "color_mode": auto_init_color_mode,
             "min_mask_pixels": ParameterValue(auto_init_min_mask_pixels, value_type=int),
@@ -447,9 +453,24 @@ def generate_launch_description():
             description="Front Astra image topic used for automatic primary box detection.",
         ),
         DeclareLaunchArgument(
+            "auto_init_alternate_image_topics",
+            default_value="/camera/rgb/image_raw,/camera/image_raw,/camera/color/image",
+            description="Comma-separated fallback image topics for automatic primary box detection.",
+        ),
+        DeclareLaunchArgument(
             "auto_init_bbox_topic",
             default_value="/target/init_bbox",
             description="Initial bbox topic published by the auto detector.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_tracked_bbox_topic",
+            default_value="/target/tracked_bbox",
+            description="Tracked bbox topic updated directly by the YOLO auto detector.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_publish_tracked_bbox",
+            default_value="true",
+            description="Also publish the detected bbox to the tracked-bbox topic.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_status_topic",
