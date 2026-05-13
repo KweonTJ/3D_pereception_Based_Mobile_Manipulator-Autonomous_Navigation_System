@@ -93,6 +93,8 @@ def generate_launch_description():
     eef_camera_frame_id = LaunchConfiguration("eef_camera_frame_id")
     eef_camera_pixel_format = LaunchConfiguration("eef_camera_pixel_format")
     eef_camera_output_encoding = LaunchConfiguration("eef_camera_output_encoding")
+    eef_camera_image_width = LaunchConfiguration("eef_camera_image_width")
+    eef_camera_image_height = LaunchConfiguration("eef_camera_image_height")
     start_monitor_uploader = LaunchConfiguration("start_monitor_uploader")
     monitor_server = LaunchConfiguration("monitor_server")
     monitor_token = LaunchConfiguration("monitor_token")
@@ -289,7 +291,10 @@ def generate_launch_description():
             "camera_frame_id": eef_camera_frame_id,
             "pixel_format": eef_camera_pixel_format,
             "output_encoding": eef_camera_output_encoding,
-            "image_size": [640, 480],
+            "image_size": [
+                ParameterValue(eef_camera_image_width, value_type=int),
+                ParameterValue(eef_camera_image_height, value_type=int),
+            ],
         }],
         condition=IfCondition(start_eef_camera_driver),
     )
@@ -708,13 +713,23 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "eef_camera_pixel_format",
-            default_value="YUYV",
+            default_value="MJPG",
             description="V4L2 pixel format requested from the end-effector camera.",
         ),
         DeclareLaunchArgument(
             "eef_camera_output_encoding",
             default_value="rgb8",
             description="ROS image encoding published by the end-effector camera.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_image_width",
+            default_value="640",
+            description="EEF USB camera image width.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_image_height",
+            default_value="480",
+            description="EEF USB camera image height.",
         ),
         DeclareLaunchArgument(
             "start_monitor_uploader",
