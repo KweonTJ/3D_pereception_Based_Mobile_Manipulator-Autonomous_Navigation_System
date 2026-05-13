@@ -19,6 +19,32 @@ namespace hybrid_csrt_ibvs
 namespace
 {
 constexpr char kBgr8[] = "bgr8";
+
+double rectIou(const cv::Rect & a, const cv::Rect & b)
+{
+  const cv::Rect intersection = a & b;
+  const double intersection_area = static_cast<double>(intersection.area());
+  const double union_area = static_cast<double>(a.area() + b.area()) - intersection_area;
+  if (union_area <= 0.0) {
+    return 0.0;
+  }
+  return intersection_area / union_area;
+}
+
+double centerJumpRatio(const cv::Rect & a, const cv::Rect & b)
+{
+  const double ax = static_cast<double>(a.x) + 0.5 * static_cast<double>(a.width);
+  const double ay = static_cast<double>(a.y) + 0.5 * static_cast<double>(a.height);
+  const double bx = static_cast<double>(b.x) + 0.5 * static_cast<double>(b.width);
+  const double by = static_cast<double>(b.y) + 0.5 * static_cast<double>(b.height);
+  const double distance = std::hypot(ax - bx, ay - by);
+  const double scale = std::max(
+    1.0,
+    std::hypot(
+      static_cast<double>(std::max(a.width, b.width)),
+      static_cast<double>(std::max(a.height, b.height))));
+  return distance / scale;
+}
 }
 
 CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
@@ -106,6 +132,8 @@ void CsrtIbvsNode::readParameters()
   stop_when_lost_ = declare_parameter<bool>("stop_when_lost", true);
   allow_reverse_ = declare_parameter<bool>("allow_reverse", true);
   reinitialize_while_tracking_ = declare_parameter<bool>("reinitialize_while_tracking", false);
+  reinit_min_iou_ = declare_parameter<double>("reinit_min_iou", 0.02);
+  reinit_max_center_jump_ratio_ = declare_parameter<double>("reinit_max_center_jump_ratio", 0.75);
   loss_frame_limit_ = declare_parameter<int>("loss_frame_limit", 8);
   min_bbox_size_px_ = declare_parameter<int>("min_bbox_size_px", 12);
   watchdog_timeout_s_ = declare_parameter<double>("watchdog_timeout_s", 0.7);
@@ -146,6 +174,8 @@ void CsrtIbvsNode::readParameters()
   max_linear_x_ = std::max(0.0, max_linear_x_);
   max_angular_z_ = std::max(0.0, max_angular_z_);
   max_arm_linear_ = std::max(0.0, max_arm_linear_);
+  reinit_min_iou_ = clampValue(reinit_min_iou_, 0.0, 1.0);
+  reinit_max_center_jump_ratio_ = std::max(0.01, reinit_max_center_jump_ratio_);
   depth_bbox_inner_scale_ = clampValue(depth_bbox_inner_scale_, 0.1, 1.0);
   depth_sample_percentile_ = clampValue(depth_sample_percentile_, 0.0, 100.0);
   depth_min_valid_pixels_ = std::max(1, depth_min_valid_pixels_);
