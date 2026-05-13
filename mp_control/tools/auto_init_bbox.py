@@ -61,6 +61,11 @@ class AutoInitBbox(Node):
         self.box_center_weight = float(self.declare_parameter("box_center_weight", 0.55).value)
         self.box_area_weight = float(self.declare_parameter("box_area_weight", 0.30).value)
         self.box_depth_weight = float(self.declare_parameter("box_depth_weight", 0.15).value)
+        self.yolo_model_path = str(self.declare_parameter("yolo_model_path", "").value)
+        self.yolo_confidence = float(self.declare_parameter("yolo_confidence", 0.35).value)
+        self.yolo_imgsz = int(self.declare_parameter("yolo_imgsz", 640).value)
+        self.yolo_class_name = str(self.declare_parameter("yolo_class_name", "box").value)
+        self.yolo_max_detections = int(self.declare_parameter("yolo_max_detections", 5).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -100,6 +105,8 @@ class AutoInitBbox(Node):
         self.logged_first_image = False
         self.last_status = ""
         self.last_bbox = None
+        self.yolo_model = None
+        self.yolo_load_failed = False
 
         self.publish_status(
             f"waiting for {self.color_mode} target on {self.image_topic}; publishing bbox to {self.bbox_topic}")
@@ -154,6 +161,14 @@ class AutoInitBbox(Node):
             image_height = msg.height
             if bbox is None:
                 self.republish_last_bbox("fresh depth box unavailable")
+                return
+            mask = None
+        elif self.color_mode == "yolo":
+            bbox = self.yolo_bbox(msg)
+            image_width = msg.width
+            image_height = msg.height
+            if bbox is None:
+                self.republish_last_bbox("fresh YOLO box unavailable")
                 return
             mask = None
         elif self.color_mode == "depth_near":
@@ -485,6 +500,115 @@ class AutoInitBbox(Node):
                 x, y, width, height, pixels, fill_ratio, depth_std, near_depth, band, score))
         return x, y, width, height, pixels
 
+    def yolo_bbox(self, msg):
+        model = self.load_yolo_model()
+        if model is None:
+            return None
+
+        image = self.image_to_rgb(msg)
+        if image is None:
+            return None
+        image = np.clip(image, 0, 255).astype(np.uint8)
+
+        try:
+            results = model.predict(
+                source=image,
+                conf=max(0.01, min(0.99, self.yolo_confidence)),
+                imgsz=max(32, self.yolo_imgsz),
+                max_det=max(1, self.yolo_max_detections),
+                verbose=False,
+            )
+        except Exception as exc:
+            self.throttled_waiting_status(f"YOLO inference failed: {exc}")
+            return None
+
+        if not results:
+            self.throttled_waiting_status("YOLO returned no result")
+            return None
+        result = results[0]
+        boxes = getattr(result, "boxes", None)
+        if boxes is None or len(boxes) == 0:
+            self.throttled_waiting_status("YOLO found no box")
+            return None
+
+        names = getattr(result, "names", {}) or {}
+        image_area = float(max(1, msg.width * msg.height))
+        image_center_x = 0.5 * float(msg.width)
+        image_center_y = 0.5 * float(msg.height)
+        image_diag = max(1.0, float(np.hypot(msg.width, msg.height)))
+        best = None
+        best_score = -1.0
+        wanted_class = self.yolo_class_name.strip().lower()
+
+        for box in boxes:
+            xyxy = box.xyxy[0].detach().cpu().numpy().astype(float)
+            x0, y0, x1, y1 = xyxy
+            x0 = float(np.clip(x0, 0.0, msg.width - 1.0))
+            y0 = float(np.clip(y0, 0.0, msg.height - 1.0))
+            x1 = float(np.clip(x1, x0 + 1.0, msg.width))
+            y1 = float(np.clip(y1, y0 + 1.0, msg.height))
+            width = x1 - x0
+            height = y1 - y0
+            if width < self.min_bbox_width_px or height < self.min_bbox_height_px:
+                continue
+
+            cls_id = int(box.cls[0].detach().cpu().item()) if box.cls is not None else -1
+            cls_name = str(names.get(cls_id, cls_id)).lower()
+            if wanted_class and cls_name != wanted_class:
+                continue
+
+            area_ratio = (width * height) / image_area
+            if area_ratio > self.max_bbox_area_ratio:
+                continue
+            aspect_ratio = width / max(1.0, height)
+            if aspect_ratio < self.min_bbox_aspect_ratio or aspect_ratio > self.max_bbox_aspect_ratio:
+                continue
+
+            center_x = x0 + 0.5 * width
+            center_y = y0 + 0.5 * height
+            if not self.point_inside_roi(center_x, center_y, msg.width, msg.height):
+                continue
+
+            confidence = float(box.conf[0].detach().cpu().item()) if box.conf is not None else 0.0
+            center_distance = np.hypot(
+                center_x - image_center_x,
+                center_y - image_center_y) / image_diag
+            center_score = 1.0 - min(1.0, center_distance)
+            score = confidence * (0.65 + 0.35 * center_score)
+            if score > best_score:
+                best_score = score
+                best = (x0, y0, width, height, int(width * height), confidence, cls_name)
+
+        if best is None:
+            self.throttled_waiting_status("YOLO found no valid box in ROI")
+            return None
+
+        x, y, width, height, pixels, confidence, cls_name = best
+        self.publish_status(
+            "YOLO box: class={} conf={:.2f} bbox=[{:.0f},{:.0f},{:.1f},{:.1f}]".format(
+                cls_name, confidence, x, y, width, height))
+        return int(round(x)), int(round(y)), float(width), float(height), pixels
+
+    def load_yolo_model(self):
+        if self.yolo_model is not None:
+            return self.yolo_model
+        if self.yolo_load_failed:
+            return None
+        if not self.yolo_model_path:
+            self.yolo_load_failed = True
+            self.publish_status("YOLO model path is empty")
+            return None
+
+        try:
+            from ultralytics import YOLO
+            self.yolo_model = YOLO(self.yolo_model_path)
+            self.publish_status(f"YOLO model loaded: {self.yolo_model_path}")
+        except Exception as exc:
+            self.yolo_load_failed = True
+            self.publish_status(f"failed to load YOLO model: {exc}")
+            return None
+        return self.yolo_model
+
     def apply_roi(self, mask, image_width, image_height):
         x0 = int(np.floor(np.clip(self.roi_min_x_ratio, 0.0, 1.0) * image_width))
         x1 = int(np.ceil(np.clip(self.roi_max_x_ratio, 0.0, 1.0) * image_width))
@@ -502,6 +626,13 @@ class AutoInitBbox(Node):
         roi_mask = np.zeros_like(mask, dtype=bool)
         roi_mask[y0:y1, x0:x1] = mask[y0:y1, x0:x1]
         return roi_mask
+
+    def point_inside_roi(self, x, y, image_width, image_height):
+        x0 = float(np.clip(self.roi_min_x_ratio, 0.0, 1.0) * image_width)
+        x1 = float(np.clip(self.roi_max_x_ratio, 0.0, 1.0) * image_width)
+        y0 = float(np.clip(self.roi_min_y_ratio, 0.0, 1.0) * image_height)
+        y1 = float(np.clip(self.roi_max_y_ratio, 0.0, 1.0) * image_height)
+        return x0 <= x <= x1 and y0 <= y <= y1
 
     def image_to_depth_m(self, msg):
         encoding = msg.encoding.lower()
