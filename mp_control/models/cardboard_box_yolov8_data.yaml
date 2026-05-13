@@ -1,0 +1,13 @@
+train: /home/ktj/yolov8/cardboard box.v2i.yolov8/train/images
+val: /home/ktj/yolov8/cardboard box.v2i.yolov8/valid/images
+test: /home/ktj/yolov8/cardboard box.v2i.yolov8/test/images
+
+nc: 1
+names: ['box']
+
+roboflow:
+  workspace: randomwalk-gyzkg
+  project: cardboard-box-wpgbh
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/randomwalk-gyzkg/cardboard-box-wpgbh/dataset/2
