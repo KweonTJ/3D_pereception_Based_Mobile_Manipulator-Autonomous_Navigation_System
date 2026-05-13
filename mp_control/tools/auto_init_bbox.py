@@ -125,6 +125,8 @@ class AutoInitBbox(Node):
 
         self.publish_status(
             f"waiting for {self.color_mode} target on {self.image_topics()}; publishing bbox to {self.bbox_topic}")
+        if self.color_mode == "yolo":
+            self.load_yolo_model()
 
     def image_topics(self):
         topics = [str(self.image_topic)]
