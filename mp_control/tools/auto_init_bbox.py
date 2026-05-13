@@ -572,8 +572,17 @@ class AutoInitBbox(Node):
         best = None
         best_score = -1.0
         wanted_class = self.yolo_class_name.strip().lower()
+        rejected = {
+            "small": 0,
+            "class": 0,
+            "area": 0,
+            "aspect": 0,
+            "roi": 0,
+        }
+        seen = 0
 
         for box in boxes:
+            seen += 1
             xyxy = box.xyxy[0].detach().cpu().numpy().astype(float)
             x0, y0, x1, y1 = xyxy
             x0 = float(np.clip(x0, 0.0, msg.width - 1.0))
@@ -583,23 +592,28 @@ class AutoInitBbox(Node):
             width = x1 - x0
             height = y1 - y0
             if width < self.min_bbox_width_px or height < self.min_bbox_height_px:
+                rejected["small"] += 1
                 continue
 
             cls_id = int(box.cls[0].detach().cpu().item()) if box.cls is not None else -1
             cls_name = str(names.get(cls_id, cls_id)).lower()
             if wanted_class and cls_name != wanted_class:
+                rejected["class"] += 1
                 continue
 
             area_ratio = (width * height) / image_area
             if area_ratio > self.max_bbox_area_ratio:
+                rejected["area"] += 1
                 continue
             aspect_ratio = width / max(1.0, height)
             if aspect_ratio < self.min_bbox_aspect_ratio or aspect_ratio > self.max_bbox_aspect_ratio:
+                rejected["aspect"] += 1
                 continue
 
             center_x = x0 + 0.5 * width
             center_y = y0 + 0.5 * height
             if not self.point_inside_roi(center_x, center_y, msg.width, msg.height):
+                rejected["roi"] += 1
                 continue
 
             confidence = float(box.conf[0].detach().cpu().item()) if box.conf is not None else 0.0
@@ -613,7 +627,16 @@ class AutoInitBbox(Node):
                 best = (x0, y0, width, height, int(width * height), confidence, cls_name)
 
         if best is None:
-            self.throttled_waiting_status("YOLO found no valid box in ROI")
+            reject_text = " ".join(
+                f"{key}={value}" for key, value in rejected.items() if value)
+            if not reject_text:
+                reject_text = "none"
+            self.throttled_waiting_status(
+                f"YOLO found {seen} box(es), all rejected: {reject_text}; "
+                f"limits area<={self.max_bbox_area_ratio:.2f} "
+                f"aspect=[{self.min_bbox_aspect_ratio:.2f},{self.max_bbox_aspect_ratio:.2f}] "
+                f"roi=x[{self.roi_min_x_ratio:.2f},{self.roi_max_x_ratio:.2f}] "
+                f"y[{self.roi_min_y_ratio:.2f},{self.roi_max_y_ratio:.2f}]")
             return None
 
         x, y, width, height, pixels, confidence, cls_name = best
