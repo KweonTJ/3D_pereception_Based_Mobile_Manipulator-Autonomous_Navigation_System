@@ -105,6 +105,7 @@ void CsrtIbvsNode::readParameters()
   publish_debug_image_ = declare_parameter<bool>("publish_debug_image", true);
   stop_when_lost_ = declare_parameter<bool>("stop_when_lost", true);
   allow_reverse_ = declare_parameter<bool>("allow_reverse", true);
+  reinitialize_while_tracking_ = declare_parameter<bool>("reinitialize_while_tracking", false);
   loss_frame_limit_ = declare_parameter<int>("loss_frame_limit", 8);
   min_bbox_size_px_ = declare_parameter<int>("min_bbox_size_px", 12);
   watchdog_timeout_s_ = declare_parameter<double>("watchdog_timeout_s", 0.7);
@@ -164,6 +165,11 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
 
   if (w <= 0 || h <= 0) {
     RCLCPP_WARN(get_logger(), "init_bbox width and height must be positive. Received [%d, %d, %d, %d].", x, y, w, h);
+    return;
+  }
+
+  if (state_ == TrackerState::TRACKING && hasTracker() && !reinitialize_while_tracking_) {
+    publishStatus("tracking active; ignoring new init bbox");
     return;
   }
 
