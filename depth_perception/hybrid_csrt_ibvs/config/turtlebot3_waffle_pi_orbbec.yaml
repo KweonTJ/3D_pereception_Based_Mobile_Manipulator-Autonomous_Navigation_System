@@ -33,6 +33,7 @@ csrt_ibvs_node:
     reinitialize_while_tracking: true
     reinit_min_iou: 0.10
     reinit_max_center_jump_ratio: 0.35
+    enable_base_yaw: false
     force_straight_approach: true
     loss_frame_limit: 8
     watchdog_timeout_s: 0.7
