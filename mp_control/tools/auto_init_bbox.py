@@ -538,10 +538,12 @@ class AutoInitBbox(Node):
         if model is None:
             return None
 
-        image = self.image_to_rgb(msg)
-        if image is None:
+        rgb_image = self.image_to_rgb(msg)
+        if rgb_image is None:
             return None
-        image = np.clip(image, 0, 255).astype(np.uint8)
+        rgb_image = np.clip(rgb_image, 0, 255).astype(np.uint8)
+        # Ultralytics treats numpy image sources as OpenCV-style BGR.
+        image = rgb_image[:, :, ::-1]
 
         try:
             results = model.predict(
