@@ -110,6 +110,7 @@ private:
   bool allow_reverse_{true};
   bool reinitialize_while_tracking_{false};
   bool force_straight_approach_{false};
+  bool enable_base_yaw_{false};
   double reinit_min_iou_{0.02};
   double reinit_max_center_jump_ratio_{0.75};
   int loss_frame_limit_{8};
