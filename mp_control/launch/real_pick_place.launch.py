@@ -213,6 +213,7 @@ def generate_launch_description():
             "continuous_publish": True,
             "continuous_publish_period_s": 0.5,
             "reuse_last_bbox_on_loss": True,
+            "lock_first_bbox": True,
         }],
         condition=IfCondition(start_auto_init_bbox),
     )
