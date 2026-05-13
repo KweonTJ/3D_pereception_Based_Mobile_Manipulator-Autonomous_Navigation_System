@@ -26,7 +26,13 @@ class AutoInitBbox(Node):
         super().__init__("auto_init_bbox")
 
         self.image_topic = self.declare_parameter("image_topic", "/camera/color/image_raw").value
+        self.alternate_image_topics = str(
+            self.declare_parameter("alternate_image_topics", "").value)
         self.bbox_topic = self.declare_parameter("bbox_topic", "/target/init_bbox").value
+        self.tracked_bbox_topic = str(
+            self.declare_parameter("tracked_bbox_topic", "").value)
+        self.publish_tracked_bbox = bool(
+            self.declare_parameter("publish_tracked_bbox", False).value)
         self.status_topic = self.declare_parameter("status_topic", "/target/auto_init_bbox_status").value
         self.color_mode = self.declare_parameter("color_mode", "black").value
 
@@ -92,9 +98,18 @@ class AutoInitBbox(Node):
         latched_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
 
         self.bbox_pub = self.create_publisher(Float32MultiArray, self.bbox_topic, latched_qos)
+        self.tracked_bbox_pub = None
+        if self.publish_tracked_bbox and self.tracked_bbox_topic:
+            self.tracked_bbox_pub = self.create_publisher(
+                Float32MultiArray, self.tracked_bbox_topic, latched_qos)
         self.status_pub = self.create_publisher(String, self.status_topic, latched_qos)
-        self.image_sub = self.create_subscription(
-            Image, self.image_topic, self.on_image, qos_profile_sensor_data)
+        self.image_subs = []
+        for topic in self.image_topics():
+            self.image_subs.append(self.create_subscription(
+                Image,
+                topic,
+                lambda msg, source_topic=topic: self.on_image(msg, source_topic),
+                qos_profile_sensor_data))
         self.timeout_timer = self.create_timer(0.5, self.on_timeout)
         self.heartbeat_timer = self.create_timer(2.0, self.on_heartbeat)
 
@@ -109,7 +124,21 @@ class AutoInitBbox(Node):
         self.yolo_load_failed = False
 
         self.publish_status(
-            f"waiting for {self.color_mode} target on {self.image_topic}; publishing bbox to {self.bbox_topic}")
+            f"waiting for {self.color_mode} target on {self.image_topics()}; publishing bbox to {self.bbox_topic}")
+
+    def image_topics(self):
+        topics = [str(self.image_topic)]
+        alternates = [
+            item.strip()
+            for item in self.alternate_image_topics.split(",")
+            if item.strip()
+        ]
+        topics.extend(alternates)
+        unique_topics = []
+        for topic in topics:
+            if topic and topic not in unique_topics:
+                unique_topics.append(topic)
+        return unique_topics
 
     def publish_status(self, text):
         self.last_status = text
@@ -133,7 +162,7 @@ class AutoInitBbox(Node):
             self.publish_status("timeout waiting for auto init bbox target")
             self.published = True
 
-    def on_image(self, msg):
+    def on_image(self, msg, source_topic=None):
         if self.published and not self.continuous_publish:
             return
 
@@ -145,7 +174,7 @@ class AutoInitBbox(Node):
         ):
             return
 
-        if self.lock_first_bbox and self.last_bbox is not None:
+        if self.lock_first_bbox and self.last_bbox is not None and self.color_mode != "yolo":
             if now - self.last_warn_time >= 1.0:
                 self.last_warn_time = now
                 self.publish_status(f"locked target bbox: {self.last_bbox}")
@@ -189,7 +218,7 @@ class AutoInitBbox(Node):
         if not self.logged_first_image:
             self.logged_first_image = True
             self.publish_status(
-                f"receiving image: encoding={msg.encoding} size={msg.width}x{msg.height}")
+                f"receiving image: topic={source_topic or self.image_topic} encoding={msg.encoding} size={msg.width}x{msg.height}")
 
         if bbox is None:
             bbox = self.mask_to_bbox(mask, image_width, image_height)
@@ -236,6 +265,8 @@ class AutoInitBbox(Node):
         msg.data = bbox
         for _ in range(max(1, self.publish_repeat)):
             self.bbox_pub.publish(msg)
+            if self.tracked_bbox_pub is not None:
+                self.tracked_bbox_pub.publish(msg)
             rclpy.spin_once(self, timeout_sec=0.01)
             time.sleep(max(0.0, self.repeat_period_s))
 
