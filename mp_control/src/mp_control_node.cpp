@@ -782,9 +782,9 @@ private:
 
     const double u = bbox.x + 0.5 * bbox.width;
     const double v = bbox.y + 0.5 * bbox.height;
-    auto depth_m = medianDepthAt(*depth, info, u, v);
+    auto depth_m = robustDepthInBbox(*depth, info, bbox);
     if (!depth_m) {
-      depth_m = robustDepthInBbox(*depth, info, bbox);
+      depth_m = medianDepthAt(*depth, info, u, v);
     }
     if (!depth_m) {
       setBlockReason(block_reason, "valid depth inside bbox");
