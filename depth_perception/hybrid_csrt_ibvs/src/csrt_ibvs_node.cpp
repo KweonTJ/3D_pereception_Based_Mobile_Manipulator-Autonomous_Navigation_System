@@ -340,6 +340,10 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   lost_count_ = 0;
   last_track_stamp_ = now();
   state_ = TrackerState::TRACKING;
+  {
+    std::lock_guard<std::mutex> lock(bbox_mutex_);
+    last_tracked_bbox_ = *clipped_box;
+  }
 
   const auto ibvs = computeIbvsCommand(*clipped_box, frame.size(), stamp);
 
@@ -507,6 +511,10 @@ bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbo
     lost_count_ = 0;
     state_ = TrackerState::TRACKING;
     last_track_stamp_ = now();
+    {
+      std::lock_guard<std::mutex> lock(bbox_mutex_);
+      last_tracked_bbox_ = bbox;
+    }
     publishStatus(std::string(trackerBackendName()) + " initialized", true);
     return true;
   } catch (const cv::Exception & ex) {
