@@ -108,6 +108,7 @@ private:
   bool publish_debug_image_{true};
   bool stop_when_lost_{true};
   bool allow_reverse_{true};
+  bool reinitialize_while_tracking_{false};
   int loss_frame_limit_{8};
   int min_bbox_size_px_{12};
   double watchdog_timeout_s_{0.7};
