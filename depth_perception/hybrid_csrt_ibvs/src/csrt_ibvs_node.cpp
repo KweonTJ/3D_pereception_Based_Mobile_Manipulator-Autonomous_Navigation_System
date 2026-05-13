@@ -323,7 +323,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   if (ibvs.depth_m) {
     status << (*ibvs.depth_m - desired_depth_m_);
   } else {
-    status << "area";
+    status << (use_area_fallback_ ? "area" : "no_depth_in_bbox");
   }
   status << " vx=" << ibvs.base_cmd.linear.x
          << " wz=" << ibvs.base_cmd.angular.z;
