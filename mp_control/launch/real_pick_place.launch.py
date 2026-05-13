@@ -710,7 +710,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "eef_camera_pixel_format",
-            default_value="MJPG",
+            default_value="YUYV",
             description="V4L2 pixel format requested from the end-effector camera.",
         ),
         DeclareLaunchArgument(
@@ -720,12 +720,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "eef_camera_image_width",
-            default_value="640",
+            default_value="320",
             description="EEF USB camera image width.",
         ),
         DeclareLaunchArgument(
             "eef_camera_image_height",
-            default_value="480",
+            default_value="240",
             description="EEF USB camera image height.",
         ),
         DeclareLaunchArgument(
