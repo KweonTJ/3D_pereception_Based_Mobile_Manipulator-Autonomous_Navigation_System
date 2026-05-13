@@ -135,6 +135,9 @@ private:
 
   // Depth parameters
   int depth_roi_radius_px_{6};
+  double depth_bbox_inner_scale_{0.7};
+  double depth_sample_percentile_{25.0};
+  int depth_min_valid_pixels_{5};
   double depth_unit_scale_{0.001};
   double min_valid_depth_m_{0.12};
   double max_valid_depth_m_{3.0};
