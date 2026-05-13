@@ -40,7 +40,7 @@ csrt_ibvs_node:
     # Desired target pose in image/depth space.
     desired_u_ratio: 0.5
     desired_v_ratio: 0.5
-    desired_depth_m: 0.45
+    desired_depth_m: 0.30
     desired_area_ratio: 0.06
 
     # Real pickup should approach the YOLO/CSRT bbox straight first.
