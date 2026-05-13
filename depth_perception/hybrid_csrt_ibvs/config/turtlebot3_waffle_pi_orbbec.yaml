@@ -25,7 +25,9 @@ csrt_ibvs_node:
 
     # Hybrid tracking behavior.
     use_depth: true
-    use_area_fallback: false
+    # If bbox tracking is valid but Astra depth is missing inside that bbox,
+    # keep moving cautiously from bbox area instead of freezing in place.
+    use_area_fallback: true
     stop_when_lost: true
     allow_reverse: false
     loss_frame_limit: 8
