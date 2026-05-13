@@ -217,6 +217,7 @@ class RobotStatusUploader(Node):
         self.pending_lock = threading.RLock()
         self.last_video_sent: Dict[str, float] = {}
         self.video_busy: set[str] = set()
+        self.frame_seen_counts: Dict[str, int] = {}
         self.seq = 0
         self.last_status_error_log = 0.0
 
@@ -430,6 +431,8 @@ class RobotStatusUploader(Node):
 
         if source_topic:
             self._set_pending(f"video.{stream_key}_topic", source_topic)
+        self.frame_seen_counts[stream_key] = self.frame_seen_counts.get(stream_key, 0) + 1
+        self._set_pending(f"video.{stream_key}_seen", self.frame_seen_counts[stream_key])
 
         now = time.monotonic()
         if now - self.last_video_sent.get(stream_key, 0.0) < self.video_period_s:
