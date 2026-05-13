@@ -9,7 +9,7 @@ enable_color: true #  RGB开关
 ir_width: 640 
 ir_height: 480
 ir_fps: 30
-enable_ir: true
+enable_ir: false
 # 深度 相机宽/高/帧率 | depth camera width/height/FPS
 depth_width: 640
 depth_height: 480
