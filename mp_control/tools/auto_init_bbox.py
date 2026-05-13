@@ -79,9 +79,15 @@ class AutoInitBbox(Node):
         self.yolo_locked_min_accept_confidence = float(
             self.declare_parameter("yolo_locked_min_accept_confidence", 0.35).value)
         self.yolo_max_center_jump_ratio = float(
-            self.declare_parameter("yolo_max_center_jump_ratio", 0.12).value)
+            self.declare_parameter("yolo_max_center_jump_ratio", 0.08).value)
+        self.yolo_anchor_max_center_jump_ratio = float(
+            self.declare_parameter("yolo_anchor_max_center_jump_ratio", 0.18).value)
         self.yolo_min_reselect_iou = float(
             self.declare_parameter("yolo_min_reselect_iou", 0.10).value)
+        self.yolo_min_area_ratio_change = float(
+            self.declare_parameter("yolo_min_area_ratio_change", 0.50).value)
+        self.yolo_max_area_ratio_change = float(
+            self.declare_parameter("yolo_max_area_ratio_change", 1.80).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -130,6 +136,7 @@ class AutoInitBbox(Node):
         self.logged_first_image = False
         self.last_status = ""
         self.last_bbox = None
+        self.anchor_bbox = None
         self.yolo_model = None
         self.yolo_load_failed = False
 
@@ -668,11 +675,21 @@ class AutoInitBbox(Node):
             locked_best = None
             locked_score = -1.0e9
             max_jump = max(0.01, self.yolo_max_center_jump_ratio)
+            anchor_max_jump = max(max_jump, self.yolo_anchor_max_center_jump_ratio)
             min_iou = max(0.0, self.yolo_min_reselect_iou)
+            min_area_change = max(0.01, self.yolo_min_area_ratio_change)
+            max_area_change = max(min_area_change, self.yolo_max_area_ratio_change)
+            anchor_bbox = self.anchor_bbox if self.anchor_bbox is not None else self.last_bbox
             for candidate in candidates:
                 candidate_bbox = candidate[:4]
                 iou = self.bbox_iou(self.last_bbox, candidate_bbox)
                 jump = self.bbox_center_jump_ratio(self.last_bbox, candidate_bbox, msg.width, msg.height)
+                anchor_jump = self.bbox_center_jump_ratio(anchor_bbox, candidate_bbox, msg.width, msg.height)
+                area_change = self.bbox_area_ratio(candidate_bbox, self.last_bbox)
+                if anchor_jump > anchor_max_jump:
+                    continue
+                if area_change < min_area_change or area_change > max_area_change:
+                    continue
                 if iou < min_iou and jump > max_jump:
                     continue
                 score = candidate[7] + (0.70 * iou) - (0.35 * jump)
@@ -690,7 +707,18 @@ class AutoInitBbox(Node):
         self.publish_status(
             "YOLO box: class={} conf={:.2f} bbox=[{:.0f},{:.0f},{:.1f},{:.1f}]".format(
                 cls_name, confidence, x, y, width, height))
+        if self.anchor_bbox is None:
+            self.anchor_bbox = [float(x), float(y), float(width), float(height)]
         return int(round(x)), int(round(y)), float(width), float(height), pixels
+
+    @staticmethod
+    def bbox_area_ratio(a, b):
+        aw = max(0.0, float(a[2]))
+        ah = max(0.0, float(a[3]))
+        bw = max(0.0, float(b[2]))
+        bh = max(0.0, float(b[3]))
+        reference_area = max(1.0, bw * bh)
+        return (aw * ah) / reference_area
 
     @staticmethod
     def bbox_iou(a, b):
