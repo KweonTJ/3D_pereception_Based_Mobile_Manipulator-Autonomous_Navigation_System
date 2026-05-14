@@ -5,7 +5,7 @@ mp_control_node:
     eef_bbox_topic: /target/eef_tracked_bbox
     eef_init_bbox_topic: /target/eef_init_bbox
     depth_topic: /camera/depth/image_raw
-    camera_info_topic: /camera/depth/camera_info
+    camera_info_topic: /camera/color/camera_info
     eef_camera_info_topic: /eef_camera/camera_info
 
     twist_topic: /servo_node/delta_twist_cmds
@@ -45,7 +45,7 @@ mp_control_node:
     depth_roi_radius_px: 5
     depth_unit_scale: 0.001
     min_valid_depth_m: 0.12
-    max_valid_depth_m: 1.2
+    max_valid_depth_m: 3.0
 
     # Offset is applied in target_frame after the camera point is transformed.
     # Tune these slowly if the gripper consistently stops beside/above/in front of the object.
