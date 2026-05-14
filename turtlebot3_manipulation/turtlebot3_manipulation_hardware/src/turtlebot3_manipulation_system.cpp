@@ -57,18 +57,6 @@ hardware_interface::CallbackReturn TurtleBot3ManipulationSystemHardware::on_init
 
   gripper_acceleration_ = stoi(info_.hardware_parameters["dxl_gripper_profile_acceleration"]);
   gripper_velocity_ = stoi(info_.hardware_parameters["dxl_gripper_profile_velocity"]);
-  const auto wheel_direction = [this](const std::string & parameter_name) {
-      const auto it = info_.hardware_parameters.find(parameter_name);
-      if (it == info_.hardware_parameters.end()) {
-        return 1.0;
-      }
-      return stod(it->second) < 0.0 ? -1.0 : 1.0;
-    };
-  wheel_left_direction_ = wheel_direction("wheel_left_direction");
-  wheel_right_direction_ = wheel_direction("wheel_right_direction");
-  RCLCPP_INFO(
-    logger, "Wheel direction multipliers: left=%.1f right=%.1f",
-    wheel_left_direction_, wheel_right_direction_);
 
   opencr_ = std::make_unique<OpenCR>(id_);
   if (opencr_->open_port(usb_port_)) {
@@ -237,14 +225,11 @@ hardware_interface::return_type TurtleBot3ManipulationSystemHardware::read(
     RCLCPP_WARN(logger, "Failed to read all control table");
   }
 
-  const auto wheel_positions = opencr_->get_wheel_positions();
-  const auto wheel_velocities = opencr_->get_wheel_velocities();
+  dxl_positions_[0] = opencr_->get_wheel_positions()[opencr::wheels::LEFT];
+  dxl_velocities_[0] = opencr_->get_wheel_velocities()[opencr::wheels::LEFT];
 
-  dxl_positions_[0] = wheel_left_direction_ * wheel_positions[opencr::wheels::LEFT];
-  dxl_velocities_[0] = wheel_left_direction_ * wheel_velocities[opencr::wheels::LEFT];
-
-  dxl_positions_[1] = wheel_right_direction_ * wheel_positions[opencr::wheels::RIGHT];
-  dxl_velocities_[1] = wheel_right_direction_ * wheel_velocities[opencr::wheels::RIGHT];
+  dxl_positions_[1] = opencr_->get_wheel_positions()[opencr::wheels::RIGHT];
+  dxl_velocities_[1] = opencr_->get_wheel_velocities()[opencr::wheels::RIGHT];
 
   dxl_positions_[2] = opencr_->get_joint_positions()[opencr::joints::JOINT1];
   dxl_velocities_[2] = opencr_->get_joint_velocities()[opencr::joints::JOINT1];
@@ -291,10 +276,7 @@ hardware_interface::return_type TurtleBot3ManipulationSystemHardware::write(
   RCLCPP_INFO_ONCE(logger, "Start to write wheels and manipulator commands");
   opencr_->send_heartbeat(heartbeat_++);
 
-  auto wheel_commands = dxl_wheel_commands_;
-  wheel_commands[0] *= wheel_left_direction_;
-  wheel_commands[1] *= wheel_right_direction_;
-  if (opencr_->set_wheel_velocities(wheel_commands) == false) {
+  if (opencr_->set_wheel_velocities(dxl_wheel_commands_) == false) {
     RCLCPP_ERROR(logger, "Can't control wheels");
   }
 
