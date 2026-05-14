@@ -74,7 +74,7 @@ csrt_ibvs_node:
     depth_min_valid_pixels: 5
     depth_unit_scale: 0.001
     min_valid_depth_m: 0.12
-    max_valid_depth_m: 3.0
+    max_valid_depth_m: 1.0
     emergency_stop_depth_m: 0.18
     max_depth_stamp_age_s: 1.0
     status_period_s: 0.5
