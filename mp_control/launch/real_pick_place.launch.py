@@ -333,7 +333,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_rviz",
             default_value="false",
-            description="Start RViz on the robot computer.",
+            description="Leader default keeps RViz off on the robot computer.",
         ),
         DeclareLaunchArgument(
             "start_camera",
@@ -445,7 +445,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_domain_bridge",
             default_value="true",
-            description="Start the optional leader-to-follower domain bridge.",
+            description="Leader default starts the leader-to-follower domain bridge.",
         ),
         DeclareLaunchArgument(
             "start_auto_init_bbox",
@@ -638,8 +638,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_confidence",
-            default_value="0.35",
-            description="Minimum YOLO confidence for automatic box detection.",
+            default_value="0.05",
+            description="YOLO inference threshold; accepted boxes are still filtered by the lock/accept confidence gates.",
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_imgsz",
