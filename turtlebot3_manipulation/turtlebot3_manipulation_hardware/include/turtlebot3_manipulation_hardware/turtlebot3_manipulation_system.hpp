@@ -82,6 +82,8 @@ private:
 
   int32_t gripper_acceleration_;
   int32_t gripper_velocity_;
+  double wheel_left_direction_{1.0};
+  double wheel_right_direction_{1.0};
 
   std::unique_ptr<OpenCR> opencr_;
 
