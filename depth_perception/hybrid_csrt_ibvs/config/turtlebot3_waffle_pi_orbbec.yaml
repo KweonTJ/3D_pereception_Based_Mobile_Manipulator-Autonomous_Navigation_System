@@ -30,7 +30,9 @@ csrt_ibvs_node:
     use_area_fallback: true
     stop_when_lost: true
     allow_reverse: false
-    reinitialize_while_tracking: true
+    # YOLO publishes init bboxes continuously, but an active CSRT track should not
+    # be reset by every detector update. Fresh init bboxes are accepted after loss.
+    reinitialize_while_tracking: false
     reinit_min_iou: 0.10
     reinit_max_center_jump_ratio: 0.35
     enable_base_yaw: false
