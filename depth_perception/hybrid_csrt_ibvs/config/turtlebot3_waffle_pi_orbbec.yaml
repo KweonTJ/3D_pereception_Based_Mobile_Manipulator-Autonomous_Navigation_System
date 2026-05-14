@@ -49,7 +49,7 @@ csrt_ibvs_node:
 
     # Real pickup should approach the YOLO/CSRT bbox straight first.
     yaw_gain: 0.0
-    linear_gain: 0.35
+    linear_gain: 0.65
     area_gain: 1.2
     x_deadband_norm: 0.055
     y_deadband_norm: 0.035
@@ -57,8 +57,8 @@ csrt_ibvs_node:
     area_deadband_ratio: 0.01
     approach_yaw_gate_norm: 0.0
     straight_approach_depth_m: 1.20
-    min_forward_approach_x: 0.018
-    max_linear_x: 0.035
+    min_forward_approach_x: 0.045
+    max_linear_x: 0.10
     max_angular_z: 0.0
 
     # Optional OpenManipulator-X / MoveIt Servo tuning.
