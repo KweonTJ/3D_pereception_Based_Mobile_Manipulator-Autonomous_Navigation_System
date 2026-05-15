@@ -376,7 +376,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   if (tracked_bbox_pub_) {
     std_msgs::msg::Float32MultiArray bbox_msg;
     bbox_msg.data = {
-      static_cast<float>(clipped_box->x),
+      static_cast<float>(control_box.x),
       static_cast<float>(control_box.y),
       static_cast<float>(control_box.width),
       static_cast<float>(control_box.height)};
