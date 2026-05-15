@@ -21,15 +21,21 @@
 #include <unistd.h>
 
 #include <chrono>
+#include <array>
+#include <mutex>
 #include <string>
 
 #include <control_msgs/action/gripper_command.hpp>
 #include <control_msgs/msg/gripper_command.hpp>
 #include <control_msgs/msg/joint_jog.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 
 // Define used keys
 #define KEYCODE_1 0x31
@@ -54,7 +60,9 @@
 // Some constants used in the Servo Teleop demo
 const char BASE_TWIST_TOPIC[] = "cmd_vel";
 const char ARM_JOINT_TOPIC[] = "/servo_node/delta_joint_cmds";
+const char ARM_TRAJECTORY_TOPIC[] = "/arm_controller/joint_trajectory";
 const char GRIPPER_TOPIC[] = "/gripper_controller/gripper_cmd";
+const char JOINT_STATE_TOPIC[] = "/joint_states";
 
 const size_t ROS_QUEUE_SIZE = 10;
 const double BASE_LINEAR_VEL_MAX = 0.26;  // m/s
@@ -65,6 +73,7 @@ const double BASE_ANGULAR_VEL_STEP = 0.1;  // rad/s
 const char BASE_FRAME_ID[] = "link0";
 
 const double ARM_JOINT_VEL = 10.0;  // rad/s
+const double ARM_JOINT_POSITION_STEP = 0.05;  // rad per key press for direct controller mode
 
 // A class for reading the key inputs from the terminal
 class KeyboardReader
@@ -104,12 +113,20 @@ private:
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr servo_stop_client_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr base_twist_pub_;
   rclcpp::Publisher<control_msgs::msg::JointJog>::SharedPtr joint_pub_;
+  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr arm_trajectory_pub_;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
 
   geometry_msgs::msg::Twist cmd_vel_;
   control_msgs::msg::JointJog joint_msg_;
   control_msgs::msg::GripperCommand gripper_cmd_;
 
+  std::mutex joint_state_mutex_;
+  std::array<double, 4> latest_arm_positions_;
+  bool have_arm_positions_;
   bool publish_joint_;
+
+  void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
+  void publish_arm_trajectory_from_jog(const control_msgs::msg::JointJog & jog);
 
   void goal_result_callback(
     const rclcpp_action::ClientGoalHandle<
