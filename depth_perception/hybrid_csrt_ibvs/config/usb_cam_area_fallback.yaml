@@ -8,7 +8,7 @@ csrt_ibvs_node:
     use_depth: false
     use_area_fallback: true
     enable_cmd_vel: true
-    enable_base_yaw: true
+    enable_base_yaw: false
     enable_arm_twist: false
     publish_debug_image: true
     stop_when_lost: true
