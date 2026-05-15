@@ -356,12 +356,13 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   lost_count_ = 0;
   last_track_stamp_ = now();
   state_ = TrackerState::TRACKING;
+  const cv::Rect control_box = stabilizeTrackedBox(*clipped_box, frame.size());
   {
     std::lock_guard<std::mutex> lock(bbox_mutex_);
-    last_tracked_bbox_ = *clipped_box;
+    last_tracked_bbox_ = control_box;
   }
 
-  const auto ibvs = computeIbvsCommand(*clipped_box, frame.size(), stamp);
+  const auto ibvs = computeIbvsCommand(control_box, frame.size(), stamp);
 
   if (enable_cmd_vel_ && cmd_vel_pub_) {
     cmd_vel_pub_->publish(ibvs.base_cmd);
@@ -376,19 +377,19 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
     std_msgs::msg::Float32MultiArray bbox_msg;
     bbox_msg.data = {
       static_cast<float>(clipped_box->x),
-      static_cast<float>(clipped_box->y),
-      static_cast<float>(clipped_box->width),
-      static_cast<float>(clipped_box->height)};
+      static_cast<float>(control_box.y),
+      static_cast<float>(control_box.width),
+      static_cast<float>(control_box.height)};
     tracked_bbox_pub_->publish(bbox_msg);
   }
 
   if (publish_debug_image_) {
-    publishDebugImage(msg, frame, *clipped_box, ibvs, true);
+    publishDebugImage(msg, frame, control_box, ibvs, true);
   }
 
   std::ostringstream status;
-  status << "tracking bbox=[" << clipped_box->x << "," << clipped_box->y << ","
-         << clipped_box->width << "," << clipped_box->height << "]"
+  status << "tracking bbox=[" << control_box.x << "," << control_box.y << ","
+         << control_box.width << "," << control_box.height << "]"
          << " ex=" << ibvs.x_error_norm
          << " ez=";
   if (ibvs.depth_m) {
