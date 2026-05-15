@@ -115,9 +115,9 @@ def generate_launch_description():
             ])
         ]),
         launch_arguments={
-            "start_rviz": start_rviz,
-            "start_camera": start_camera,
-            "start_lidar": start_lidar,
+            "start_rviz": "false",
+            "start_camera": "true",
+            "start_lidar": "false",
             "lidar_port": lidar_port,
             "lidar_frame_id": lidar_frame_id,
             "move_to_stay_pose": move_to_stay_pose,
@@ -179,7 +179,6 @@ def generate_launch_description():
                 "bridge.launch.py",
             ])
         ]),
-        condition=IfCondition(start_domain_bridge),
     )
 
     auto_init_bbox_node = Node(
