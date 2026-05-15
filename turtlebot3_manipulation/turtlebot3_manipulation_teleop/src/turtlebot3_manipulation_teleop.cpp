@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <vector>
 #include "turtlebot3_manipulation_teleop/turtlebot3_manipulation_teleop.hpp"
 
 // KeyboardReader
@@ -49,7 +50,9 @@ void KeyboardReader::shutdown()
 // KeyboardServo
 
 KeyboardServo::KeyboardServo()
-: publish_joint_(false)
+: latest_arm_positions_({0.104311, 0.027612, -0.001534, -1.638291}),
+  have_arm_positions_(false),
+  publish_joint_(false)
 {
   nh_ = rclcpp::Node::make_shared("servo_keyboard_input");
 
@@ -58,9 +61,16 @@ KeyboardServo::KeyboardServo()
   servo_stop_client_ =
     nh_->create_client<std_srvs::srv::Trigger>("/servo_node/stop_servo");
 
-  // base_twist_pub_ =
-    // nh_->create_publisher<geometry_msgs::msg::Twist>(BASE_TWIST_TOPIC, ROS_QUEUE_SIZE);
+  base_twist_pub_ =
+    nh_->create_publisher<geometry_msgs::msg::Twist>(BASE_TWIST_TOPIC, ROS_QUEUE_SIZE);
   joint_pub_ = nh_->create_publisher<control_msgs::msg::JointJog>(ARM_JOINT_TOPIC, ROS_QUEUE_SIZE);
+  arm_trajectory_pub_ =
+    nh_->create_publisher<trajectory_msgs::msg::JointTrajectory>(
+    ARM_TRAJECTORY_TOPIC, ROS_QUEUE_SIZE);
+  joint_state_sub_ = nh_->create_subscription<sensor_msgs::msg::JointState>(
+    JOINT_STATE_TOPIC,
+    ROS_QUEUE_SIZE,
+    std::bind(&KeyboardServo::joint_state_callback, this, std::placeholders::_1));
   client_ = rclcpp_action::create_client<control_msgs::action::GripperCommand>(
     nh_, "gripper_controller/gripper_cmd");
 
@@ -237,6 +247,66 @@ void KeyboardServo::send_goal(float position)
   client_->async_send_goal(goal_msg, send_goal_options);
 }
 
+void KeyboardServo::joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+{
+  std::array<double, 4> positions;
+  bool found[4] = {false, false, false, false};
+  const char * joint_names[4] = {"joint1", "joint2", "joint3", "joint4"};
+
+  for (size_t i = 0; i < msg->name.size() && i < msg->position.size(); ++i) {
+    for (size_t joint_index = 0; joint_index < 4; ++joint_index) {
+      if (msg->name[i] == joint_names[joint_index]) {
+        positions[joint_index] = msg->position[i];
+        found[joint_index] = true;
+        break;
+      }
+    }
+  }
+
+  if (found[0] && found[1] && found[2] && found[3]) {
+    std::lock_guard<std::mutex> lock(joint_state_mutex_);
+    latest_arm_positions_ = positions;
+    have_arm_positions_ = true;
+  }
+}
+
+void KeyboardServo::publish_arm_trajectory_from_jog(const control_msgs::msg::JointJog & jog)
+{
+  std::array<double, 4> positions;
+  {
+    std::lock_guard<std::mutex> lock(joint_state_mutex_);
+    positions = latest_arm_positions_;
+    (void)have_arm_positions_;
+  }
+
+  const char * joint_names[4] = {"joint1", "joint2", "joint3", "joint4"};
+  for (size_t i = 0; i < jog.joint_names.size() && i < jog.velocities.size(); ++i) {
+    for (size_t joint_index = 0; joint_index < 4; ++joint_index) {
+      if (jog.joint_names[i] == joint_names[joint_index]) {
+        const double direction = jog.velocities[i] >= 0.0 ? 1.0 : -1.0;
+        positions[joint_index] += direction * ARM_JOINT_POSITION_STEP;
+        break;
+      }
+    }
+  }
+
+  trajectory_msgs::msg::JointTrajectory trajectory;
+  trajectory.header.stamp = nh_->now();
+  trajectory.joint_names = {"joint1", "joint2", "joint3", "joint4"};
+
+  trajectory_msgs::msg::JointTrajectoryPoint point;
+  point.positions = std::vector<double>(positions.begin(), positions.end());
+  point.time_from_start = rclcpp::Duration::from_seconds(0.4);
+  trajectory.points.push_back(point);
+
+  arm_trajectory_pub_->publish(trajectory);
+
+  {
+    std::lock_guard<std::mutex> lock(joint_state_mutex_);
+    latest_arm_positions_ = positions;
+  }
+}
+
 void KeyboardServo::connect_moveit_servo()
 {
   for (int i = 0; i < 10; i++) {
@@ -302,10 +372,11 @@ void KeyboardServo::pub()
       joint_msg_.header.stamp = nh_->now();
       joint_msg_.header.frame_id = BASE_FRAME_ID;
       joint_pub_->publish(joint_msg_);
+      publish_arm_trajectory_from_jog(joint_msg_);
       publish_joint_ = false;
       RCLCPP_INFO_STREAM(nh_->get_logger(), "Joint PUB");
     }
-    // base_twist_pub_->publish(cmd_vel_);
+    base_twist_pub_->publish(cmd_vel_);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
   }
 }
