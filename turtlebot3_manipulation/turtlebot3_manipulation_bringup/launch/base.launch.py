@@ -262,21 +262,20 @@ def generate_launch_description():
         output='screen',
     )
 
-    stay_pose_msg = (
-        '{joint_names: [joint1, joint2, joint3, joint4], '
+    stay_pose_goal = (
+        '{trajectory: {joint_names: [joint1, joint2, joint3, joint4], '
         'points: [{positions: [0.104311, 0.027612, -0.001534, -1.638291], '
-        'time_from_start: {sec: 2}}]}'
+        'time_from_start: {sec: 2}}]}}'
     )
 
     move_arm_to_stay_pose = ExecuteProcess(
         cmd=[
             FindExecutable(name='ros2'),
-            'topic',
-            'pub',
-            '--once',
-            '/arm_controller/joint_trajectory',
-            'trajectory_msgs/msg/JointTrajectory',
-            stay_pose_msg,
+            'action',
+            'send_goal',
+            '/arm_controller/follow_joint_trajectory',
+            'control_msgs/action/FollowJointTrajectory',
+            stay_pose_goal,
         ],
         output='screen',
         condition=IfCondition(move_to_stay_pose),
