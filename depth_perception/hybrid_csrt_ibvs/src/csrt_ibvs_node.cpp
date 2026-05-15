@@ -650,6 +650,41 @@ std::optional<cv::Rect> CsrtIbvsNode::sanitizeBox(const cv::Rect & bbox, const c
   return clipped;
 }
 
+cv::Rect CsrtIbvsNode::stabilizeTrackedBox(
+  const cv::Rect & tracker_bbox,
+  const cv::Size & image_size) const
+{
+  if (!lock_tracked_bbox_size_) {
+    return tracker_bbox;
+  }
+
+  std::optional<cv::Rect> detector_reference;
+  {
+    std::lock_guard<std::mutex> lock(bbox_mutex_);
+    detector_reference = detector_reference_bbox_;
+  }
+
+  if (!detector_reference) {
+    return tracker_bbox;
+  }
+
+  const int width = clampValue(detector_reference->width, min_bbox_size_px_, image_size.width);
+  const int height = clampValue(detector_reference->height, min_bbox_size_px_, image_size.height);
+  const double center_x =
+    static_cast<double>(tracker_bbox.x) + 0.5 * static_cast<double>(tracker_bbox.width);
+  const double center_y =
+    static_cast<double>(tracker_bbox.y) + 0.5 * static_cast<double>(tracker_bbox.height);
+
+  const cv::Rect detector_sized_box(
+    static_cast<int>(std::lround(center_x - 0.5 * static_cast<double>(width))),
+    static_cast<int>(std::lround(center_y - 0.5 * static_cast<double>(height))),
+    width,
+    height);
+
+  const auto clipped = sanitizeBox(detector_sized_box, image_size);
+  return clipped.value_or(tracker_bbox);
+}
+
 CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp)
 {
