@@ -744,7 +744,7 @@ def generate_launch_description():
             "monitor_server",
             default_value=EnvironmentVariable(
                 "MONITOR_SERVER_URL",
-                default_value="http://192.168.0.83:8000",
+                default_value="http://192.168.0.13:8000",
             ),
             description="Upload-only monitor server URL, for example http://192.168.0.10:8080.",
         ),
