@@ -132,6 +132,8 @@ void CsrtIbvsNode::readParameters()
   stop_when_lost_ = declare_parameter<bool>("stop_when_lost", true);
   allow_reverse_ = declare_parameter<bool>("allow_reverse", true);
   reinitialize_while_tracking_ = declare_parameter<bool>("reinitialize_while_tracking", false);
+  accept_detector_bbox_while_tracking_ = declare_parameter<bool>("accept_detector_bbox_while_tracking", true);
+  lock_tracked_bbox_size_ = declare_parameter<bool>("lock_tracked_bbox_size", true);
   force_straight_approach_ = declare_parameter<bool>("force_straight_approach", false);
   enable_base_yaw_ = declare_parameter<bool>("enable_base_yaw", false);
   reinit_min_iou_ = declare_parameter<double>("reinit_min_iou", 0.02);
