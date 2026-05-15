@@ -207,15 +207,11 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
   }
 
   const cv::Rect new_bbox(x, y, w, h);
+  std::string status_text;
 
   {
     std::lock_guard<std::mutex> lock(bbox_mutex_);
     if (state_ == TrackerState::TRACKING && hasTracker()) {
-      if (!reinitialize_while_tracking_) {
-        publishStatus("tracking active; ignoring new init bbox");
-        return;
-      }
-
       if (last_tracked_bbox_) {
         const double iou = rectIou(*last_tracked_bbox_, new_bbox);
         const double jump = centerJumpRatio(*last_tracked_bbox_, new_bbox);
@@ -224,19 +220,31 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
           status << "tracking active; ignoring unrelated init bbox"
                  << " iou=" << std::fixed << std::setprecision(2) << iou
                  << " jump=" << std::fixed << std::setprecision(2) << jump;
-          publishStatus(status.str());
-          return;
+          status_text = status.str();
+        }
+      }
+
+      if (status_text.empty() && !reinitialize_while_tracking_) {
+        if (accept_detector_bbox_while_tracking_) {
+          detector_reference_bbox_ = new_bbox;
+          status_text = "detector bbox accepted as geometry reference; CSRT keeps tracking center";
+        } else {
+          status_text = "tracking active; ignoring new init bbox";
         }
       }
     }
 
-    pending_init_bbox_ = new_bbox;
+    if (status_text.empty()) {
+      pending_init_bbox_ = new_bbox;
+      detector_reference_bbox_ = new_bbox;
+      status_text =
+        state_ == TrackerState::TRACKING ?
+        "bbox correction received; tracker will refresh on the next image" :
+        "bbox received; tracker will initialize on the next image";
+    }
   }
 
-  publishStatus(
-    state_ == TrackerState::TRACKING ?
-    "bbox correction received; tracker will refresh on the next image" :
-    "bbox received; tracker will initialize on the next image");
+  publishStatus(status_text);
 }
 
 void CsrtIbvsNode::onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
