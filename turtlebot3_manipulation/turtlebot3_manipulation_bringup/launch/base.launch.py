@@ -273,14 +273,7 @@ def generate_launch_description():
             FindExecutable(name='ros2'),
             'topic',
             'pub',
-            '--times',
-            '10',
-            '--rate',
-            '2',
-            '--wait-matching-subscriptions',
-            '1',
-            '--keep-alive',
-            '1.0',
+            '--once',
             '/arm_controller/joint_trajectory',
             'trajectory_msgs/msg/JointTrajectory',
             stay_pose_msg,
@@ -334,7 +327,7 @@ def generate_launch_description():
                 target_action=arm_controller_spawner,
                 on_exit=[
                     TimerAction(
-                        period=2.0,
+                        period=1.0,
                         actions=[move_arm_to_stay_pose],
                     )
                 ],
