@@ -173,7 +173,6 @@ def generate_launch_description():
                     )
                 ]
             ),
-            condition=IfCondition(start_camera),
         ),
 
         OpaqueFunction(function=launch_lidar),
