@@ -116,7 +116,7 @@ def generate_launch_description():
         ]),
         launch_arguments={
             "start_rviz": "false",
-            "start_camera": "true",
+            "start_camera": start_camera,
             "start_lidar": "false",
             "lidar_port": lidar_port,
             "lidar_frame_id": lidar_frame_id,
