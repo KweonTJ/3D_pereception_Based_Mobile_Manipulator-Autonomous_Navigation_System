@@ -879,7 +879,7 @@ void CsrtIbvsNode::publishDebugImage(
           << " ex=" << std::fixed << std::setprecision(3) << ibvs.x_error_norm
           << " vx=" << ibvs.base_cmd.linear.x
           << " wz=" << ibvs.base_cmd.angular.z;
-  cv::putText(debug, overlay.str(), cv::Point(12, 28), cv::FONT_HERSHEY_SIMPLEX, 0.65, cv::Scalar(0, 0, 0), 2);
+  cv::putText(debug, overlay.str(), cv::Point(12, 28), cv::FONT_HERSHEY_SIMPLEX, 0.65, cv::Scalar(255, 255, 255), 2);
 
   std::ostringstream depth_text;
   depth_text << "depth=";
@@ -891,7 +891,7 @@ void CsrtIbvsNode::publishDebugImage(
   if (ibvs.depth_too_close) {
     depth_text << " STOP";
   }
-  cv::putText(debug, depth_text.str(), cv::Point(12, 56), cv::FONT_HERSHEY_SIMPLEX, 0.65, cv::Scalar(0, 0, 0), 2);
+  cv::putText(debug, depth_text.str(), cv::Point(12, 56), cv::FONT_HERSHEY_SIMPLEX, 0.65, cv::Scalar(255, 255, 255), 2);
 
   auto out_msg = cv_bridge::CvImage(src_msg->header, kBgr8, debug).toImageMsg();
   debug_image_pub_->publish(*out_msg);
@@ -924,7 +924,7 @@ void CsrtIbvsNode::publishDebugImageNoTrack(
     cv::Point(12, 28),
     cv::FONT_HERSHEY_SIMPLEX,
     0.65,
-    cv::Scalar(0, 0, 0),
+    cv::Scalar(255, 255, 255),
     2);
 
   const std::string topic_text = "init bbox: " + init_bbox_topic_;
@@ -934,7 +934,7 @@ void CsrtIbvsNode::publishDebugImageNoTrack(
     cv::Point(12, 56),
     cv::FONT_HERSHEY_SIMPLEX,
     0.55,
-    cv::Scalar(0, 0, 0),
+    cv::Scalar(255, 255, 255),
     2);
 
   auto out_msg = cv_bridge::CvImage(src_msg->header, kBgr8, debug).toImageMsg();

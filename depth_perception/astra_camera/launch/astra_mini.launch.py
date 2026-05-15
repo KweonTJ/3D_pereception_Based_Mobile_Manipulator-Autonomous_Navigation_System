@@ -38,8 +38,6 @@ def generate_launch_description():
                            name='point_cloud_xyzrgb')
         ],
         output='screen',
-        respawn=True,
-        respawn_delay=2.0,
         condition=UnlessCondition(use_sim))
 
     sim_bridge = Node(
