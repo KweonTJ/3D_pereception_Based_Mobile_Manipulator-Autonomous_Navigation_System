@@ -70,6 +70,7 @@ private:
   std::optional<cv::Mat> imageMsgToBgr(const sensor_msgs::msg::Image::ConstSharedPtr & msg);
   std::optional<cv::Mat> depthMsgToBgr(const sensor_msgs::msg::Image::ConstSharedPtr & msg);
   std::optional<cv::Rect> sanitizeBox(const cv::Rect & bbox, const cv::Size & image_size) const;
+  cv::Rect stabilizeTrackedBox(const cv::Rect & tracker_bbox, const cv::Size & image_size) const;
   IbvsResult computeIbvsCommand(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp);
   std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
   std::optional<double> pixelToMeters(const cv::Mat & depth, const std::string & encoding, int row, int col) const;
