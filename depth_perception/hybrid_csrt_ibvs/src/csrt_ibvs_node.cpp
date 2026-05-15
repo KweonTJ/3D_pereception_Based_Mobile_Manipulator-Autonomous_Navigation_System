@@ -532,6 +532,7 @@ bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbo
     {
       std::lock_guard<std::mutex> lock(bbox_mutex_);
       last_tracked_bbox_ = bbox;
+      detector_reference_bbox_ = bbox;
     }
     publishStatus(std::string(trackerBackendName()) + " initialized", true);
     return true;
@@ -618,6 +619,10 @@ void CsrtIbvsNode::resetTracker()
   tracker_initialized_ = false;
   tracker_uses_gray_ = false;
 #endif
+  std::lock_guard<std::mutex> lock(bbox_mutex_);
+  pending_init_bbox_.reset();
+  last_tracked_bbox_.reset();
+  detector_reference_bbox_.reset();
 }
 
 const char * CsrtIbvsNode::trackerBackendName() const
