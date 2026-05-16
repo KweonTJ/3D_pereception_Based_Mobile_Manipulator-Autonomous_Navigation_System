@@ -12,6 +12,7 @@ from rclpy.qos import QoSProfile
 from rclpy.qos import ReliabilityPolicy
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
+from std_msgs.msg import Bool
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
 
@@ -35,6 +36,8 @@ class AutoInitBbox(Node):
             self.declare_parameter("publish_tracked_bbox", False).value)
         self.status_topic = self.declare_parameter("status_topic", "/target/auto_init_bbox_status").value
         self.color_mode = self.declare_parameter("color_mode", "black").value
+        self.enable_topic = str(self.declare_parameter("enable_topic", "").value)
+        self.enabled = bool(self.declare_parameter("start_enabled", True).value)
 
         self.min_mask_pixels = int(self.declare_parameter("min_mask_pixels", 700).value)
         self.min_bbox_width_px = float(self.declare_parameter("min_bbox_width_px", 20.0).value)
@@ -126,6 +129,13 @@ class AutoInitBbox(Node):
                 topic,
                 lambda msg, source_topic=topic: self.on_image(msg, source_topic),
                 qos_profile_sensor_data))
+        self.enable_sub = None
+        if self.enable_topic:
+            self.enable_sub = self.create_subscription(
+                Bool,
+                self.enable_topic,
+                self.on_enable,
+                QoSProfile(depth=1))
         self.timeout_timer = self.create_timer(0.5, self.on_timeout)
         self.heartbeat_timer = self.create_timer(2.0, self.on_heartbeat)
 
@@ -144,6 +154,17 @@ class AutoInitBbox(Node):
             f"waiting for {self.color_mode} target on {self.image_topics()}; publishing bbox to {self.bbox_topic}")
         if self.color_mode == "yolo":
             self.load_yolo_model()
+
+    def on_enable(self, msg):
+        was_enabled = self.enabled
+        self.enabled = bool(msg.data)
+        if self.enabled and not was_enabled:
+            self.published = False
+            self.start_time = time.monotonic()
+            self.publish_status(
+                f"enabled target detection on {self.image_topics()}; publishing bbox to {self.bbox_topic}")
+        elif not self.enabled and was_enabled:
+            self.publish_status(f"disabled target detection for {self.bbox_topic}")
 
     def image_topics(self):
         topics = [str(self.image_topic)]
@@ -182,6 +203,9 @@ class AutoInitBbox(Node):
             self.published = True
 
     def on_image(self, msg, source_topic=None):
+        if not self.enabled:
+            return
+
         if self.published and not self.continuous_publish:
             return
 
