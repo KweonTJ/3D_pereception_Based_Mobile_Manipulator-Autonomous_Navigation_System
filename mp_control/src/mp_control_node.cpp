@@ -834,7 +834,7 @@ private:
 
   bool isDepthUnavailableReason(const std::string & reason) const
   {
-    return reason == "valid depth inside bbox" ||
+    return reason.rfind("valid depth inside bbox", 0) == 0 ||
       reason.rfind("depth image on ", 0) == 0;
   }
 
