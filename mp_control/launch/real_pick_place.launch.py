@@ -764,8 +764,8 @@ def generate_launch_description():
         DeclareLaunchArgument("monitor_status_period", default_value="0.2"),
         DeclareLaunchArgument("monitor_video_period", default_value="0.5"),
         DeclareLaunchArgument("monitor_jpeg_quality", default_value="50"),
-        DeclareLaunchArgument("monitor_image_width", default_value="424"),
-        DeclareLaunchArgument("monitor_image_height", default_value="318"),
+        DeclareLaunchArgument("monitor_image_width", default_value="320"),
+        DeclareLaunchArgument("monitor_image_height", default_value="240"),
         DeclareLaunchArgument("monitor_http_timeout", default_value="3.0"),
         hardware_launch,
         TimerAction(
