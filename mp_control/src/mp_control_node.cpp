@@ -25,6 +25,8 @@
 #include <std_msgs/msg/string.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Vector3.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -135,6 +137,7 @@ private:
   enum class GraspStage
   {
     DEPTH_APPROACH,
+    TRIANGULATION_EXTEND,
     EEF_REFINE
   };
 
@@ -163,6 +166,12 @@ private:
     double position{0.0};
     double object_width_m{0.0};
     bool measured{false};
+  };
+
+  struct Ray
+  {
+    tf2::Vector3 origin;
+    tf2::Vector3 direction;
   };
 
   void readParameters()
