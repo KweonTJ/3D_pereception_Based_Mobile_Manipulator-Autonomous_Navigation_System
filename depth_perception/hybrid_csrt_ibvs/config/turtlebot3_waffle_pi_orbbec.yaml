@@ -38,8 +38,8 @@ csrt_ibvs_node:
     detector_bbox_override_timeout_s: 0.75
     reinit_min_iou: 0.10
     reinit_max_center_jump_ratio: 0.35
-    enable_base_yaw: false
-    force_straight_approach: true
+    enable_base_yaw: true
+    force_straight_approach: false
     loss_frame_limit: 8
     watchdog_timeout_s: 0.7
     min_bbox_size_px: 12
@@ -50,19 +50,19 @@ csrt_ibvs_node:
     desired_depth_m: 0.30
     desired_area_ratio: 0.06
 
-    # Real pickup should approach the YOLO/CSRT bbox straight first.
-    yaw_gain: 0.0
+    # Real pickup recenters the YOLO/CSRT bbox before and during approach.
+    yaw_gain: 0.8
     linear_gain: 0.65
     area_gain: 1.2
     x_deadband_norm: 0.055
     y_deadband_norm: 0.035
     depth_deadband_m: 0.035
     area_deadband_ratio: 0.01
-    approach_yaw_gate_norm: 0.0
+    approach_yaw_gate_norm: 0.25
     straight_approach_depth_m: 1.20
     min_forward_approach_x: 0.045
     max_linear_x: 0.10
-    max_angular_z: 0.0
+    max_angular_z: 0.25
 
     # Optional OpenManipulator-X / MoveIt Servo tuning.
     arm_lateral_gain: 0.05
