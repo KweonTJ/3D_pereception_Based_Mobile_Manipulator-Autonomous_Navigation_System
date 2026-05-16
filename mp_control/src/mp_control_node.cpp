@@ -957,7 +957,7 @@ private:
       return std::nullopt;
     }
 
-    const tf2::Vector3 object = 0.5 * (front_point + eef_point);
+    const tf2::Vector3 object = (front_point + eef_point) * 0.5;
     if (!std::isfinite(object.x()) || !std::isfinite(object.y()) || !std::isfinite(object.z())) {
       setBlockReason(block_reason, "finite stereo triangulation result");
       return std::nullopt;
