@@ -1544,6 +1544,24 @@ private:
     }
   }
 
+  void rememberReliableDepthObject(const geometry_msgs::msg::PointStamped & object)
+  {
+    if (!std::isfinite(object.point.x) ||
+        !std::isfinite(object.point.y) ||
+        !std::isfinite(object.point.z)) {
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_reliable_depth_object_ = object;
+  }
+
+  std::optional<geometry_msgs::msg::PointStamped> latestReliableDepthObject()
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    return latest_reliable_depth_object_;
+  }
+
   double gripperPositionForGap(double gap_m) const
   {
     const double joint_position =
