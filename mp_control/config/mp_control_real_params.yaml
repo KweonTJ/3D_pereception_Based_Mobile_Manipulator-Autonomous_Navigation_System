@@ -7,6 +7,7 @@ mp_control_node:
     depth_topic: /camera/depth/image_raw
     camera_info_topic: /camera/color/camera_info
     eef_camera_info_topic: /eef_camera/camera_info
+    eef_auto_init_enable_topic: /target/eef_auto_init_enable
 
     twist_topic: /servo_node/delta_twist_cmds
     gripper_action_name: /gripper_controller/gripper_cmd
@@ -61,8 +62,9 @@ mp_control_node:
     eef_camera_fallback_fx: 554.0
     eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
-    arm_start_max_error_m: 0.34
-    arm_start_max_object_x_m: 0.34
+    eef_refinement_start_object_x_m: 0.50
+    arm_start_max_error_m: 0.50
+    arm_start_max_object_x_m: 0.50
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
