@@ -1715,6 +1715,7 @@ private:
   std::string eef_auto_init_enable_topic_;
   std::string base_hold_topic_;
   std::string twist_topic_;
+  std::string arm_trajectory_topic_;
   std::string start_topic_;
   std::string cancel_topic_;
   std::string status_topic_;
@@ -1778,6 +1779,10 @@ private:
   double triangulation_extend_tolerance_m_{0.025};
   double triangulation_extend_gain_{0.7};
   double triangulation_extend_max_speed_{0.015};
+  bool use_joint_trajectory_for_triangulation_extend_{true};
+  std::vector<double> triangulation_extend_joint_positions_{0.0, 0.82, -0.58, -0.24};
+  double triangulation_extend_joint_duration_s_{2.0};
+  double triangulation_extend_joint_settle_s_{0.3};
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
   double triangulation_max_ray_gap_m_{0.08};
@@ -1809,6 +1814,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr arm_trajectory_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_event_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_current_id_pub_;
@@ -1840,6 +1846,8 @@ private:
   bool close_sent_{false};
   bool eef_refinement_requested_{false};
   bool object_pregrasp_horizontal_done_{false};
+  bool triangulation_joint_extend_sent_{false};
+  rclcpp::Time triangulation_joint_extend_stamp_;
   GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
   rclcpp::Time last_status_stamp_;
