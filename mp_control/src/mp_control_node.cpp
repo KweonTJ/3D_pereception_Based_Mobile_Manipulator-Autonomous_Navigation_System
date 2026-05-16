@@ -1381,6 +1381,16 @@ private:
     twist_pub_->publish(stop);
   }
 
+  void publishEefAutoInitEnable(bool enabled)
+  {
+    if (!eef_auto_init_enable_pub_) {
+      return;
+    }
+    std_msgs::msg::Bool msg;
+    msg.data = enabled;
+    eef_auto_init_enable_pub_->publish(msg);
+  }
+
   void publishStatus(const std::string & text, bool force = false)
   {
     const auto stamp = now();
