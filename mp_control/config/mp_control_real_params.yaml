@@ -107,6 +107,10 @@ mp_control_node:
     # camera ranges are negative but otherwise plausible, keep the triangulated
     # point and mark the status as reverse_ranges=true.
     triangulation_accept_reverse_ranges: true
+    triangulation_min_object_x_m: 0.05
+    # If stereo returns a point behind base_link after depth has already reached
+    # the reliable near limit, keep using the last valid front-depth object point.
+    use_latched_depth_point_on_bad_triangulation: true
 
     gripper_open_position: 0.019
     gripper_close_position: -0.010
