@@ -1587,6 +1587,7 @@ private:
   double eef_init_bbox_padding_scale_{1.6};
   double eef_init_bbox_republish_period_s_{0.5};
   double eef_final_depth_m_{0.08};
+  double object_pregrasp_standoff_m_{0.08};
   double eef_center_tolerance_px_{18.0};
   double eef_depth_tolerance_m_{0.018};
   double eef_refine_lateral_gain_{0.8};
