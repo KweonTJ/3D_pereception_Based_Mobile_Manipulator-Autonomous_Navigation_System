@@ -233,6 +233,8 @@ private:
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
     use_depthless_triangulation_ =
       declare_parameter<bool>("use_depthless_triangulation", false);
+    use_eef_stereo_triangulation_ =
+      declare_parameter<bool>("use_eef_stereo_triangulation", false);
     ignore_depth_after_near_reached_ =
       declare_parameter<bool>("ignore_depth_after_near_reached", false);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
@@ -920,6 +922,18 @@ private:
       eef_refinement_requested_ = true;
     }
     publishEefAutoInitEnable(true);
+
+    if (!use_eef_stereo_triangulation_) {
+      auto latched_object = latestReliableDepthObject();
+      if (latched_object) {
+        publishStatus(
+          "using latched depth object for EEF IBVS refinement; stereo triangulation disabled",
+          true);
+        return latched_object;
+      }
+      setBlockReason(block_reason, "latched depth object before EEF IBVS refinement");
+      return std::nullopt;
+    }
 
     if (stage_ != GraspStage::EEF_REFINE &&
         !moveArmToTriangulationPose(eef_tf, command_published)) {
@@ -1837,6 +1851,7 @@ private:
   bool auto_init_eef_tracker_from_object_{true};
   bool allow_eef_camera_info_fallback_{true};
   bool use_depthless_triangulation_{false};
+  bool use_eef_stereo_triangulation_{false};
   bool ignore_depth_after_near_reached_{false};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
