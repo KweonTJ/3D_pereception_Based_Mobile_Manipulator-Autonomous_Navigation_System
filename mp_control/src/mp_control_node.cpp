@@ -437,6 +437,7 @@ private:
       latest_eef_bbox_.reset();
     }
     publishEefAutoInitEnable(false);
+    publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
@@ -462,6 +463,7 @@ private:
       latest_eef_bbox_.reset();
     }
     publishEefAutoInitEnable(false);
+    publishBaseHold(false);
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
     publishStop();
@@ -525,6 +527,7 @@ private:
     if (wait_for_base_approach_ &&
         (forward_err > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
       stable_cycles_ = 0;
+      publishBaseHold(false);
       publishStop();
       std::ostringstream status;
       status << "waiting for base approach before arm motion: goal_x=" << goal_x
@@ -535,21 +538,23 @@ private:
     }
 
     if (use_eef_refinement_ && goal_x <= eef_refinement_start_object_x_m_) {
+      publishBaseHold(true);
+      if (!prepareEefRefinement(object)) {
+        return;
+      }
       bool extension_cmd_published = false;
       if (!moveArmToTriangulationPose(eef_tf, &extension_cmd_published)) {
         return;
       }
-      if (!prepareEefRefinement(object)) {
-        return;
-      }
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
-      publishStatus("arm extended at 50cm; switching to end-effector camera refinement", true);
+      publishStatus("base stopped, depth+EEF ready; arm extended and switching to refinement", true);
       updateEefRefinement(object);
       return;
     }
 
     if (use_eef_refinement_ && err_norm <= eef_refinement_switch_distance_m_) {
+      publishBaseHold(true);
       if (!prepareEefRefinement(object)) {
         return;
       }
