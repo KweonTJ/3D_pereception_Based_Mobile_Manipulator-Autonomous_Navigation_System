@@ -276,21 +276,6 @@ hardware_interface::return_type TurtleBot3ManipulationSystemHardware::write(
   RCLCPP_INFO_ONCE(logger, "Start to write wheels and manipulator commands");
   opencr_->send_heartbeat(heartbeat_++);
 
-  static size_t wheel_command_log_count = 0;
-  if ((wheel_command_log_count++ % 100) == 0 && dxl_wheel_commands_.size() >= 2) {
-    const auto left_linear = dxl_wheel_commands_[0] * opencr::wheels::RADIUS;
-    const auto right_linear = dxl_wheel_commands_[1] * opencr::wheels::RADIUS;
-    const auto linear_x = (right_linear + left_linear) / 2.0;
-    const auto angular_z = (right_linear - left_linear) / opencr::wheels::SEPERATION;
-    RCLCPP_INFO(
-      logger,
-      "wheel cmd debug: left_rad_s=%.6f right_rad_s=%.6f -> opencr linear_x=%.6f angular_z=%.6f",
-      dxl_wheel_commands_[0],
-      dxl_wheel_commands_[1],
-      linear_x,
-      angular_z);
-  }
-
   if (opencr_->set_wheel_velocities(dxl_wheel_commands_) == false) {
     RCLCPP_ERROR(logger, "Can't control wheels");
   }
