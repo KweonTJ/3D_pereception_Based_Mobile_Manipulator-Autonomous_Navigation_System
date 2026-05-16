@@ -1180,6 +1180,10 @@ private:
         setBlockReason(block_reason, "camera info on " + camera_info_topic_);
         return std::nullopt;
       }
+      if (shouldIgnoreFrontDepthLocked()) {
+        setBlockReason(block_reason, "front depth ignored after near object distance reached");
+        return std::nullopt;
+      }
       if (!latest_depth_) {
         setBlockReason(block_reason, "depth image on " + depth_topic_);
         return std::nullopt;
@@ -1207,9 +1211,6 @@ private:
       setBlockReason(block_reason, reason.str());
       return std::nullopt;
     }
-    rememberObjectDepth(*depth_m);
-    rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
-
     geometry_msgs::msg::PointStamped object_camera;
     object_camera.header.stamp = depth->header.stamp;
     object_camera.header.frame_id = camera_frame_override_.empty() ? info.frame_id : camera_frame_override_;
@@ -1218,7 +1219,11 @@ private:
     object_camera.point.y = (v - info.cy) * (*depth_m) / info.fy;
 
     try {
-      return tf_buffer_.transform(object_camera, target_frame_);
+      auto object_target = tf_buffer_.transform(object_camera, target_frame_);
+      const double goal_x = object_target.point.x + grasp_offset_x_;
+      rememberObjectDepth(*depth_m, goal_x);
+      rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
+      return object_target;
     } catch (const tf2::TransformException & ex) {
       setBlockReason(block_reason, "TF from " + object_camera.header.frame_id + " to " + target_frame_);
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "object TF transform failed: %s", ex.what());
