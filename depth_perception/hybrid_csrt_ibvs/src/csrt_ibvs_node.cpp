@@ -78,6 +78,10 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
     init_bbox_topic_, init_bbox_qos,
     [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onInitBbox(msg); });
 
+  base_hold_sub_ = create_subscription<std_msgs::msg::Bool>(
+    base_hold_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local(),
+    [this](const std_msgs::msg::Bool::ConstSharedPtr msg) { onBaseHold(msg); });
+
   tracked_bbox_pub_ =
     create_publisher<std_msgs::msg::Float32MultiArray>(tracked_bbox_topic_, tracked_bbox_qos);
 
@@ -120,6 +124,7 @@ void CsrtIbvsNode::readParameters()
   init_bbox_topic_ = declare_parameter<std::string>("init_bbox_topic", "/target/init_bbox");
   tracked_bbox_topic_ = declare_parameter<std::string>("tracked_bbox_topic", "/target/tracked_bbox");
   cmd_vel_topic_ = declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
+  base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
   arm_twist_topic_ = declare_parameter<std::string>("arm_twist_topic", "/servo_node/delta_twist_cmds");
   arm_command_frame_id_ = declare_parameter<std::string>("arm_command_frame_id", "camera_color_optical_frame");
   debug_image_topic_ = declare_parameter<std::string>("debug_image_topic", "/hybrid_csrt_ibvs/debug_image");
@@ -278,6 +283,18 @@ void CsrtIbvsNode::onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   }
 }
 
+void CsrtIbvsNode::onBaseHold(const std_msgs::msg::Bool::ConstSharedPtr msg)
+{
+  base_hold_active_.store(msg->data);
+  if (msg->data) {
+    publishStop(true);
+    publishStatus("base hold active; publishing zero cmd_vel", true);
+  } else {
+    stop_sent_ = false;
+    publishStatus("base hold released", true);
+  }
+}
+
 void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
 {
   const auto frame_bgr = imageMsgToBgr(msg);
@@ -368,11 +385,15 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
     last_tracked_bbox_ = control_box;
   }
 
-  const auto ibvs = computeIbvsCommand(control_box, frame.size(), stamp);
+  auto ibvs = computeIbvsCommand(control_box, frame.size(), stamp);
+  const bool base_hold = base_hold_active_.load();
+  if (base_hold) {
+    ibvs.base_cmd = geometry_msgs::msg::Twist();
+  }
 
   if (enable_cmd_vel_ && cmd_vel_pub_) {
     cmd_vel_pub_->publish(ibvs.base_cmd);
-    stop_sent_ = false;
+    stop_sent_ = base_hold;
   }
 
   if (enable_arm_twist_ && arm_twist_pub_) {
@@ -405,6 +426,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   }
   status << " vx=" << ibvs.base_cmd.linear.x
          << " wz=" << ibvs.base_cmd.angular.z
+         << " base_hold=" << (base_hold ? "true" : "false")
          << " yaw_enabled=" << (enable_base_yaw_ ? "true" : "false");
   publishStatus(status.str());
 }
