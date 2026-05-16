@@ -522,7 +522,7 @@ private:
     if (!debug_view_pub_ || debug_view_pub_->get_subscription_count() == 0U) return;
     debug_view_buffer_ = color_bgr.clone();
     if (!s) {
-      cv::putText(debug_view_buffer_, "NO TARGET", cv::Point(20, 30), cv::FONT_HERSHEY_SIMPLEX, 0.9, cv::Scalar(0, 0, 255), 2);
+      cv::putText(debug_view_buffer_, "NO TARGET", cv::Point(20, 30), cv::FONT_HERSHEY_SIMPLEX, 0.9, cv::Scalar(0, 0, 0), 2);
       debug_view_pub_->publish(makeBgrImage(header, debug_view_buffer_));
       return;
     }
@@ -538,7 +538,7 @@ private:
     const int ty = std::max(20, s->bbox.y + 20);
     for (std::size_t i = 0; i < lines.size(); ++i) {
       const cv::Point org(tx, ty + static_cast<int>(i) * 20);
-      cv::putText(debug_view_buffer_, lines[i], org, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 3);
+      cv::putText(debug_view_buffer_, lines[i], org, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 3);
       cv::putText(debug_view_buffer_, lines[i], org, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 1);
     }
     debug_view_pub_->publish(makeBgrImage(header, debug_view_buffer_));
