@@ -296,6 +296,10 @@ private:
     triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
     triangulation_accept_reverse_ranges_ =
       declare_parameter<bool>("triangulation_accept_reverse_ranges", true);
+    triangulation_min_object_x_m_ =
+      declare_parameter<double>("triangulation_min_object_x_m", 0.05);
+    use_latched_depth_point_on_bad_triangulation_ =
+      declare_parameter<bool>("use_latched_depth_point_on_bad_triangulation", true);
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
@@ -354,6 +358,7 @@ private:
     triangulation_min_range_m_ = std::max(0.01, triangulation_min_range_m_);
     triangulation_max_range_m_ = std::max(triangulation_min_range_m_, triangulation_max_range_m_);
     triangulation_max_ray_gap_m_ = std::max(0.005, triangulation_max_ray_gap_m_);
+    triangulation_min_object_x_m_ = std::max(-1.0, triangulation_min_object_x_m_);
     cargo_sequence_next_ = std::max(1, cargo_sequence_next_);
     if (gripper_min_position_ > gripper_max_position_) {
       std::swap(gripper_min_position_, gripper_max_position_);
