@@ -443,6 +443,7 @@ private:
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
     }
+    object_pregrasp_horizontal_done_ = false;
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -469,6 +470,7 @@ private:
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
     }
+    object_pregrasp_horizontal_done_ = false;
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     stable_cycles_ = 0;
