@@ -10,6 +10,7 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+from typing import List
 
 
 def generate_launch_description():
@@ -305,7 +306,9 @@ def generate_launch_description():
             "camera_frame_id": eef_camera_frame_id,
             "pixel_format": eef_camera_pixel_format,
             "output_encoding": eef_camera_output_encoding,
-            "image_size": [320, 240],
+            "image_size": ParameterValue(
+                [eef_camera_image_width, eef_camera_image_height],
+                value_type=List[int]),
         }],
         condition=IfCondition(start_eef_camera_driver),
     )
@@ -734,12 +737,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "eef_camera_image_width",
-            default_value="320",
+            default_value="640",
             description="EEF USB camera image width.",
         ),
         DeclareLaunchArgument(
             "eef_camera_image_height",
-            default_value="240",
+            default_value="480",
             description="EEF USB camera image height.",
         ),
         DeclareLaunchArgument(
