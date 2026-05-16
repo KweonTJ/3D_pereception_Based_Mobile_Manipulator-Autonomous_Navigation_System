@@ -1176,8 +1176,16 @@ private:
 
     const double front_range = (b * e - c * d) / denom;
     const double eef_range = (a * e - b * d) / denom;
-    if (front_range < triangulation_min_range_m_ || front_range > triangulation_max_range_m_ ||
-        eef_range < triangulation_min_range_m_ || eef_range > triangulation_max_range_m_) {
+    const auto range_in_bounds = [this](double range) {
+      return range >= triangulation_min_range_m_ && range <= triangulation_max_range_m_;
+    };
+    const bool forward_ranges =
+      range_in_bounds(front_range) && range_in_bounds(eef_range);
+    const bool reverse_ranges =
+      triangulation_accept_reverse_ranges_ &&
+      front_range < 0.0 && eef_range < 0.0 &&
+      range_in_bounds(std::abs(front_range)) && range_in_bounds(std::abs(eef_range));
+    if (!forward_ranges && !reverse_ranges) {
       std::ostringstream reason;
       reason << "triangulation range front=" << front_range << " eef=" << eef_range;
       setBlockReason(block_reason, reason.str());
@@ -1200,7 +1208,7 @@ private:
       return std::nullopt;
     }
 
-    rememberMeasuredObjectWidth(eef_bbox.width * eef_range / eef_info.fx);
+    rememberMeasuredObjectWidth(eef_bbox.width * std::abs(eef_range) / eef_info.fx);
 
     geometry_msgs::msg::PointStamped point;
     point.header.stamp = stamp;
@@ -1212,7 +1220,8 @@ private:
     std::ostringstream status;
     status << "stereo triangulation object=(" << point.point.x << ", "
            << point.point.y << ", " << point.point.z
-           << ") ray_gap=" << ray_gap;
+           << ") ray_gap=" << ray_gap
+           << " reverse_ranges=" << (reverse_ranges ? "true" : "false");
     publishStatus(status.str());
     return point;
   }
