@@ -1643,6 +1643,7 @@ private:
   bool auto_init_eef_tracker_from_object_{true};
   bool allow_eef_camera_info_fallback_{true};
   bool use_depthless_triangulation_{false};
+  bool ignore_depth_after_near_reached_{false};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -1734,6 +1735,8 @@ private:
   std::optional<double> latest_object_width_m_;
   std::optional<double> latest_object_depth_m_;
   rclcpp::Time latest_object_depth_stamp_;
+  bool near_object_distance_reached_{false};
+  std::optional<double> nearest_object_goal_x_m_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
 
   bool active_{false};

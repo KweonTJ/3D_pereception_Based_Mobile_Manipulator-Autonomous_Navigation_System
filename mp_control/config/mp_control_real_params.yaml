@@ -37,6 +37,7 @@ mp_control_node:
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
     use_depthless_triangulation: true
+    ignore_depth_after_near_reached: true
 
     command_rate_hz: 20.0
     max_target_age_s: 2.0
