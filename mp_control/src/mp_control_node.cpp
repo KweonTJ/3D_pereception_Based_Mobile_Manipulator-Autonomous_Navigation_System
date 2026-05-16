@@ -183,6 +183,8 @@ private:
     depth_topic_ = declare_parameter<std::string>("depth_topic", "/camera/depth/image_raw");
     camera_info_topic_ = declare_parameter<std::string>("camera_info_topic", "/camera/color/camera_info");
     eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
+    eef_auto_init_enable_topic_ =
+      declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
     twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
     start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
@@ -234,6 +236,8 @@ private:
     grasp_offset_y_ = declare_parameter<double>("grasp_offset_y", 0.0);
     grasp_offset_z_ = declare_parameter<double>("grasp_offset_z", 0.0);
     eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
+    eef_refinement_start_object_x_m_ =
+      declare_parameter<double>("eef_refinement_start_object_x_m", 0.50);
     arm_start_max_error_m_ = declare_parameter<double>("arm_start_max_error_m", 0.40);
     arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.60);
     object_height_m_ = declare_parameter<double>("object_height_m", 0.10);
@@ -284,6 +288,7 @@ private:
     close_after_stable_cycles_ = std::max(1, close_after_stable_cycles_);
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
+    eef_refinement_start_object_x_m_ = std::max(0.01, eef_refinement_start_object_x_m_);
     arm_start_max_error_m_ = std::max(0.05, arm_start_max_error_m_);
     arm_start_max_object_x_m_ = std::max(0.05, arm_start_max_object_x_m_);
     object_height_m_ = std::max(0.01, object_height_m_);
