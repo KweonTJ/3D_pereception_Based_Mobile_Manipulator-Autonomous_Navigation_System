@@ -1461,6 +1461,7 @@ private:
   std::string depth_topic_;
   std::string camera_info_topic_;
   std::string eef_camera_info_topic_;
+  std::string eef_auto_init_enable_topic_;
   std::string twist_topic_;
   std::string start_topic_;
   std::string cancel_topic_;
@@ -1499,6 +1500,7 @@ private:
   double grasp_offset_y_{0.0};
   double grasp_offset_z_{0.0};
   double eef_refinement_switch_distance_m_{0.12};
+  double eef_refinement_start_object_x_m_{0.50};
   double arm_start_max_error_m_{0.40};
   double arm_start_max_object_x_m_{0.60};
   double object_height_m_{0.10};
@@ -1553,6 +1555,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_event_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_current_id_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr eef_init_bbox_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr eef_auto_init_enable_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
   rclcpp::TimerBase::SharedPtr timer_;
