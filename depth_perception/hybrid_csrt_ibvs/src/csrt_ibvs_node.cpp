@@ -630,6 +630,7 @@ void CsrtIbvsNode::resetTracker()
   pending_init_bbox_.reset();
   last_tracked_bbox_.reset();
   detector_reference_bbox_.reset();
+  last_detector_bbox_stamp_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
 }
 
 const char * CsrtIbvsNode::trackerBackendName() const
@@ -659,20 +660,34 @@ std::optional<cv::Rect> CsrtIbvsNode::sanitizeBox(const cv::Rect & bbox, const c
 
 cv::Rect CsrtIbvsNode::stabilizeTrackedBox(
   const cv::Rect & tracker_bbox,
-  const cv::Size & image_size) const
+  const cv::Size & image_size,
+  const rclcpp::Time & current_time) const
 {
   if (!lock_tracked_bbox_size_) {
     return tracker_bbox;
   }
 
   std::optional<cv::Rect> detector_reference;
+  rclcpp::Time detector_stamp(0, 0, get_clock()->get_clock_type());
   {
     std::lock_guard<std::mutex> lock(bbox_mutex_);
     detector_reference = detector_reference_bbox_;
+    detector_stamp = last_detector_bbox_stamp_;
   }
 
   if (!detector_reference) {
     return tracker_bbox;
+  }
+
+  if (
+    detector_bbox_override_timeout_s_ > 0.0 &&
+    detector_stamp.nanoseconds() != 0 &&
+    (current_time - detector_stamp).seconds() <= detector_bbox_override_timeout_s_)
+  {
+    const auto detector_box = sanitizeBox(*detector_reference, image_size);
+    if (detector_box) {
+      return *detector_box;
+    }
   }
 
   const int width = clampValue(detector_reference->width, min_bbox_size_px_, image_size.width);
