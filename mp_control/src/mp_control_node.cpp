@@ -610,6 +610,7 @@ private:
       }
       eef_bbox = latest_eef_bbox_;
     }
+    publishEefAutoInitEnable(true);
 
     if (eef_bbox && (now() - eef_bbox->stamp).seconds() <= max_target_age_s_) {
       return true;
