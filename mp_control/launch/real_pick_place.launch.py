@@ -293,9 +293,9 @@ def generate_launch_description():
             "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
             "yolo_class_name": auto_init_yolo_class_name,
             "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
-            "yolo_lock_target": False,
-            "continuous_publish": True,
-            "continuous_publish_period_s": 0.25,
+            "yolo_lock_target": True,
+            "continuous_publish": False,
+            "continuous_publish_period_s": 0.5,
             "reuse_last_bbox_on_loss": False,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
@@ -427,8 +427,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_eef_tracker",
-            default_value="false",
-            description="Launch the EEF CSRT tracker. Disabled by default because EEF YOLO publishes the control bbox directly.",
+            default_value="true",
+            description="Launch the EEF CSRT tracker for near-field refinement.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -671,8 +671,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
-            default_value="true",
-            description="Auto-detect the target from the EEF camera when front depth is unavailable for stereo triangulation.",
+            default_value="false",
+            description="Optional EEF camera auto bbox detector. Disabled by default; mp_control projects /target/eef_init_bbox for the EEF CSRT tracker.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_start_delay",
@@ -696,8 +696,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_publish_tracked_bbox",
-            default_value="true",
-            description="Publish EEF YOLO detections directly to the EEF tracked bbox topic.",
+            default_value="false",
+            description="Publish EEF auto detections directly to the EEF tracked bbox topic.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_status_topic",
@@ -706,7 +706,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_color_mode",
-            default_value="yolo",
+            default_value="black",
             description="Target appearance to detect from the EEF RGB camera.",
         ),
         DeclareLaunchArgument(
