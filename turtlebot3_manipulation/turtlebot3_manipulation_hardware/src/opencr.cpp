@@ -228,10 +228,11 @@ bool OpenCR::set_wheel_velocities(const std::vector<double> & velocities)
     uint8_t byte[6 * 4];
   } data;
 
-  double left_wheel_velocity = velocities[0] * opencr::wheels::RADIUS;
-  // ros2_control reports the right wheel joint in the opposite rotational
-  // direction from the OpenCR base twist convention.
-  double right_wheel_velocity = -velocities[1] * opencr::wheels::RADIUS;
+  // ros2_control wheel joint signs are opposite to the OpenCR base twist
+  // convention for the left side. The right side already matches after
+  // converting from joint velocity to robot-forward linear speed.
+  double left_wheel_velocity = -velocities[0] * opencr::wheels::RADIUS;
+  double right_wheel_velocity = velocities[1] * opencr::wheels::RADIUS;
 
   double linear_velocity_x = (right_wheel_velocity + left_wheel_velocity) / 2.0;
   double angular_velocity_z =
