@@ -89,6 +89,11 @@
     <disable_collisions link1="gripper_left_link" link2="link5" reason="Adjacent"/>
     <disable_collisions link1="gripper_right_link" link2="link4" reason="Never"/>
     <disable_collisions link1="gripper_right_link" link2="link5" reason="Adjacent"/>
+    <disable_collisions link1="eef_usb_camera_link" link2="end_effector_link" reason="Attached"/>
+    <disable_collisions link1="eef_usb_camera_link" link2="gripper_left_link" reason="Attached"/>
+    <disable_collisions link1="eef_usb_camera_link" link2="gripper_right_link" reason="Attached"/>
+    <disable_collisions link1="eef_usb_camera_link" link2="link4" reason="Attached"/>
+    <disable_collisions link1="eef_usb_camera_link" link2="link5" reason="Attached"/>
     <disable_collisions link1="link1" link2="link2" reason="Adjacent"/>
     <disable_collisions link1="link1" link2="link3" reason="Never"/>
     <disable_collisions link1="link1" link2="wheel_left_link" reason="Never"/>
