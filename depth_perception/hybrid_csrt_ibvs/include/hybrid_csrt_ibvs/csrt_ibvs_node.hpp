@@ -70,7 +70,10 @@ private:
   std::optional<cv::Mat> imageMsgToBgr(const sensor_msgs::msg::Image::ConstSharedPtr & msg);
   std::optional<cv::Mat> depthMsgToBgr(const sensor_msgs::msg::Image::ConstSharedPtr & msg);
   std::optional<cv::Rect> sanitizeBox(const cv::Rect & bbox, const cv::Size & image_size) const;
-  cv::Rect stabilizeTrackedBox(const cv::Rect & tracker_bbox, const cv::Size & image_size) const;
+  cv::Rect stabilizeTrackedBox(
+    const cv::Rect & tracker_bbox,
+    const cv::Size & image_size,
+    const rclcpp::Time & current_time) const;
   IbvsResult computeIbvsCommand(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp);
   std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
   std::optional<double> pixelToMeters(const cv::Mat & depth, const std::string & encoding, int row, int col) const;
@@ -112,6 +115,7 @@ private:
   bool reinitialize_while_tracking_{false};
   bool accept_detector_bbox_while_tracking_{true};
   bool lock_tracked_bbox_size_{true};
+  double detector_bbox_override_timeout_s_{0.75};
   bool force_straight_approach_{false};
   bool enable_base_yaw_{false};
   double reinit_min_iou_{0.02};
@@ -177,6 +181,7 @@ private:
   int lost_count_{0};
   rclcpp::Time last_track_stamp_;
   rclcpp::Time last_status_stamp_;
+  rclcpp::Time last_detector_bbox_stamp_;
   bool stop_sent_{true};
 
   mutable std::mutex bbox_mutex_;
