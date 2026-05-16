@@ -741,8 +741,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
 
   double angular_z = 0.0;
   if (std::abs(result.x_error_norm) > x_deadband_norm_) {
-    // Camera x increases to the right. Positive ROS base yaw turns left, so the sign is negative.
-    angular_z = -yaw_gain_ * result.x_error_norm;
+    // Match the TurtleBot3 manipulation base command convention: positive
+    // image x error should rotate toward the target in the real robot frame.
+    angular_z = yaw_gain_ * result.x_error_norm;
   }
 
   double linear_x = 0.0;
