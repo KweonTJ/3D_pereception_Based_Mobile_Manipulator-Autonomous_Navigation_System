@@ -463,20 +463,29 @@ private:
       return;
     }
 
-    std::string object_block_reason;
-    const auto maybe_object = estimateObjectPoint(&object_block_reason);
-    if (!maybe_object) {
-      publishStop();
-      publishStatus("waiting for " + object_block_reason);
-      return;
-    }
-
     geometry_msgs::msg::TransformStamped eef_tf;
     try {
       eef_tf = tf_buffer_.lookupTransform(target_frame_, end_effector_frame_, tf2::TimePointZero);
     } catch (const tf2::TransformException & ex) {
       publishStop();
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "end-effector TF unavailable: %s", ex.what());
+      return;
+    }
+
+    std::string object_block_reason;
+    auto maybe_object = estimateObjectPoint(&object_block_reason);
+    bool command_published = false;
+    if (!maybe_object && use_depthless_triangulation_ &&
+        isDepthUnavailableReason(object_block_reason)) {
+      maybe_object = estimateObjectPointByTriangulation(
+        eef_tf, &object_block_reason, &command_published);
+    }
+
+    if (!maybe_object) {
+      if (!command_published) {
+        publishStop();
+      }
+      publishStatus("waiting for " + object_block_reason);
       return;
     }
 
