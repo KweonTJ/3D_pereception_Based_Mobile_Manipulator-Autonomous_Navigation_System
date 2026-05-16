@@ -103,6 +103,10 @@ mp_control_node:
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
+    # Some camera TFs report the optical ray in the opposite direction. If both
+    # camera ranges are negative but otherwise plausible, keep the triangulated
+    # point and mark the status as reverse_ranges=true.
+    triangulation_accept_reverse_ranges: true
 
     gripper_open_position: 0.019
     gripper_close_position: -0.010

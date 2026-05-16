@@ -1797,6 +1797,7 @@ private:
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
   double triangulation_max_ray_gap_m_{0.08};
+  bool triangulation_accept_reverse_ranges_{true};
   int eef_camera_fallback_width_px_{320};
   int eef_camera_fallback_height_px_{240};
   double eef_camera_fallback_fx_{277.0};
