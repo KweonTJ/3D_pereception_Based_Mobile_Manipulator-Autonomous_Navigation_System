@@ -255,6 +255,7 @@ private:
       declare_parameter<double>("eef_init_bbox_republish_period_s", 0.5);
     eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
     object_pregrasp_standoff_m_ = declare_parameter<double>("object_pregrasp_standoff_m", 0.08);
+    object_pregrasp_min_z_m_ = declare_parameter<double>("object_pregrasp_min_z_m", 0.50);
     eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
     eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
@@ -307,6 +308,7 @@ private:
     eef_init_bbox_republish_period_s_ = std::max(0.1, eef_init_bbox_republish_period_s_);
     eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
     object_pregrasp_standoff_m_ = std::max(0.0, object_pregrasp_standoff_m_);
+    object_pregrasp_min_z_m_ = std::max(0.0, object_pregrasp_min_z_m_);
     eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
@@ -879,7 +881,9 @@ private:
   {
     const double target_x = object_in_target.point.x - object_pregrasp_standoff_m_ + grasp_offset_x_;
     const double target_y = object_in_target.point.y + grasp_offset_y_;
-    const double target_z = object_in_target.point.z + grasp_offset_z_;
+    const double target_z = std::max(
+      object_in_target.point.z + grasp_offset_z_,
+      object_pregrasp_min_z_m_);
 
     const double eef_x = eef_tf.transform.translation.x;
     const double eef_y = eef_tf.transform.translation.y;
@@ -1618,6 +1622,7 @@ private:
   double eef_init_bbox_republish_period_s_{0.5};
   double eef_final_depth_m_{0.08};
   double object_pregrasp_standoff_m_{0.08};
+  double object_pregrasp_min_z_m_{0.50};
   double eef_center_tolerance_px_{18.0};
   double eef_depth_tolerance_m_{0.018};
   double eef_refine_lateral_gain_{0.8};
