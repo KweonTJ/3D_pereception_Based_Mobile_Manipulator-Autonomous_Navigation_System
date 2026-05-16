@@ -480,6 +480,7 @@ private:
       latest_eef_bbox_.reset();
       near_object_distance_reached_ = false;
       nearest_object_goal_x_m_.reset();
+      latest_reliable_depth_object_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
     triangulation_joint_extend_sent_ = false;
@@ -511,6 +512,7 @@ private:
       latest_eef_bbox_.reset();
       near_object_distance_reached_ = false;
       nearest_object_goal_x_m_.reset();
+      latest_reliable_depth_object_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
     triangulation_joint_extend_sent_ = false;
