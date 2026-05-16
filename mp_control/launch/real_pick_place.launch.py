@@ -281,6 +281,11 @@ def generate_launch_description():
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
+            "yolo_model_path": auto_init_yolo_model_path,
+            "yolo_confidence": ParameterValue(auto_init_yolo_confidence, value_type=float),
+            "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
+            "yolo_class_name": auto_init_yolo_class_name,
+            "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
             "continuous_publish": False,
             "continuous_publish_period_s": 0.5,
         }],
@@ -657,8 +662,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
-            default_value="false",
-            description="Keep false for real grasp: the EEF camera is initialized only from the front-Astra object projection.",
+            default_value="true",
+            description="Auto-detect the target from the EEF camera when front depth is unavailable for stereo triangulation.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_start_delay",
@@ -682,7 +687,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_color_mode",
-            default_value="black",
+            default_value="yolo",
             description="Target appearance to detect from the EEF RGB camera.",
         ),
         DeclareLaunchArgument(
