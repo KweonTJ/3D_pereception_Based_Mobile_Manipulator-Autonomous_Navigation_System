@@ -109,6 +109,8 @@ public:
       create_publisher<std_msgs::msg::String>(cargo_current_id_topic_, current_id_qos);
     eef_init_bbox_pub_ =
       create_publisher<std_msgs::msg::Float32MultiArray>(eef_init_bbox_topic_, init_bbox_qos);
+    eef_auto_init_enable_pub_ =
+      create_publisher<std_msgs::msg::Bool>(eef_auto_init_enable_topic_, init_bbox_qos);
     gripper_client_ = rclcpp_action::create_client<GripperCommand>(this, gripper_action_name_);
     servo_start_client_ = create_client<Trigger>("/servo_node/start_servo");
 
