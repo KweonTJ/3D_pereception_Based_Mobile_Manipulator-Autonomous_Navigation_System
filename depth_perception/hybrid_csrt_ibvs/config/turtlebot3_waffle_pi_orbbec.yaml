@@ -60,7 +60,7 @@ csrt_ibvs_node:
     area_deadband_ratio: 0.01
     approach_yaw_gate_norm: 0.0
     straight_approach_depth_m: 1.20
-    min_forward_approach_x: 0.045
+    min_forward_approach_x: 0.10
     max_linear_x: 0.10
     max_angular_z: 0.0
 
