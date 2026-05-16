@@ -294,6 +294,8 @@ private:
     triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
     triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
     triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
+    triangulation_accept_reverse_ranges_ =
+      declare_parameter<bool>("triangulation_accept_reverse_ranges", true);
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
