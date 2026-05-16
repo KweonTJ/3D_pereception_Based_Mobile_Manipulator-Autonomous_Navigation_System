@@ -63,9 +63,9 @@ mp_control_node:
     eef_camera_fallback_fx: 554.0
     eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
-    eef_refinement_start_object_x_m: 0.50
-    arm_start_max_error_m: 0.50
-    arm_start_max_object_x_m: 0.50
+    eef_refinement_start_object_x_m: 0.40
+    arm_start_max_error_m: 0.40
+    arm_start_max_object_x_m: 0.40
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
@@ -79,7 +79,7 @@ mp_control_node:
     eef_refine_max_linear_speed: 0.012
     triangulation_extend_x_m: 0.25
     triangulation_extend_y_m: 0.0
-    triangulation_extend_z_m: 0.12
+    triangulation_extend_z_m: 0.50
     triangulation_extend_tolerance_m: 0.025
     triangulation_extend_gain: 0.7
     triangulation_extend_max_speed: 0.015
