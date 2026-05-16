@@ -1215,6 +1215,23 @@ private:
       return std::nullopt;
     }
 
+    if (object.x() < triangulation_min_object_x_m_) {
+      auto latched_object = latestReliableDepthObject();
+      if (use_latched_depth_point_on_bad_triangulation_ && latched_object) {
+        std::ostringstream status;
+        status << "stereo triangulation object behind base_link x=" << object.x()
+               << "; using latched depth object=(" << latched_object->point.x << ", "
+               << latched_object->point.y << ", " << latched_object->point.z << ")";
+        publishStatus(status.str(), true);
+        return latched_object;
+      }
+
+      std::ostringstream reason;
+      reason << "plausible forward stereo triangulation object x=" << object.x();
+      setBlockReason(block_reason, reason.str());
+      return std::nullopt;
+    }
+
     rememberMeasuredObjectWidth(eef_bbox.width * std::abs(eef_range) / eef_info.fx);
 
     geometry_msgs::msg::PointStamped point;
