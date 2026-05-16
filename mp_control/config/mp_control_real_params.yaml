@@ -63,9 +63,10 @@ mp_control_node:
     eef_camera_fallback_fx: 554.0
     eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
-    eef_refinement_start_object_x_m: 0.40
-    arm_start_max_error_m: 0.40
-    arm_start_max_object_x_m: 0.40
+    eef_refinement_start_depth_m: 0.47
+    eef_refinement_start_object_x_m: 0.47
+    arm_start_max_error_m: 0.47
+    arm_start_max_object_x_m: 0.47
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
