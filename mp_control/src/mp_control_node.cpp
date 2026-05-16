@@ -1841,6 +1841,8 @@ private:
   double triangulation_max_range_m_{1.0};
   double triangulation_max_ray_gap_m_{0.08};
   bool triangulation_accept_reverse_ranges_{true};
+  double triangulation_min_object_x_m_{0.05};
+  bool use_latched_depth_point_on_bad_triangulation_{true};
   int eef_camera_fallback_width_px_{320};
   int eef_camera_fallback_height_px_{240};
   double eef_camera_fallback_fx_{277.0};
@@ -1893,6 +1895,7 @@ private:
   rclcpp::Time latest_object_depth_stamp_;
   bool near_object_distance_reached_{false};
   std::optional<double> nearest_object_goal_x_m_;
+  std::optional<geometry_msgs::msg::PointStamped> latest_reliable_depth_object_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
 
   bool active_{false};
