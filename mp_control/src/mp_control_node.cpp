@@ -1399,6 +1399,16 @@ private:
     eef_auto_init_enable_pub_->publish(msg);
   }
 
+  void publishBaseHold(bool enabled)
+  {
+    if (!base_hold_pub_) {
+      return;
+    }
+    std_msgs::msg::Bool msg;
+    msg.data = enabled;
+    base_hold_pub_->publish(msg);
+  }
+
   void publishStatus(const std::string & text, bool force = false)
   {
     const auto stamp = now();
@@ -1470,6 +1480,7 @@ private:
   std::string camera_info_topic_;
   std::string eef_camera_info_topic_;
   std::string eef_auto_init_enable_topic_;
+  std::string base_hold_topic_;
   std::string twist_topic_;
   std::string start_topic_;
   std::string cancel_topic_;
@@ -1564,6 +1575,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_current_id_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr eef_init_bbox_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr eef_auto_init_enable_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr base_hold_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
   rclcpp::TimerBase::SharedPtr timer_;
