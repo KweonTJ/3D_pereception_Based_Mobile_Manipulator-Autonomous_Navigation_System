@@ -1112,8 +1112,10 @@ private:
     Bbox eef_bbox;
     CameraInfo front_info;
     CameraInfo eef_info;
+    std::optional<geometry_msgs::msg::PointStamped> latched_depth_object;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
+      latched_depth_object = latest_reliable_depth_object_;
       if (!latest_bbox_) {
         setBlockReason(block_reason, bboxInputDescription());
         return std::nullopt;
@@ -1123,6 +1125,16 @@ private:
         return std::nullopt;
       }
       if (!latest_eef_bbox_) {
+        if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
+          std::ostringstream status;
+          status << "using latched depth object while waiting for end-effector bbox for "
+                    "stereo triangulation=("
+                 << latched_depth_object->point.x << ", "
+                 << latched_depth_object->point.y << ", "
+                 << latched_depth_object->point.z << ")";
+          publishStatus(status.str(), true);
+          return latched_depth_object;
+        }
         setBlockReason(block_reason, "end-effector bbox for stereo triangulation");
         return std::nullopt;
       }
@@ -1147,6 +1159,16 @@ private:
       return std::nullopt;
     }
     if ((stamp - eef_bbox.stamp).seconds() > max_target_age_s_) {
+      if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
+        std::ostringstream status;
+        status << "using latched depth object while end-effector bbox is stale for "
+                  "stereo triangulation=("
+               << latched_depth_object->point.x << ", "
+               << latched_depth_object->point.y << ", "
+               << latched_depth_object->point.z << ")";
+        publishStatus(status.str(), true);
+        return latched_depth_object;
+      }
       setBlockReason(block_reason, "fresh end-effector bbox for stereo triangulation");
       return std::nullopt;
     }
