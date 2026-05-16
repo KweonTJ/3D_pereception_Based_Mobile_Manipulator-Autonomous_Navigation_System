@@ -77,6 +77,7 @@ mp_control_node:
     eef_init_bbox_republish_period_s: 0.5
     eef_final_depth_m: 0.08
     object_pregrasp_standoff_m: 0.08
+    object_pregrasp_min_z_m: 0.50
     eef_center_tolerance_px: 18.0
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
