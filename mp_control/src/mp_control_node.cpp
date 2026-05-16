@@ -218,6 +218,8 @@ private:
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
     auto_init_eef_tracker_from_object_ =
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
+    use_depthless_triangulation_ =
+      declare_parameter<bool>("use_depthless_triangulation", false);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -246,6 +248,17 @@ private:
     eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
     eef_refine_depth_gain_ = declare_parameter<double>("eef_refine_depth_gain", 0.5);
     eef_refine_max_linear_speed_ = declare_parameter<double>("eef_refine_max_linear_speed", 0.012);
+    triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
+    triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
+    triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
+    triangulation_extend_tolerance_m_ =
+      declare_parameter<double>("triangulation_extend_tolerance_m", 0.025);
+    triangulation_extend_gain_ = declare_parameter<double>("triangulation_extend_gain", 0.7);
+    triangulation_extend_max_speed_ =
+      declare_parameter<double>("triangulation_extend_max_speed", 0.015);
+    triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
+    triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
+    triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
@@ -282,6 +295,12 @@ private:
     eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
+    triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
+    triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
+    triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
+    triangulation_min_range_m_ = std::max(0.01, triangulation_min_range_m_);
+    triangulation_max_range_m_ = std::max(triangulation_min_range_m_, triangulation_max_range_m_);
+    triangulation_max_ray_gap_m_ = std::max(0.005, triangulation_max_ray_gap_m_);
     cargo_sequence_next_ = std::max(1, cargo_sequence_next_);
     if (gripper_min_position_ > gripper_max_position_) {
       std::swap(gripper_min_position_, gripper_max_position_);
