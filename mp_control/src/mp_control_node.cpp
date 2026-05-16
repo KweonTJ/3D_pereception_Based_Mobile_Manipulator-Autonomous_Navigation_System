@@ -187,6 +187,7 @@ private:
     eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
     eef_auto_init_enable_topic_ =
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
+    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
     twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
     start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
