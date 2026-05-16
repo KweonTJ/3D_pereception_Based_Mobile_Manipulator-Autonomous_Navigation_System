@@ -493,6 +493,7 @@ private:
     bool command_published = false;
     if (!maybe_object && use_depthless_triangulation_ &&
         isDepthUnavailableReason(object_block_reason)) {
+      publishBaseHold(true);
       maybe_object = estimateObjectPointByTriangulation(
         eef_tf, &object_block_reason, &command_published);
     }
@@ -842,17 +843,17 @@ private:
     std::string * block_reason,
     bool * command_published)
   {
-    if (stage_ != GraspStage::EEF_REFINE &&
-        !moveArmToTriangulationPose(eef_tf, command_published)) {
-      setBlockReason(block_reason, "arm extension for stereo triangulation");
-      return std::nullopt;
-    }
-
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = true;
     }
     publishEefAutoInitEnable(true);
+
+    if (stage_ != GraspStage::EEF_REFINE &&
+        !moveArmToTriangulationPose(eef_tf, command_published)) {
+      setBlockReason(block_reason, "arm extension for stereo triangulation");
+      return std::nullopt;
+    }
 
     return triangulateObjectPoint(block_reason);
   }
@@ -1154,7 +1155,10 @@ private:
       depth_m = medianDepthAt(*depth, info, u, v);
     }
     if (!depth_m) {
-      setBlockReason(block_reason, "valid depth inside bbox");
+      std::ostringstream reason;
+      reason << "valid depth inside bbox in ["
+             << min_valid_depth_m_ << ", " << max_valid_depth_m_ << "] m";
+      setBlockReason(block_reason, reason.str());
       return std::nullopt;
     }
     rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
