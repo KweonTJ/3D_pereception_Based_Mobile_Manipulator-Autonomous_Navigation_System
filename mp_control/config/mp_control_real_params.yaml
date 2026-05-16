@@ -36,7 +36,7 @@ mp_control_node:
     use_eef_refinement: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
-    use_depthless_triangulation: false
+    use_depthless_triangulation: true
 
     command_rate_hz: 20.0
     max_target_age_s: 2.0
@@ -47,7 +47,7 @@ mp_control_node:
 
     depth_roi_radius_px: 5
     depth_unit_scale: 0.001
-    min_valid_depth_m: 0.12
+    min_valid_depth_m: 0.47
     max_valid_depth_m: 1.0
 
     # Offset is applied in target_frame after the camera point is transformed.
