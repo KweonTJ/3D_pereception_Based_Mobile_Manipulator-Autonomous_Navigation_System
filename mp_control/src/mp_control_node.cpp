@@ -246,9 +246,9 @@ private:
     eef_refinement_start_depth_m_ =
       declare_parameter<double>("eef_refinement_start_depth_m", min_valid_depth_m_);
     eef_refinement_start_object_x_m_ =
-      declare_parameter<double>("eef_refinement_start_object_x_m", 0.50);
+      declare_parameter<double>("eef_refinement_start_object_x_m", 0.55);
     arm_start_max_error_m_ = declare_parameter<double>("arm_start_max_error_m", 0.40);
-    arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.60);
+    arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.55);
     object_height_m_ = declare_parameter<double>("object_height_m", 0.10);
     eef_init_bbox_min_size_px_ = declare_parameter<double>("eef_init_bbox_min_size_px", 32.0);
     eef_init_bbox_max_size_px_ = declare_parameter<double>("eef_init_bbox_max_size_px", 180.0);
@@ -1659,9 +1659,9 @@ private:
   double grasp_offset_z_{0.0};
   double eef_refinement_switch_distance_m_{0.12};
   double eef_refinement_start_depth_m_{0.47};
-  double eef_refinement_start_object_x_m_{0.50};
+  double eef_refinement_start_object_x_m_{0.55};
   double arm_start_max_error_m_{0.40};
-  double arm_start_max_object_x_m_{0.60};
+  double arm_start_max_object_x_m_{0.55};
   double object_height_m_{0.10};
   double eef_init_bbox_min_size_px_{32.0};
   double eef_init_bbox_max_size_px_{180.0};
