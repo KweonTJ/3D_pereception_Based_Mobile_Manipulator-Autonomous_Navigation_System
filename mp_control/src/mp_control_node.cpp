@@ -1351,6 +1351,7 @@ private:
     try {
       auto object_target = tf_buffer_.transform(object_camera, target_frame_);
       const double goal_x = object_target.point.x + grasp_offset_x_;
+      rememberReliableDepthObject(object_target);
       rememberObjectDepth(*depth_m, goal_x);
       rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
       return object_target;
