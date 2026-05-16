@@ -208,11 +208,11 @@ private:
     allow_eef_camera_info_fallback_ =
       declare_parameter<bool>("allow_eef_camera_info_fallback", true);
     eef_camera_fallback_width_px_ =
-      declare_parameter<int>("eef_camera_fallback_width_px", 640);
+      declare_parameter<int>("eef_camera_fallback_width_px", 320);
     eef_camera_fallback_height_px_ =
-      declare_parameter<int>("eef_camera_fallback_height_px", 480);
-    eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 554.0);
-    eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 554.0);
+      declare_parameter<int>("eef_camera_fallback_height_px", 240);
+    eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 277.0);
+    eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 277.0);
 
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
@@ -1686,10 +1686,10 @@ private:
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
   double triangulation_max_ray_gap_m_{0.08};
-  int eef_camera_fallback_width_px_{640};
-  int eef_camera_fallback_height_px_{480};
-  double eef_camera_fallback_fx_{554.0};
-  double eef_camera_fallback_fy_{554.0};
+  int eef_camera_fallback_width_px_{320};
+  int eef_camera_fallback_height_px_{240};
+  double eef_camera_fallback_fx_{277.0};
+  double eef_camera_fallback_fy_{277.0};
   double gripper_open_position_{0.025};
   double gripper_close_position_{-0.015};
   double gripper_max_effort_{-1.0};
