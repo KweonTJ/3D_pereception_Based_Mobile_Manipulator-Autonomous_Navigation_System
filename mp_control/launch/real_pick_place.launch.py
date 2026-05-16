@@ -252,6 +252,8 @@ def generate_launch_description():
             "image_topic": auto_eef_init_bbox_image_topic,
             "bbox_topic": auto_eef_init_bbox_topic,
             "status_topic": auto_eef_init_bbox_status_topic,
+            "enable_topic": "/target/eef_auto_init_enable",
+            "start_enabled": False,
             "color_mode": auto_eef_init_color_mode,
             "min_mask_pixels": ParameterValue(auto_eef_init_min_mask_pixels, value_type=int),
             "min_bbox_width_px": ParameterValue(auto_eef_init_min_bbox_width_px, value_type=float),

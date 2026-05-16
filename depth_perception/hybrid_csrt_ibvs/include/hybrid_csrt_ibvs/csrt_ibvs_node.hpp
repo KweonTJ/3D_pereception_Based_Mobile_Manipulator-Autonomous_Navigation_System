@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <optional>
@@ -12,6 +13,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 
@@ -59,6 +61,7 @@ private:
   void onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg);
   void onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg);
   void onInitBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg);
+  void onBaseHold(const std_msgs::msg::Bool::ConstSharedPtr msg);
   void watchdog();
 
   void readParameters();
@@ -99,6 +102,7 @@ private:
   std::string init_bbox_topic_;
   std::string tracked_bbox_topic_;
   std::string cmd_vel_topic_;
+  std::string base_hold_topic_;
   std::string arm_twist_topic_;
   std::string debug_image_topic_;
   std::string status_topic_;
@@ -162,6 +166,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr init_bbox_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr base_hold_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr arm_twist_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr debug_image_pub_;
@@ -183,6 +188,7 @@ private:
   rclcpp::Time last_status_stamp_;
   rclcpp::Time last_detector_bbox_stamp_;
   bool stop_sent_{true};
+  std::atomic_bool base_hold_active_{false};
 
   mutable std::mutex bbox_mutex_;
   std::optional<cv::Rect> pending_init_bbox_;
