@@ -825,16 +825,17 @@ private:
     std::string * block_reason,
     bool * command_published)
   {
-    {
-      std::lock_guard<std::mutex> lock(data_mutex_);
-      eef_refinement_requested_ = true;
-    }
-
     if (stage_ != GraspStage::EEF_REFINE &&
         !moveArmToTriangulationPose(eef_tf, command_published)) {
       setBlockReason(block_reason, "arm extension for stereo triangulation");
       return std::nullopt;
     }
+
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      eef_refinement_requested_ = true;
+    }
+    publishEefAutoInitEnable(true);
 
     return triangulateObjectPoint(block_reason);
   }
