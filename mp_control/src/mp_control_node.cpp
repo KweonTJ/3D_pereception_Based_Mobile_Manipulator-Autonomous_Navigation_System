@@ -537,12 +537,12 @@ private:
         return;
       }
       bool extension_cmd_published = false;
-      if (!moveArmToTriangulationPose(eef_tf, &extension_cmd_published)) {
+      if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
         return;
       }
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
-      publishStatus("base stopped, depth+EEF ready; arm extended and switching to refinement", true);
+      publishStatus("base stopped, depth+EEF ready; arm extended toward object and switching to refinement", true);
       updateEefRefinement(object);
       return;
     }
