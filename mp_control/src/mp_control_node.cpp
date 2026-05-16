@@ -1216,6 +1216,17 @@ private:
       front_range < 0.0 && eef_range < 0.0 &&
       range_in_bounds(std::abs(front_range)) && range_in_bounds(std::abs(eef_range));
     if (!forward_ranges && !reverse_ranges) {
+      if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
+        std::ostringstream status;
+        status << "using latched depth object after invalid stereo triangulation range "
+               << "front=" << front_range << " eef=" << eef_range
+               << " object=(" << latched_depth_object->point.x << ", "
+               << latched_depth_object->point.y << ", "
+               << latched_depth_object->point.z << ")";
+        publishStatus(status.str(), true);
+        return latched_depth_object;
+      }
+
       std::ostringstream reason;
       reason << "triangulation range front=" << front_range << " eef=" << eef_range;
       setBlockReason(block_reason, reason.str());
@@ -1226,6 +1237,16 @@ private:
     const tf2::Vector3 eef_point = eef_ray->origin + eef_ray->direction * eef_range;
     const double ray_gap = (front_point - eef_point).length();
     if (ray_gap > triangulation_max_ray_gap_m_) {
+      if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
+        std::ostringstream status;
+        status << "using latched depth object after stereo triangulation ray gap "
+               << ray_gap << " object=(" << latched_depth_object->point.x << ", "
+               << latched_depth_object->point.y << ", "
+               << latched_depth_object->point.z << ")";
+        publishStatus(status.str(), true);
+        return latched_depth_object;
+      }
+
       std::ostringstream reason;
       reason << "triangulation ray gap " << ray_gap;
       setBlockReason(block_reason, reason.str());
