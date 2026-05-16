@@ -450,6 +450,8 @@ private:
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
+      near_object_distance_reached_ = false;
+      nearest_object_goal_x_m_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
     publishEefAutoInitEnable(false);
@@ -477,6 +479,8 @@ private:
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
+      near_object_distance_reached_ = false;
+      nearest_object_goal_x_m_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
     publishEefAutoInitEnable(false);
@@ -862,6 +866,7 @@ private:
   bool isDepthUnavailableReason(const std::string & reason) const
   {
     return reason.rfind("valid depth inside bbox", 0) == 0 ||
+      reason.rfind("front depth ignored after near object distance reached", 0) == 0 ||
       reason.rfind("depth image on ", 0) == 0;
   }
 
