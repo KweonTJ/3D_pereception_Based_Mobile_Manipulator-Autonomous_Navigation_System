@@ -210,6 +210,7 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
   }
 
   const cv::Rect new_bbox(x, y, w, h);
+  const auto receive_time = now();
   std::string status_text;
 
   {
@@ -230,7 +231,8 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
       if (status_text.empty() && !reinitialize_while_tracking_) {
         if (accept_detector_bbox_while_tracking_) {
           detector_reference_bbox_ = new_bbox;
-          status_text = "detector bbox accepted as geometry reference; CSRT keeps tracking center";
+          last_detector_bbox_stamp_ = receive_time;
+          status_text = "detector bbox accepted as primary bbox; CSRT remains backup";
         } else {
           status_text = "tracking active; ignoring new init bbox";
         }
@@ -240,6 +242,7 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
     if (status_text.empty()) {
       pending_init_bbox_ = new_bbox;
       detector_reference_bbox_ = new_bbox;
+      last_detector_bbox_stamp_ = receive_time;
       status_text =
         state_ == TrackerState::TRACKING ?
         "bbox correction received; tracker will refresh on the next image" :
