@@ -541,6 +541,21 @@ private:
     const double err_y = goal_y - eef_y;
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
+    const double forward_err = std::max(0.0, err_x);
+
+    if (wait_for_base_approach_ &&
+        (forward_err > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
+      stable_cycles_ = 0;
+      publishBaseHold(false);
+      publishStop();
+      object_pregrasp_horizontal_done_ = false;
+      std::ostringstream status;
+      status << "waiting for base approach before arm motion: goal_x=" << goal_x
+             << " forward_err=" << forward_err
+             << " err_norm=" << err_norm;
+      publishStatus(status.str());
+      return;
+    }
 
     const bool use_eef_now =
       use_eef_refinement_ &&
@@ -561,20 +576,6 @@ private:
       stable_cycles_ = 0;
       publishStatus("base stopped, depth+EEF ready; arm extended toward object and switching to refinement", true);
       updateEefRefinement(object);
-      return;
-    }
-
-    const double forward_err = std::max(0.0, err_x);
-    if (wait_for_base_approach_ &&
-        (forward_err > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
-      stable_cycles_ = 0;
-      publishBaseHold(false);
-      publishStop();
-      std::ostringstream status;
-      status << "waiting for base approach before arm motion: goal_x=" << goal_x
-             << " forward_err=" << forward_err
-             << " err_norm=" << err_norm;
-      publishStatus(status.str());
       return;
     }
 
