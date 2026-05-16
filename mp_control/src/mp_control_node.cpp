@@ -252,6 +252,7 @@ private:
     eef_init_bbox_republish_period_s_ =
       declare_parameter<double>("eef_init_bbox_republish_period_s", 0.5);
     eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
+    object_pregrasp_standoff_m_ = declare_parameter<double>("object_pregrasp_standoff_m", 0.08);
     eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
     eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
@@ -302,6 +303,7 @@ private:
     eef_init_bbox_padding_scale_ = std::max(1.0, eef_init_bbox_padding_scale_);
     eef_init_bbox_republish_period_s_ = std::max(0.1, eef_init_bbox_republish_period_s_);
     eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
+    object_pregrasp_standoff_m_ = std::max(0.0, object_pregrasp_standoff_m_);
     eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
