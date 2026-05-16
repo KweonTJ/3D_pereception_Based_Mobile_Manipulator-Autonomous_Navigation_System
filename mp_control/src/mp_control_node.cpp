@@ -889,13 +889,23 @@ private:
   {
     const double target_x = object_in_target.point.x - object_pregrasp_standoff_m_ + grasp_offset_x_;
     const double target_y = object_in_target.point.y + grasp_offset_y_;
-    const double target_z = std::max(
-      object_in_target.point.z + grasp_offset_z_,
-      object_pregrasp_min_z_m_);
 
     const double eef_x = eef_tf.transform.translation.x;
     const double eef_y = eef_tf.transform.translation.y;
     const double eef_z = eef_tf.transform.translation.z;
+    const double horizontal_err = vectorNorm(target_x - eef_x, target_y - eef_y, 0.0);
+    const double safe_target_z = std::max(eef_z, object_pregrasp_min_z_m_);
+    if (!object_pregrasp_horizontal_done_ &&
+        horizontal_err <= triangulation_extend_tolerance_m_ &&
+        std::abs(safe_target_z - eef_z) <= triangulation_extend_tolerance_m_) {
+      object_pregrasp_horizontal_done_ = true;
+    }
+
+    const double target_z = object_pregrasp_horizontal_done_ ?
+      std::max(
+        object_in_target.point.z + grasp_offset_z_ + object_pregrasp_lower_standoff_m_,
+        object_pregrasp_min_lower_z_m_) :
+      safe_target_z;
     const double err_x = target_x - eef_x;
     const double err_y = target_y - eef_y;
     const double err_z = target_z - eef_z;
@@ -926,7 +936,9 @@ private:
     }
 
     std::ostringstream status;
-    status << "extending arm toward depth object: target=("
+    status << (object_pregrasp_horizontal_done_ ?
+      "lowering arm toward depth object: target=(" :
+      "extending arm horizontally toward depth object: target=(")
            << target_x << ", " << target_y << ", " << target_z
            << ") err=(" << err_x << ", " << err_y << ", " << err_z
            << ") norm=" << err_norm;
