@@ -1390,7 +1390,12 @@ private:
     latest_object_width_m_ = width_m;
   }
 
-  void rememberObjectDepth(double depth_m)
+  bool shouldIgnoreFrontDepthLocked() const
+  {
+    return ignore_depth_after_near_reached_ && near_object_distance_reached_;
+  }
+
+  void rememberObjectDepth(double depth_m, double goal_x)
   {
     if (!std::isfinite(depth_m)) {
       return;
@@ -1398,6 +1403,14 @@ private:
     std::lock_guard<std::mutex> lock(data_mutex_);
     latest_object_depth_m_ = depth_m;
     latest_object_depth_stamp_ = now();
+    if (std::isfinite(goal_x) &&
+        (!nearest_object_goal_x_m_ || goal_x < *nearest_object_goal_x_m_)) {
+      nearest_object_goal_x_m_ = goal_x;
+    }
+    if (ignore_depth_after_near_reached_ &&
+        (depth_m <= eef_refinement_start_depth_m_ || goal_x <= arm_start_max_object_x_m_)) {
+      near_object_distance_reached_ = true;
+    }
   }
 
   double gripperPositionForGap(double gap_m) const
