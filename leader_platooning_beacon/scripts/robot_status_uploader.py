@@ -218,6 +218,7 @@ class RobotStatusUploader(Node):
         self.last_video_sent: Dict[str, float] = {}
         self.video_busy: set[str] = set()
         self.frame_seen_counts: Dict[str, int] = {}
+        self.image_subscriptions: List[Any] = []
         self.seq = 0
         self.last_status_error_log = 0.0
 
@@ -272,7 +273,7 @@ class RobotStatusUploader(Node):
 
         self._set_pending(f"video.{stream_key}_topics", unique_topics)
         for topic in unique_topics:
-            self.create_subscription(
+            subscription = self.create_subscription(
                 Image,
                 topic,
                 lambda msg, key=stream_key, source_topic=topic: self._image_callback(
@@ -280,6 +281,7 @@ class RobotStatusUploader(Node):
                 ),
                 live_qos,
             )
+            self.image_subscriptions.append(subscription)
 
     def _subscribe_leader(self, state_qos: QoSProfile, live_qos: QoSProfile) -> None:
         self.create_subscription(String, "/leader/task_state", lambda msg: self._set_pending("task_state", msg.data), state_qos)
@@ -459,8 +461,13 @@ class RobotStatusUploader(Node):
                     encoded.tobytes(),
                     timeout_s=max(1.0, self.http_timeout_s),
                 )
+                self._set_pending(f"video.{stream_key}_last_error", None)
+                self._set_pending(f"video.{stream_key}_uploaded", True)
             except Exception as exc:
-                self.get_logger().warn(f"frame upload failed for {stream_key}: {exc}")
+                error_text = str(exc)
+                self._set_pending(f"video.{stream_key}_last_error", error_text)
+                self._set_pending(f"video.{stream_key}_uploaded", False)
+                self.get_logger().warn(f"frame upload failed for {stream_key}: {error_text}")
             finally:
                 self.video_busy.discard(stream_key)
 
