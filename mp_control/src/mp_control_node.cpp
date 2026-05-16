@@ -496,6 +496,9 @@ private:
     }
 
     if (!maybe_object) {
+      if (use_eef_refinement_ && shouldHoldForEefRefinement()) {
+        publishBaseHold(true);
+      }
       if (!command_published) {
         publishStop();
       }
@@ -523,21 +526,12 @@ private:
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
 
-    const double forward_err = std::max(0.0, err_x);
-    if (wait_for_base_approach_ &&
-        (forward_err > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
-      stable_cycles_ = 0;
-      publishBaseHold(false);
-      publishStop();
-      std::ostringstream status;
-      status << "waiting for base approach before arm motion: goal_x=" << goal_x
-             << " forward_err=" << forward_err
-             << " err_norm=" << err_norm;
-      publishStatus(status.str());
-      return;
-    }
-
-    if (use_eef_refinement_ && goal_x <= eef_refinement_start_object_x_m_) {
+    const bool use_eef_now =
+      use_eef_refinement_ &&
+      (shouldHoldForEefRefinement() ||
+      goal_x <= eef_refinement_start_object_x_m_ ||
+      err_norm <= eef_refinement_switch_distance_m_);
+    if (use_eef_now) {
       publishBaseHold(true);
       if (!prepareEefRefinement(object)) {
         return;
@@ -553,15 +547,17 @@ private:
       return;
     }
 
-    if (use_eef_refinement_ && err_norm <= eef_refinement_switch_distance_m_) {
-      publishBaseHold(true);
-      if (!prepareEefRefinement(object)) {
-        return;
-      }
-      stage_ = GraspStage::EEF_REFINE;
+    const double forward_err = std::max(0.0, err_x);
+    if (wait_for_base_approach_ &&
+        (forward_err > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
       stable_cycles_ = 0;
-      publishStatus("switching to end-effector camera refinement", true);
-      updateEefRefinement(object);
+      publishBaseHold(false);
+      publishStop();
+      std::ostringstream status;
+      status << "waiting for base approach before arm motion: goal_x=" << goal_x
+             << " forward_err=" << forward_err
+             << " err_norm=" << err_norm;
+      publishStatus(status.str());
       return;
     }
 
@@ -596,6 +592,17 @@ private:
     status << "approach err=(" << err_x << ", " << err_y << ", " << err_z
            << ") norm=" << err_norm;
     publishStatus(status.str());
+  }
+
+  bool shouldHoldForEefRefinement()
+  {
+    const auto stamp = now();
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    if (eef_refinement_requested_) {
+      return true;
+    }
+    return latest_eef_bbox_ &&
+      (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
   }
 
   bool prepareEefRefinement(const geometry_msgs::msg::PointStamped & object_in_target)
