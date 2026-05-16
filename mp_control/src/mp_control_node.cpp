@@ -1175,6 +1175,7 @@ private:
       setBlockReason(block_reason, reason.str());
       return std::nullopt;
     }
+    rememberObjectDepth(*depth_m);
     rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
 
     geometry_msgs::msg::PointStamped object_camera;
@@ -1350,6 +1351,16 @@ private:
 
     std::lock_guard<std::mutex> lock(data_mutex_);
     latest_object_width_m_ = width_m;
+  }
+
+  void rememberObjectDepth(double depth_m)
+  {
+    if (!std::isfinite(depth_m)) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_object_depth_m_ = depth_m;
+    latest_object_depth_stamp_ = now();
   }
 
   double gripperPositionForGap(double gap_m) const
