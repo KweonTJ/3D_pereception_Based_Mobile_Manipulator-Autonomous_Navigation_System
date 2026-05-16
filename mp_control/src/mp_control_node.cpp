@@ -789,6 +789,241 @@ private:
     publishStatus(status.str());
   }
 
+  bool isDepthUnavailableReason(const std::string & reason) const
+  {
+    return reason == "valid depth inside bbox" ||
+      reason.rfind("depth image on ", 0) == 0;
+  }
+
+  std::optional<geometry_msgs::msg::PointStamped> estimateObjectPointByTriangulation(
+    const geometry_msgs::msg::TransformStamped & eef_tf,
+    std::string * block_reason,
+    bool * command_published)
+  {
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      eef_refinement_requested_ = true;
+    }
+
+    if (stage_ != GraspStage::EEF_REFINE &&
+        !moveArmToTriangulationPose(eef_tf, command_published)) {
+      setBlockReason(block_reason, "arm extension for stereo triangulation");
+      return std::nullopt;
+    }
+
+    return triangulateObjectPoint(block_reason);
+  }
+
+  bool moveArmToTriangulationPose(
+    const geometry_msgs::msg::TransformStamped & eef_tf,
+    bool * command_published)
+  {
+    const double eef_x = eef_tf.transform.translation.x;
+    const double eef_y = eef_tf.transform.translation.y;
+    const double eef_z = eef_tf.transform.translation.z;
+    const double err_x = triangulation_extend_x_m_ - eef_x;
+    const double err_y = triangulation_extend_y_m_ - eef_y;
+    const double err_z = triangulation_extend_z_m_ - eef_z;
+    const double err_norm = vectorNorm(err_x, err_y, err_z);
+
+    if (err_norm <= triangulation_extend_tolerance_m_) {
+      if (stage_ == GraspStage::TRIANGULATION_EXTEND) {
+        stage_ = GraspStage::DEPTH_APPROACH;
+      }
+      return true;
+    }
+
+    stage_ = GraspStage::TRIANGULATION_EXTEND;
+    stable_cycles_ = 0;
+
+    geometry_msgs::msg::TwistStamped cmd;
+    cmd.header.stamp = now();
+    cmd.header.frame_id = target_frame_;
+    cmd.twist.linear.x = clampValue(
+      triangulation_extend_gain_ * err_x,
+      -triangulation_extend_max_speed_, triangulation_extend_max_speed_);
+    cmd.twist.linear.y = clampValue(
+      triangulation_extend_gain_ * err_y,
+      -triangulation_extend_max_speed_, triangulation_extend_max_speed_);
+    cmd.twist.linear.z = clampValue(
+      triangulation_extend_gain_ * err_z,
+      -triangulation_extend_max_speed_, triangulation_extend_max_speed_);
+    twist_pub_->publish(cmd);
+    if (command_published) {
+      *command_published = true;
+    }
+
+    std::ostringstream status;
+    status << "extending arm for stereo triangulation: err=("
+           << err_x << ", " << err_y << ", " << err_z
+           << ") norm=" << err_norm;
+    publishStatus(status.str());
+    return false;
+  }
+
+  std::optional<geometry_msgs::msg::PointStamped> triangulateObjectPoint(
+    std::string * block_reason)
+  {
+    Bbox front_bbox;
+    Bbox eef_bbox;
+    CameraInfo front_info;
+    CameraInfo eef_info;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_bbox_) {
+        setBlockReason(block_reason, bboxInputDescription());
+        return std::nullopt;
+      }
+      if (!latest_camera_info_) {
+        setBlockReason(block_reason, "front camera info on " + camera_info_topic_);
+        return std::nullopt;
+      }
+      if (!latest_eef_bbox_) {
+        setBlockReason(block_reason, "end-effector bbox for stereo triangulation");
+        return std::nullopt;
+      }
+      front_bbox = *latest_bbox_;
+      eef_bbox = *latest_eef_bbox_;
+      front_info = *latest_camera_info_;
+      if (latest_eef_camera_info_) {
+        eef_info = *latest_eef_camera_info_;
+      } else {
+        auto fallback_info = fallbackEefCameraInfo();
+        if (!fallback_info) {
+          setBlockReason(block_reason, "end-effector camera info");
+          return std::nullopt;
+        }
+        eef_info = *fallback_info;
+      }
+    }
+
+    const auto stamp = now();
+    if ((stamp - front_bbox.stamp).seconds() > max_target_age_s_) {
+      setBlockReason(block_reason, "fresh " + bboxInputDescription());
+      return std::nullopt;
+    }
+    if ((stamp - eef_bbox.stamp).seconds() > max_target_age_s_) {
+      setBlockReason(block_reason, "fresh end-effector bbox for stereo triangulation");
+      return std::nullopt;
+    }
+
+    const std::string front_frame =
+      camera_frame_override_.empty() ? front_info.frame_id : camera_frame_override_;
+    const std::string eef_frame =
+      eef_camera_frame_override_.empty() ? eef_info.frame_id : eef_camera_frame_override_;
+    const double front_u = front_bbox.x + 0.5 * front_bbox.width;
+    const double front_v = front_bbox.y + 0.5 * front_bbox.height;
+    const double eef_u = eef_bbox.x + 0.5 * eef_bbox.width;
+    const double eef_v = eef_bbox.y + 0.5 * eef_bbox.height;
+
+    auto front_ray = cameraPixelRayInTarget(front_frame, front_info, front_u, front_v, block_reason);
+    if (!front_ray) {
+      return std::nullopt;
+    }
+    auto eef_ray = cameraPixelRayInTarget(eef_frame, eef_info, eef_u, eef_v, block_reason);
+    if (!eef_ray) {
+      return std::nullopt;
+    }
+
+    const tf2::Vector3 w0 = front_ray->origin - eef_ray->origin;
+    const double a = front_ray->direction.dot(front_ray->direction);
+    const double b = front_ray->direction.dot(eef_ray->direction);
+    const double c = eef_ray->direction.dot(eef_ray->direction);
+    const double d = front_ray->direction.dot(w0);
+    const double e = eef_ray->direction.dot(w0);
+    const double denom = a * c - b * b;
+    if (std::abs(denom) < 1e-6) {
+      setBlockReason(block_reason, "non-parallel camera rays for stereo triangulation");
+      return std::nullopt;
+    }
+
+    const double front_range = (b * e - c * d) / denom;
+    const double eef_range = (a * e - b * d) / denom;
+    if (front_range < triangulation_min_range_m_ || front_range > triangulation_max_range_m_ ||
+        eef_range < triangulation_min_range_m_ || eef_range > triangulation_max_range_m_) {
+      std::ostringstream reason;
+      reason << "triangulation range front=" << front_range << " eef=" << eef_range;
+      setBlockReason(block_reason, reason.str());
+      return std::nullopt;
+    }
+
+    const tf2::Vector3 front_point = front_ray->origin + front_ray->direction * front_range;
+    const tf2::Vector3 eef_point = eef_ray->origin + eef_ray->direction * eef_range;
+    const double ray_gap = (front_point - eef_point).length();
+    if (ray_gap > triangulation_max_ray_gap_m_) {
+      std::ostringstream reason;
+      reason << "triangulation ray gap " << ray_gap;
+      setBlockReason(block_reason, reason.str());
+      return std::nullopt;
+    }
+
+    const tf2::Vector3 object = 0.5 * (front_point + eef_point);
+    if (!std::isfinite(object.x()) || !std::isfinite(object.y()) || !std::isfinite(object.z())) {
+      setBlockReason(block_reason, "finite stereo triangulation result");
+      return std::nullopt;
+    }
+
+    rememberMeasuredObjectWidth(eef_bbox.width * eef_range / eef_info.fx);
+
+    geometry_msgs::msg::PointStamped point;
+    point.header.stamp = stamp;
+    point.header.frame_id = target_frame_;
+    point.point.x = object.x();
+    point.point.y = object.y();
+    point.point.z = object.z();
+
+    std::ostringstream status;
+    status << "stereo triangulation object=(" << point.point.x << ", "
+           << point.point.y << ", " << point.point.z
+           << ") ray_gap=" << ray_gap;
+    publishStatus(status.str());
+    return point;
+  }
+
+  std::optional<Ray> cameraPixelRayInTarget(
+    const std::string & camera_frame,
+    const CameraInfo & info,
+    double u,
+    double v,
+    std::string * block_reason)
+  {
+    if (camera_frame.empty()) {
+      setBlockReason(block_reason, "camera frame for stereo triangulation");
+      return std::nullopt;
+    }
+
+    geometry_msgs::msg::TransformStamped transform_msg;
+    try {
+      transform_msg = tf_buffer_.lookupTransform(target_frame_, camera_frame, tf2::TimePointZero);
+    } catch (const tf2::TransformException & ex) {
+      setBlockReason(block_reason, "TF from " + camera_frame + " to " + target_frame_);
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "stereo triangulation TF unavailable: %s", ex.what());
+      return std::nullopt;
+    }
+
+    tf2::Transform transform;
+    tf2::fromMsg(transform_msg.transform, transform);
+
+    tf2::Vector3 ray_camera((u - info.cx) / info.fx, (v - info.cy) / info.fy, 1.0);
+    if (ray_camera.length2() < 1e-9) {
+      setBlockReason(block_reason, "valid pixel ray for stereo triangulation");
+      return std::nullopt;
+    }
+    ray_camera.normalize();
+
+    Ray ray;
+    ray.origin = transform.getOrigin();
+    ray.direction = transform.getBasis() * ray_camera;
+    if (ray.direction.length2() < 1e-9) {
+      setBlockReason(block_reason, "valid target-frame ray for stereo triangulation");
+      return std::nullopt;
+    }
+    ray.direction.normalize();
+    return ray;
+  }
+
   std::optional<geometry_msgs::msg::PointStamped> estimateObjectPoint(
     std::string * block_reason = nullptr)
   {
