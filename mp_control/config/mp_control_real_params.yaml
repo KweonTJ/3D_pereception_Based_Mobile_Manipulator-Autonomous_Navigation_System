@@ -58,11 +58,12 @@ mp_control_node:
     grasp_offset_z: 0.0
 
     # Use fallback intrinsics if the EEF USB camera publishes image_raw without camera_info.
+    # Keep this matched to the real EEF USB camera stream: 320x240.
     allow_eef_camera_info_fallback: true
-    eef_camera_fallback_width_px: 640
-    eef_camera_fallback_height_px: 480
-    eef_camera_fallback_fx: 554.0
-    eef_camera_fallback_fy: 554.0
+    eef_camera_fallback_width_px: 320
+    eef_camera_fallback_height_px: 240
+    eef_camera_fallback_fx: 277.0
+    eef_camera_fallback_fy: 277.0
     eef_refinement_switch_distance_m: 0.12
     eef_refinement_start_depth_m: 0.35
     # Front depth reaches its near reliable limit at 0.47 m. In base_link this
