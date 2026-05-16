@@ -480,6 +480,8 @@ private:
       nearest_object_goal_x_m_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
+    triangulation_joint_extend_sent_ = false;
+    triangulation_joint_extend_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -509,6 +511,8 @@ private:
       nearest_object_goal_x_m_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
+    triangulation_joint_extend_sent_ = false;
+    triangulation_joint_extend_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     stable_cycles_ = 0;
