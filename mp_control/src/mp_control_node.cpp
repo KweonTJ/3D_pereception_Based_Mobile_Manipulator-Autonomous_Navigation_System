@@ -1607,6 +1607,7 @@ private:
   double grasp_offset_y_{0.0};
   double grasp_offset_z_{0.0};
   double eef_refinement_switch_distance_m_{0.12};
+  double eef_refinement_start_depth_m_{0.47};
   double eef_refinement_start_object_x_m_{0.50};
   double arm_start_max_error_m_{0.40};
   double arm_start_max_object_x_m_{0.60};
@@ -1678,6 +1679,8 @@ private:
   std::optional<CameraInfo> latest_camera_info_;
   std::optional<CameraInfo> latest_eef_camera_info_;
   std::optional<double> latest_object_width_m_;
+  std::optional<double> latest_object_depth_m_;
+  rclcpp::Time latest_object_depth_stamp_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
 
   bool active_{false};
