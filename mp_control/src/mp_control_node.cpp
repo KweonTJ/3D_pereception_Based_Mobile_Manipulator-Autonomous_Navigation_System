@@ -531,6 +531,21 @@ private:
       return;
     }
 
+    if (use_eef_refinement_ && goal_x <= eef_refinement_start_object_x_m_) {
+      bool extension_cmd_published = false;
+      if (!moveArmToTriangulationPose(eef_tf, &extension_cmd_published)) {
+        return;
+      }
+      if (!prepareEefRefinement(object)) {
+        return;
+      }
+      stage_ = GraspStage::EEF_REFINE;
+      stable_cycles_ = 0;
+      publishStatus("arm extended at 50cm; switching to end-effector camera refinement", true);
+      updateEefRefinement(object);
+      return;
+    }
+
     if (use_eef_refinement_ && err_norm <= eef_refinement_switch_distance_m_) {
       if (!prepareEefRefinement(object)) {
         return;
