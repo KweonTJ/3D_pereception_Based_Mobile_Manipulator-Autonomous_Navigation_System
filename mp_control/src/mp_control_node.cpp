@@ -29,6 +29,8 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 
 namespace mp_control
 {
@@ -113,6 +115,8 @@ public:
       create_publisher<std_msgs::msg::Bool>(eef_auto_init_enable_topic_, init_bbox_qos);
     base_hold_pub_ =
       create_publisher<std_msgs::msg::Bool>(base_hold_topic_, init_bbox_qos);
+    arm_trajectory_pub_ =
+      create_publisher<trajectory_msgs::msg::JointTrajectory>(arm_trajectory_topic_, default_qos);
     gripper_client_ = rclcpp_action::create_client<GripperCommand>(this, gripper_action_name_);
     servo_start_client_ = create_client<Trigger>("/servo_node/start_servo");
 
@@ -191,6 +195,8 @@ private:
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
     base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
     twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
+    arm_trajectory_topic_ =
+      declare_parameter<std::string>("arm_trajectory_topic", "/arm_controller/joint_trajectory");
     start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
     status_topic_ = declare_parameter<std::string>("status_topic", "/mp_control/status");
@@ -275,6 +281,16 @@ private:
     triangulation_extend_gain_ = declare_parameter<double>("triangulation_extend_gain", 0.7);
     triangulation_extend_max_speed_ =
       declare_parameter<double>("triangulation_extend_max_speed", 0.015);
+    use_joint_trajectory_for_triangulation_extend_ =
+      declare_parameter<bool>("use_joint_trajectory_for_triangulation_extend", true);
+    triangulation_extend_joint_positions_ =
+      declare_parameter<std::vector<double>>(
+        "triangulation_extend_joint_positions",
+        std::vector<double>{0.0, 0.82, -0.58, -0.24});
+    triangulation_extend_joint_duration_s_ =
+      declare_parameter<double>("triangulation_extend_joint_duration_s", 2.0);
+    triangulation_extend_joint_settle_s_ =
+      declare_parameter<double>("triangulation_extend_joint_settle_s", 0.3);
     triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
     triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
     triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
@@ -323,6 +339,16 @@ private:
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
+    if (triangulation_extend_joint_positions_.size() != 4) {
+      RCLCPP_WARN(
+        get_logger(),
+        "triangulation_extend_joint_positions must have four values; using default pre-grasp pose");
+      triangulation_extend_joint_positions_ = {0.0, 0.82, -0.58, -0.24};
+    }
+    triangulation_extend_joint_duration_s_ =
+      std::max(0.2, triangulation_extend_joint_duration_s_);
+    triangulation_extend_joint_settle_s_ =
+      std::max(0.0, triangulation_extend_joint_settle_s_);
     triangulation_min_range_m_ = std::max(0.01, triangulation_min_range_m_);
     triangulation_max_range_m_ = std::max(triangulation_min_range_m_, triangulation_max_range_m_);
     triangulation_max_ray_gap_m_ = std::max(0.005, triangulation_max_ray_gap_m_);
