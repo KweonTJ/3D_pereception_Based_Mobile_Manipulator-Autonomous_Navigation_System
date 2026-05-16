@@ -857,6 +857,56 @@ private:
     return triangulateObjectPoint(block_reason);
   }
 
+  bool moveArmToObjectPregraspPose(
+    const geometry_msgs::msg::TransformStamped & eef_tf,
+    const geometry_msgs::msg::PointStamped & object_in_target,
+    bool * command_published)
+  {
+    const double target_x = object_in_target.point.x - object_pregrasp_standoff_m_ + grasp_offset_x_;
+    const double target_y = object_in_target.point.y + grasp_offset_y_;
+    const double target_z = object_in_target.point.z + grasp_offset_z_;
+
+    const double eef_x = eef_tf.transform.translation.x;
+    const double eef_y = eef_tf.transform.translation.y;
+    const double eef_z = eef_tf.transform.translation.z;
+    const double err_x = target_x - eef_x;
+    const double err_y = target_y - eef_y;
+    const double err_z = target_z - eef_z;
+    const double err_norm = vectorNorm(err_x, err_y, err_z);
+
+    if (err_norm <= triangulation_extend_tolerance_m_) {
+      return true;
+    }
+
+    stage_ = GraspStage::TRIANGULATION_EXTEND;
+    stable_cycles_ = 0;
+
+    geometry_msgs::msg::TwistStamped cmd;
+    cmd.header.stamp = now();
+    cmd.header.frame_id = target_frame_;
+    cmd.twist.linear.x = clampValue(
+      triangulation_extend_gain_ * err_x,
+      -triangulation_extend_max_speed_, triangulation_extend_max_speed_);
+    cmd.twist.linear.y = clampValue(
+      triangulation_extend_gain_ * err_y,
+      -triangulation_extend_max_speed_, triangulation_extend_max_speed_);
+    cmd.twist.linear.z = clampValue(
+      triangulation_extend_gain_ * err_z,
+      -triangulation_extend_max_speed_, triangulation_extend_max_speed_);
+    twist_pub_->publish(cmd);
+    if (command_published) {
+      *command_published = true;
+    }
+
+    std::ostringstream status;
+    status << "extending arm toward depth object: target=("
+           << target_x << ", " << target_y << ", " << target_z
+           << ") err=(" << err_x << ", " << err_y << ", " << err_z
+           << ") norm=" << err_norm;
+    publishStatus(status.str());
+    return false;
+  }
+
   bool moveArmToTriangulationPose(
     const geometry_msgs::msg::TransformStamped & eef_tf,
     bool * command_published)
