@@ -433,6 +433,7 @@ private:
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
     }
+    publishEefAutoInitEnable(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
@@ -457,6 +458,7 @@ private:
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
     }
+    publishEefAutoInitEnable(false);
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
     publishStop();
