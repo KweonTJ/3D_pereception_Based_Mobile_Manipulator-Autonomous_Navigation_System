@@ -227,6 +227,8 @@ private:
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
     use_depthless_triangulation_ =
       declare_parameter<bool>("use_depthless_triangulation", false);
+    ignore_depth_after_near_reached_ =
+      declare_parameter<bool>("ignore_depth_after_near_reached", false);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
