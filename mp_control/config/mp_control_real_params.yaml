@@ -38,6 +38,10 @@ mp_control_node:
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
     use_depthless_triangulation: true
+    # The EEF camera is reserved for near-field IBVS correction. Keep stereo
+    # triangulation disabled by default and use the last reliable depth point
+    # after the front depth reaches its near limit.
+    use_eef_stereo_triangulation: false
     ignore_depth_after_near_reached: true
 
     command_rate_hz: 20.0
