@@ -988,6 +988,10 @@ private:
     const geometry_msgs::msg::TransformStamped & eef_tf,
     bool * command_published)
   {
+    if (use_joint_trajectory_for_triangulation_extend_) {
+      return moveArmToTriangulationJointPose(command_published);
+    }
+
     const double eef_x = eef_tf.transform.translation.x;
     const double eef_y = eef_tf.transform.translation.y;
     const double eef_z = eef_tf.transform.translation.z;
@@ -1029,6 +1033,67 @@ private:
            << ") norm=" << err_norm;
     publishStatus(status.str());
     return false;
+  }
+
+  bool moveArmToTriangulationJointPose(bool * command_published)
+  {
+    const auto stamp = now();
+    const double wait_s =
+      triangulation_extend_joint_duration_s_ + triangulation_extend_joint_settle_s_;
+
+    if (!triangulation_joint_extend_sent_) {
+      publishStop();
+
+      trajectory_msgs::msg::JointTrajectory trajectory;
+      trajectory.header.stamp = stamp;
+      trajectory.joint_names = {"joint1", "joint2", "joint3", "joint4"};
+
+      trajectory_msgs::msg::JointTrajectoryPoint point;
+      point.positions = triangulation_extend_joint_positions_;
+      const auto duration_ns = static_cast<int64_t>(
+        std::llround(triangulation_extend_joint_duration_s_ * 1e9));
+      point.time_from_start.sec = static_cast<int32_t>(duration_ns / 1000000000LL);
+      point.time_from_start.nanosec = static_cast<uint32_t>(duration_ns % 1000000000LL);
+      trajectory.points.push_back(point);
+
+      arm_trajectory_pub_->publish(trajectory);
+      triangulation_joint_extend_sent_ = true;
+      triangulation_joint_extend_stamp_ = stamp;
+      stage_ = GraspStage::TRIANGULATION_EXTEND;
+      stable_cycles_ = 0;
+      if (command_published) {
+        *command_published = true;
+      }
+
+      std::ostringstream status;
+      status << "moving arm to stereo triangulation joint pose: joints=["
+             << triangulation_extend_joint_positions_[0] << ", "
+             << triangulation_extend_joint_positions_[1] << ", "
+             << triangulation_extend_joint_positions_[2] << ", "
+             << triangulation_extend_joint_positions_[3] << "]";
+      publishStatus(status.str(), true);
+      return false;
+    }
+
+    const double elapsed_s = (stamp - triangulation_joint_extend_stamp_).seconds();
+    if (elapsed_s < wait_s) {
+      if (command_published) {
+        *command_published = true;
+      }
+      std::ostringstream status;
+      status << "waiting for stereo triangulation joint pose: elapsed="
+             << elapsed_s << "/" << wait_s;
+      publishStatus(status.str());
+      return false;
+    }
+
+    if (stage_ == GraspStage::TRIANGULATION_EXTEND) {
+      stage_ = GraspStage::DEPTH_APPROACH;
+    }
+    if (start_servo_on_start_) {
+      startMoveItServo();
+    }
+    return true;
   }
 
   std::optional<geometry_msgs::msg::PointStamped> triangulateObjectPoint(
