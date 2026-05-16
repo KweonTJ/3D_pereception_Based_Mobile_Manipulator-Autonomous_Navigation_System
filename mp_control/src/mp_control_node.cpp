@@ -1643,6 +1643,8 @@ private:
   double eef_final_depth_m_{0.08};
   double object_pregrasp_standoff_m_{0.08};
   double object_pregrasp_min_z_m_{0.50};
+  double object_pregrasp_lower_standoff_m_{0.02};
+  double object_pregrasp_min_lower_z_m_{0.12};
   double eef_center_tolerance_px_{18.0};
   double eef_depth_tolerance_m_{0.018};
   double eef_refine_lateral_gain_{0.8};
@@ -1713,6 +1715,7 @@ private:
   bool open_sent_{false};
   bool close_sent_{false};
   bool eef_refinement_requested_{false};
+  bool object_pregrasp_horizontal_done_{false};
   GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
   rclcpp::Time last_status_stamp_;
