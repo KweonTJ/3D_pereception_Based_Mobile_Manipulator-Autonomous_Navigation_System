@@ -8,6 +8,7 @@ mp_control_node:
     camera_info_topic: /camera/color/camera_info
     eef_camera_info_topic: /eef_camera/camera_info
     eef_auto_init_enable_topic: /target/eef_auto_init_enable
+    base_hold_topic: /target/base_hold
 
     twist_topic: /servo_node/delta_twist_cmds
     gripper_action_name: /gripper_controller/gripper_cmd
