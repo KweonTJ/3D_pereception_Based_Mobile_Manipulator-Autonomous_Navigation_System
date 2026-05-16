@@ -11,6 +11,7 @@ mp_control_node:
     base_hold_topic: /target/base_hold
 
     twist_topic: /servo_node/delta_twist_cmds
+    arm_trajectory_topic: /arm_controller/joint_trajectory
     gripper_action_name: /gripper_controller/gripper_cmd
     start_topic: /mp_control/start
     cancel_topic: /mp_control/cancel
@@ -93,6 +94,12 @@ mp_control_node:
     triangulation_extend_tolerance_m: 0.025
     triangulation_extend_gain: 0.7
     triangulation_extend_max_speed: 0.015
+    # Move to this non-singular joint pose before stereo triangulation. Cartesian
+    # Servo extension from the stay pose can be singularity-limited.
+    use_joint_trajectory_for_triangulation_extend: true
+    triangulation_extend_joint_positions: [0.0, 0.82, -0.58, -0.24]
+    triangulation_extend_joint_duration_s: 2.0
+    triangulation_extend_joint_settle_s: 0.3
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
