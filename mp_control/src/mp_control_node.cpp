@@ -589,7 +589,8 @@ private:
     const double forward_err = std::max(0.0, err_x);
 
     if (wait_for_base_approach_ &&
-        (forward_err > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
+        goal_x > arm_start_max_object_x_m_ &&
+        forward_err > arm_start_max_error_m_) {
       stable_cycles_ = 0;
       publishBaseHold(false);
       publishStop();
