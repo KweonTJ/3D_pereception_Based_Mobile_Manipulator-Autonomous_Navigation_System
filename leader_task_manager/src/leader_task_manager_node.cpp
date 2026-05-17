@@ -179,6 +179,23 @@ private:
       return;
     }
 
+    if (
+      contains_any(
+        stage,
+        {
+          "BASE STOPPED, DEPTH+EEF READY",
+          "EXTENDING ARM",
+          "LOWERING ARM",
+          "WAITING FOR END-EFFECTOR",
+          "EEF CAMERA",
+          "EEF REFINE",
+          "USING LATCHED DEPTH OBJECT"
+        }))
+    {
+      set_task_state("PICKING");
+      return;
+    }
+
     if (contains_any(stage, {"GRASPED", "PICK_SUCCESS", "PICK_DONE", "PICKED"})) {
       set_cargo_state("GRASPED");
       set_task_state("WAIT_FOLLOWER");
