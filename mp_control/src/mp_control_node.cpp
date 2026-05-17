@@ -2249,6 +2249,7 @@ private:
   std::string latched_depth_fixed_frame_;
   std::string camera_frame_override_;
   std::string eef_camera_frame_override_;
+  std::string joint_state_topic_;
 
   bool auto_start_{false};
   bool auto_start_on_bbox_{false};
