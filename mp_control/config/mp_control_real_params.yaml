@@ -118,12 +118,12 @@ mp_control_node:
     triangulation_extend_tolerance_m: 0.025
     triangulation_extend_gain: 0.7
     triangulation_extend_max_speed: 0.015
-    # Move to this non-singular joint pose before stereo triangulation. Cartesian
-    # Servo extension from the stay pose can be singularity-limited.
+    # Move to the hardware home-style safe pose before EEF refinement. The
+    # previous positive joint2 pregrasp could physically catch on the real arm.
     use_joint_trajectory_for_triangulation_extend: true
-    triangulation_extend_joint_positions: [0.0, 1.0, -0.84, -0.16]
-    triangulation_extend_joint_duration_s: 2.0
-    triangulation_extend_joint_settle_s: 0.3
+    triangulation_extend_joint_positions: [0.0, -1.05, 0.35, 0.70]
+    triangulation_extend_joint_duration_s: 3.0
+    triangulation_extend_joint_settle_s: 0.5
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
