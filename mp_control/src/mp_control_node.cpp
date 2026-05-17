@@ -614,6 +614,9 @@ private:
     if (use_eef_now) {
       publishBaseHold(true);
       bool extension_cmd_published = false;
+      if (!moveArmToTriangulationPose(eef_tf, &extension_cmd_published)) {
+        return;
+      }
       if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
         return;
       }
@@ -1087,7 +1090,7 @@ private:
       }
 
       std::ostringstream status;
-      status << "moving arm to stereo triangulation joint pose: joints=["
+      status << "moving arm to pregrasp joint pose: joints=["
              << triangulation_extend_joint_positions_[0] << ", "
              << triangulation_extend_joint_positions_[1] << ", "
              << triangulation_extend_joint_positions_[2] << ", "
@@ -1102,7 +1105,7 @@ private:
         *command_published = true;
       }
       std::ostringstream status;
-      status << "waiting for stereo triangulation joint pose: elapsed="
+      status << "waiting for pregrasp joint pose: elapsed="
              << elapsed_s << "/" << wait_s;
       publishStatus(status.str());
       return false;
