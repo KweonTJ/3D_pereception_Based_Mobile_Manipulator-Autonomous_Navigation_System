@@ -137,17 +137,9 @@ mp_control_node:
     triangulation_extend_current_start_max_age_s: 1.0
 
     # Hardware stay pose reports joint2/joint3 near zero while joint4 is around
-    # -1.6 rad. Extend from that real pose in the physical load-friendly order:
-    # joint2 forward first, joint3 extension second, joint4 wrist alignment last.
-    triangulation_extend_intermediate_joint_positions:
-      - 0.05
-      - 0.35
-      - 0.00
-      - -1.62
-      - 0.03
-      - 0.65
-      - 1.25
-      - -1.62
+    # -1.6 rad. Keep this empty so joint2, joint3, and joint4 unfold together
+    # in one trajectory segment; staged motion can dip the arm into the base.
+    triangulation_extend_intermediate_joint_positions: []
     triangulation_extend_intermediate_segment_duration_s: 1.2
 
     # Approximate EEF/gripper camera pitch = joint2 + joint3 + joint4.
@@ -163,7 +155,7 @@ mp_control_node:
     pregrasp_trajectory_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
 
     triangulation_extend_joint_positions: [0.0, 0.65, 1.25, -1.20]
-    triangulation_extend_joint_duration_s: 1.2
+    triangulation_extend_joint_duration_s: 2.0
     triangulation_extend_joint_settle_s: 0.5
 
     triangulation_min_range_m: 0.06
