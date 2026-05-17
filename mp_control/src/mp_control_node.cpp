@@ -1263,6 +1263,8 @@ private:
   {
     const auto stamp = now();
     const double wait_s =
+      triangulation_joint_extend_wait_s_ > 0.0 ?
+      triangulation_joint_extend_wait_s_ :
       triangulation_extend_joint_duration_s_ + triangulation_extend_joint_settle_s_;
 
     if (!triangulation_joint_extend_sent_) {
