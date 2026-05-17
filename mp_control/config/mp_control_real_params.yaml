@@ -38,8 +38,8 @@ mp_control_node:
     # Direct joint pregrasp publishes to /arm_controller/joint_trajectory.
     # Keep Servo stopped until that pose is reached so Servo does not overwrite
     # the pregrasp command with its current-pose hold trajectory.
-    start_servo_on_start: true
-    start_servo_after_pregrasp: false
+    start_servo_on_start: false
+    start_servo_after_pregrasp: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
     use_eef_refinement: true
@@ -118,10 +118,10 @@ mp_control_node:
     triangulation_extend_tolerance_m: 0.025
     triangulation_extend_gain: 0.7
     triangulation_extend_max_speed: 0.015
-    # Keep the SW home pose matched to the real hardware/keyboard-teleop pose.
-    # Avoid a large joint jump before EEF refinement; extend with Servo instead.
-    use_joint_trajectory_for_triangulation_extend: false
-    triangulation_extend_joint_positions: [0.0092, -1.1045, 0.0813, 0.5093]
+    # Move to the hardware home-style safe pose before EEF refinement. The
+    # previous positive joint2 pregrasp could physically catch on the real arm.
+    use_joint_trajectory_for_triangulation_extend: true
+    triangulation_extend_joint_positions: [0.0, -1.05, 0.35, 0.70]
     triangulation_extend_joint_duration_s: 3.0
     triangulation_extend_joint_settle_s: 0.5
     triangulation_min_range_m: 0.06
