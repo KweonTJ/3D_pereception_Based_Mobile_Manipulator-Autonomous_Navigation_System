@@ -306,6 +306,47 @@ private:
       declare_parameter<double>("triangulation_extend_max_speed", 0.015);
     use_joint_trajectory_for_triangulation_extend_ =
       declare_parameter<bool>("use_joint_trajectory_for_triangulation_extend", true);
+    triangulation_extend_use_current_joint_state_start_ =
+      declare_parameter<bool>("triangulation_extend_use_current_joint_state_start", true);
+    triangulation_extend_require_current_joint_state_ =
+      declare_parameter<bool>("triangulation_extend_require_current_joint_state", false);
+    triangulation_extend_current_start_duration_s_ =
+      declare_parameter<double>("triangulation_extend_current_start_duration_s", 0.15);
+    triangulation_extend_current_start_max_age_s_ =
+      declare_parameter<double>("triangulation_extend_current_start_max_age_s", 1.0);
+
+    triangulation_extend_intermediate_joint_positions_ =
+      declare_parameter<std::vector<double>>(
+        "triangulation_extend_intermediate_joint_positions",
+        std::vector<double>{});
+    triangulation_extend_intermediate_segment_duration_s_ =
+      declare_parameter<double>("triangulation_extend_intermediate_segment_duration_s", 1.0);
+
+    pregrasp_trajectory_transform_enabled_ =
+      declare_parameter<bool>("pregrasp_trajectory_transform_enabled", true);
+    pregrasp_trajectory_use_pitch_blend_ =
+      declare_parameter<bool>("pregrasp_trajectory_use_pitch_blend", true);
+    pregrasp_trajectory_target_pitch_rad_ =
+      declare_parameter<double>("pregrasp_trajectory_target_pitch_rad", 0.0);
+    pregrasp_trajectory_pitch_blend_weight_ =
+      declare_parameter<double>("pregrasp_trajectory_pitch_blend_weight", 1.0);
+
+    pregrasp_trajectory_joint_scales_ =
+      declare_parameter<std::vector<double>>(
+        "pregrasp_trajectory_joint_scales",
+        std::vector<double>{1.0, 1.0, 1.0, 1.0});
+    pregrasp_trajectory_joint_offsets_ =
+      declare_parameter<std::vector<double>>(
+        "pregrasp_trajectory_joint_offsets",
+        std::vector<double>{0.0, 0.0, 0.0, 0.0});
+    pregrasp_trajectory_joint_min_positions_ =
+      declare_parameter<std::vector<double>>(
+        "pregrasp_trajectory_joint_min_positions",
+        std::vector<double>{-3.14, -1.79, -0.94, -1.79});
+    pregrasp_trajectory_joint_max_positions_ =
+      declare_parameter<std::vector<double>>(
+        "pregrasp_trajectory_joint_max_positions",
+        std::vector<double>{3.14, 1.57, 1.38, 2.04});
     triangulation_extend_joint_positions_ =
       declare_parameter<std::vector<double>>(
         "triangulation_extend_joint_positions",
