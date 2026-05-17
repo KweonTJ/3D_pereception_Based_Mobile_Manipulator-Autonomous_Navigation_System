@@ -609,6 +609,7 @@ private:
     triangulation_joint_extend_sent_ = false;
     servo_started_after_pregrasp_ = false;
     triangulation_joint_extend_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    triangulation_joint_extend_wait_s = 0.0;
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
