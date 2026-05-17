@@ -119,6 +119,7 @@ public:
       create_publisher<trajectory_msgs::msg::JointTrajectory>(arm_trajectory_topic_, default_qos);
     gripper_client_ = rclcpp_action::create_client<GripperCommand>(this, gripper_action_name_);
     servo_start_client_ = create_client<Trigger>("/servo_node/start_servo");
+    servo_stop_client_ = create_client<Trigger>("/servo_node/stop_servo");
 
     if (auto_start_) {
       startSequence();
@@ -227,6 +228,7 @@ private:
     use_fallback_bbox_for_control_ =
       declare_parameter<bool>("use_fallback_bbox_for_control", false);
     start_servo_on_start_ = declare_parameter<bool>("start_servo_on_start", true);
+    start_servo_after_pregrasp_ = declare_parameter<bool>("start_servo_after_pregrasp", true);
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
@@ -501,6 +503,7 @@ private:
     }
     object_pregrasp_horizontal_done_ = false;
     triangulation_joint_extend_sent_ = false;
+    servo_started_after_pregrasp_ = false;
     triangulation_joint_extend_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
@@ -515,6 +518,8 @@ private:
     }
     if (start_servo_on_start_) {
       startMoveItServo();
+    } else if (use_joint_trajectory_for_triangulation_extend_) {
+      stopMoveItServo();
     }
     publishStatus("grasp sequence started", true);
   }
@@ -533,6 +538,7 @@ private:
     }
     object_pregrasp_horizontal_done_ = false;
     triangulation_joint_extend_sent_ = false;
+    servo_started_after_pregrasp_ = false;
     triangulation_joint_extend_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
@@ -740,8 +746,11 @@ private:
     const auto stamp = now();
     if (last_eef_init_bbox_stamp_.nanoseconds() == 0 ||
         (stamp - last_eef_init_bbox_stamp_).seconds() >= eef_init_bbox_republish_period_s_) {
-      if (publishProjectedEefInitBbox(object_in_target, info)) {
+      std::string init_bbox_reason;
+      if (publishProjectedEefInitBbox(object_in_target, info, &init_bbox_reason)) {
         last_eef_init_bbox_stamp_ = stamp;
+      } else if (!init_bbox_reason.empty()) {
+        publishStatus("waiting for end-effector visual feature bbox near object: " + init_bbox_reason);
       }
     }
 
@@ -752,7 +761,8 @@ private:
 
   bool publishProjectedEefInitBbox(
     const geometry_msgs::msg::PointStamped & object_in_target,
-    const CameraInfo & info)
+    const CameraInfo & info,
+    std::string * block_reason = nullptr)
   {
     const std::string eef_camera_frame =
       eef_camera_frame_override_.empty() ? info.frame_id : eef_camera_frame_override_;
@@ -764,6 +774,7 @@ private:
     try {
       object_in_eef_camera = tf_buffer_.transform(object_latest, eef_camera_frame);
     } catch (const tf2::TransformException & ex) {
+      setBlockReason(block_reason, std::string("EEF init bbox TF unavailable: ") + ex.what());
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "end-effector init bbox TF unavailable: %s", ex.what());
@@ -772,18 +783,28 @@ private:
 
     const double z_m = object_in_eef_camera.point.z;
     if (!std::isfinite(z_m) || z_m <= 0.01) {
+      std::ostringstream reason;
+      reason << "EEF projected object behind/too close to camera z=" << z_m;
+      setBlockReason(block_reason, reason.str());
       return false;
     }
 
     const double u = info.fx * object_in_eef_camera.point.x / z_m + info.cx;
     const double v = info.fy * object_in_eef_camera.point.y / z_m + info.cy;
     if (!std::isfinite(u) || !std::isfinite(v)) {
+      setBlockReason(block_reason, "EEF init bbox projection produced non-finite image coordinates");
       return false;
     }
 
     const double image_width = std::max(1.0, static_cast<double>(info.width));
     const double image_height = std::max(1.0, static_cast<double>(info.height));
     if (u < 0.0 || u >= image_width || v < 0.0 || v >= image_height) {
+      std::ostringstream reason;
+      reason << "EEF projected object outside image: uv=(" << u << ", " << v
+             << ") size=" << image_width << "x" << image_height
+             << " camera_point=(" << object_in_eef_camera.point.x << ", "
+             << object_in_eef_camera.point.y << ", " << z_m << ")";
+      setBlockReason(block_reason, reason.str());
       return false;
     }
 
@@ -805,6 +826,9 @@ private:
     const double w = std::min(bbox_w, image_width - x);
     const double h = std::min(bbox_h, image_height - y);
     if (w < 2.0 || h < 2.0) {
+      std::ostringstream reason;
+      reason << "EEF init bbox too small: " << w << "x" << h;
+      setBlockReason(block_reason, reason.str());
       return false;
     }
 
@@ -1106,6 +1130,7 @@ private:
 
     if (!triangulation_joint_extend_sent_) {
       publishStop();
+      stopMoveItServo();
 
       trajectory_msgs::msg::JointTrajectory trajectory;
       trajectory.header.stamp = stamp;
@@ -1153,8 +1178,10 @@ private:
     if (stage_ == GraspStage::TRIANGULATION_EXTEND) {
       stage_ = GraspStage::DEPTH_APPROACH;
     }
-    if (start_servo_on_start_) {
+    if ((start_servo_on_start_ || start_servo_after_pregrasp_) &&
+        !servo_started_after_pregrasp_) {
       startMoveItServo();
+      servo_started_after_pregrasp_ = true;
     }
     return true;
   }
@@ -1798,6 +1825,27 @@ private:
       });
   }
 
+  void stopMoveItServo()
+  {
+    if (!servo_stop_client_->wait_for_service(std::chrono::milliseconds(100))) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "MoveIt Servo stop service unavailable: /servo_node/stop_servo");
+      return;
+    }
+
+    servo_stop_client_->async_send_request(
+      std::make_shared<Trigger::Request>(),
+      [this](rclcpp::Client<Trigger>::SharedFuture future) {
+        const auto response = future.get();
+        if (!response->success) {
+          RCLCPP_WARN(
+            get_logger(), "MoveIt Servo stop request returned false: %s",
+            response->message.c_str());
+        }
+      });
+  }
+
   void publishStop()
   {
     geometry_msgs::msg::TwistStamped stop;
@@ -1917,6 +1965,7 @@ private:
   bool auto_start_on_bbox_{false};
   bool use_fallback_bbox_for_control_{false};
   bool start_servo_on_start_{true};
+  bool start_servo_after_pregrasp_{true};
   bool open_gripper_on_start_{true};
   bool close_gripper_on_arrival_{true};
   bool use_eef_refinement_{true};
@@ -2015,6 +2064,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr base_hold_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
+  rclcpp::Client<Trigger>::SharedPtr servo_stop_client_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   tf2_ros::Buffer tf_buffer_;
@@ -2040,6 +2090,7 @@ private:
   bool eef_refinement_requested_{false};
   bool object_pregrasp_horizontal_done_{false};
   bool triangulation_joint_extend_sent_{false};
+  bool servo_started_after_pregrasp_{false};
   rclcpp::Time triangulation_joint_extend_stamp_;
   GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
