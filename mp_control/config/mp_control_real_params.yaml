@@ -113,7 +113,7 @@ mp_control_node:
     # Move to this non-singular joint pose before stereo triangulation. Cartesian
     # Servo extension from the stay pose can be singularity-limited.
     use_joint_trajectory_for_triangulation_extend: true
-    triangulation_extend_joint_positions: [0.0, 1.08, -0.93, -0.15]
+    triangulation_extend_joint_positions: [0.0, 1.0, -0.84, -0.16]
     triangulation_extend_joint_duration_s: 2.0
     triangulation_extend_joint_settle_s: 0.3
     triangulation_min_range_m: 0.06
