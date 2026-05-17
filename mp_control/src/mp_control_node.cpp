@@ -90,6 +90,9 @@ public:
     eef_camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
       eef_camera_info_topic_, sensor_qos,
       [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onEefCameraInfo(msg); });
+    joint_state_sub_ = create_subscription<sensor_msgs::msg::JointState>(
+      joint_state_topic_, sensor_qos,
+      [this](const sensor_msgs::msg::JointState::ConstSharedPtr msg) { onJointState(msg); });
     start_sub_ = create_subscription<std_msgs::msg::Bool>(
       start_topic_, default_qos,
       [this](const std_msgs::msg::Bool::ConstSharedPtr msg) {
