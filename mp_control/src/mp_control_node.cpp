@@ -926,9 +926,6 @@ private:
     if (!use_eef_stereo_triangulation_) {
       auto latched_object = latestReliableDepthObject();
       if (latched_object) {
-        publishStatus(
-          "using latched depth object for EEF IBVS refinement; stereo triangulation disabled",
-          true);
         return latched_object;
       }
       setBlockReason(block_reason, "latched depth object before EEF IBVS refinement");
