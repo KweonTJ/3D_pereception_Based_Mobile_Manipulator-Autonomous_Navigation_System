@@ -208,6 +208,8 @@ private:
     gripper_action_name_ = declare_parameter<std::string>("gripper_action_name", "/gripper_controller/gripper_cmd");
     target_frame_ = declare_parameter<std::string>("target_frame", "base_link");
     end_effector_frame_ = declare_parameter<std::string>("end_effector_frame", "end_effector_link");
+    latched_depth_fixed_frame_ =
+      declare_parameter<std::string>("latched_depth_fixed_frame", "odom");
     camera_frame_override_ = declare_parameter<std::string>("camera_frame_override", "");
     eef_camera_frame_override_ =
       declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
