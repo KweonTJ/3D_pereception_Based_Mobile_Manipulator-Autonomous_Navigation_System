@@ -92,7 +92,11 @@ mp_control_node:
     eef_init_bbox_republish_period_s: 0.5
     eef_final_depth_m: 0.08
     object_pregrasp_standoff_m: 0.08
-    object_pregrasp_min_z_m: 0.35
+    # The OpenMANIPULATOR-X mounted on the TurtleBot3 reaches about 0.29 m in
+    # base_link x at a safe pregrasp height. Clamp the Cartesian pregrasp target
+    # so Servo does not keep pushing into a singular/unreachable command.
+    object_pregrasp_max_x_m: 0.29
+    object_pregrasp_min_z_m: 0.28
     object_pregrasp_lower_standoff_m: 0.02
     object_pregrasp_min_lower_z_m: 0.12
     eef_center_tolerance_px: 18.0
@@ -109,7 +113,7 @@ mp_control_node:
     # Move to this non-singular joint pose before stereo triangulation. Cartesian
     # Servo extension from the stay pose can be singularity-limited.
     use_joint_trajectory_for_triangulation_extend: true
-    triangulation_extend_joint_positions: [0.0, 0.82, -0.58, -0.24]
+    triangulation_extend_joint_positions: [0.0, 1.08, -0.93, -0.15]
     triangulation_extend_joint_duration_s: 2.0
     triangulation_extend_joint_settle_s: 0.3
     triangulation_min_range_m: 0.06
