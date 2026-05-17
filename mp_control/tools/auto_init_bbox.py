@@ -91,6 +91,8 @@ class AutoInitBbox(Node):
             self.declare_parameter("yolo_min_area_ratio_change", 0.50).value)
         self.yolo_max_area_ratio_change = float(
             self.declare_parameter("yolo_max_area_ratio_change", 1.80).value)
+        self.yolo_lock_lost_timeout_s = float(
+            self.declare_parameter("yolo_lock_lost_timeout_s", 2.0).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -147,6 +149,7 @@ class AutoInitBbox(Node):
         self.last_status = ""
         self.last_bbox = None
         self.anchor_bbox = None
+        self.yolo_lock_lost_since = None
         self.yolo_model = None
         self.yolo_load_failed = False
 
@@ -160,6 +163,7 @@ class AutoInitBbox(Node):
         self.enabled = bool(msg.data)
         if self.enabled and not was_enabled:
             self.published = False
+            self.yolo_lock_lost_since = None
             self.start_time = time.monotonic()
             self.publish_status(
                 f"enabled target detection on {self.image_topics()}; publishing bbox to {self.bbox_topic}")
@@ -604,6 +608,7 @@ class AutoInitBbox(Node):
         result = results[0]
         boxes = getattr(result, "boxes", None)
         if boxes is None or len(boxes) == 0:
+            self.note_yolo_lock_loss()
             self.throttled_waiting_status("YOLO found no box")
             return None
 
@@ -683,6 +688,7 @@ class AutoInitBbox(Node):
                 best = candidate
 
         if not candidates:
+            self.note_yolo_lock_loss()
             reject_text = " ".join(
                 f"{key}={value}" for key, value in rejected.items() if value)
             if not reject_text:
@@ -698,6 +704,7 @@ class AutoInitBbox(Node):
         if self.yolo_lock_target and self.last_bbox is not None:
             locked_best = None
             locked_score = -1.0e9
+            closest_debug = None
             max_jump = max(0.01, self.yolo_max_center_jump_ratio)
             anchor_max_jump = max(max_jump, self.yolo_anchor_max_center_jump_ratio)
             min_iou = max(0.0, self.yolo_min_reselect_iou)
@@ -710,6 +717,9 @@ class AutoInitBbox(Node):
                 jump = self.bbox_center_jump_ratio(self.last_bbox, candidate_bbox, msg.width, msg.height)
                 anchor_jump = self.bbox_center_jump_ratio(anchor_bbox, candidate_bbox, msg.width, msg.height)
                 area_change = self.bbox_area_ratio(candidate_bbox, self.last_bbox)
+                distance_score = jump + anchor_jump + abs(1.0 - area_change)
+                if closest_debug is None or distance_score < closest_debug[0]:
+                    closest_debug = (distance_score, iou, jump, anchor_jump, area_change)
                 if anchor_jump > anchor_max_jump:
                     continue
                 if area_change < min_area_change or area_change > max_area_change:
@@ -722,18 +732,48 @@ class AutoInitBbox(Node):
                     locked_best = candidate
 
             if locked_best is None:
-                self.throttled_waiting_status(
-                    "YOLO target locked; no same-object box near last bbox")
-                return None
+                elapsed = self.note_yolo_lock_loss()
+                if self.yolo_lock_lost_timeout_s > 0.0 and elapsed >= self.yolo_lock_lost_timeout_s:
+                    best_bbox = best[:4]
+                    self.anchor_bbox = [
+                        float(best_bbox[0]), float(best_bbox[1]),
+                        float(best_bbox[2]), float(best_bbox[3])]
+                    self.yolo_lock_lost_since = None
+                    locked_best = best
+                    self.publish_status(
+                        "YOLO target lock expired after {:.1f}s; reacquiring best box".format(elapsed))
+                else:
+                    detail = ""
+                    if closest_debug is not None:
+                        _, iou, jump, anchor_jump, area_change = closest_debug
+                        detail = (
+                            " closest iou={:.2f} jump={:.2f} anchor_jump={:.2f} "
+                            "area_change={:.2f} limits jump<={:.2f} anchor<={:.2f} "
+                            "area=[{:.2f},{:.2f}]").format(
+                                iou, jump, anchor_jump, area_change, max_jump,
+                                anchor_max_jump, min_area_change, max_area_change)
+                    self.throttled_waiting_status(
+                        "YOLO target locked; no same-object box near last bbox" + detail)
+                    return None
             best = locked_best
 
         x, y, width, height, pixels, confidence, cls_name, _ = best
+        self.yolo_lock_lost_since = None
         self.publish_status(
             "YOLO box: class={} conf={:.2f} bbox=[{:.0f},{:.0f},{:.1f},{:.1f}]".format(
                 cls_name, confidence, x, y, width, height))
         if self.anchor_bbox is None:
             self.anchor_bbox = [float(x), float(y), float(width), float(height)]
         return int(round(x)), int(round(y)), float(width), float(height), pixels
+
+    def note_yolo_lock_loss(self):
+        if not self.yolo_lock_target or self.last_bbox is None:
+            self.yolo_lock_lost_since = None
+            return 0.0
+        now = time.monotonic()
+        if self.yolo_lock_lost_since is None:
+            self.yolo_lock_lost_since = now
+        return now - self.yolo_lock_lost_since
 
     @staticmethod
     def bbox_area_ratio(a, b):
