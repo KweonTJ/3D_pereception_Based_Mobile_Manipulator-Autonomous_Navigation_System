@@ -269,6 +269,7 @@ private:
       declare_parameter<double>("eef_init_bbox_republish_period_s", 0.5);
     eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
     object_pregrasp_standoff_m_ = declare_parameter<double>("object_pregrasp_standoff_m", 0.08);
+    object_pregrasp_max_x_m_ = declare_parameter<double>("object_pregrasp_max_x_m", 0.29);
     object_pregrasp_min_z_m_ = declare_parameter<double>("object_pregrasp_min_z_m", 0.50);
     object_pregrasp_lower_standoff_m_ =
       declare_parameter<double>("object_pregrasp_lower_standoff_m", 0.02);
