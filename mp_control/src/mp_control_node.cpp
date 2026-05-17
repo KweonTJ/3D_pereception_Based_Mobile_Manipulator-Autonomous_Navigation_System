@@ -2400,6 +2400,7 @@ private:
   bool triangulation_joint_extend_sent_{false};
   bool servo_started_after_pregrasp_{false};
   rclcpp::Time triangulation_joint_extend_stamp_;
+  double triangulation_joint_extend_wait_s_{0.0};
   GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
   rclcpp::Time last_status_stamp_;
