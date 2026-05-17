@@ -41,6 +41,10 @@ mp_control_node:
     use_eef_refinement: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
+    # Joint pregrasp already stretches the arm. Do not require Cartesian Servo
+    # to reach the depth object before EEF IBVS, because this pose is near a
+    # singularity on the real arm.
+    use_cartesian_object_pregrasp: false
     use_depthless_triangulation: true
     # The EEF camera is reserved for near-field IBVS correction. Keep stereo
     # triangulation disabled by default and use the last reliable depth point
