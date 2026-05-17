@@ -189,6 +189,8 @@ private:
         stage,
         {
           "BASE STOPPED, DEPTH+EEF READY",
+          "MOVING ARM TO PREGRASP",
+          "WAITING FOR PREGRASP",
           "EXTENDING ARM",
           "LOWERING ARM",
           "WAITING FOR END-EFFECTOR",
