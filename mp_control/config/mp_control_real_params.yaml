@@ -54,7 +54,9 @@ mp_control_node:
     depth_roi_radius_px: 5
     depth_unit_scale: 0.001
     min_valid_depth_m: 0.35
-    max_valid_depth_m: 1.0
+    # Allow the leader to start from farther away. Near-field grasp handoff is
+    # still governed by eef_refinement_start_object_x_m / arm_start_max_object_x_m.
+    max_valid_depth_m: 2.0
 
     # Offset is applied in target_frame after the camera point is transformed.
     # Tune these slowly if the gripper consistently stops beside/above/in front of the object.
