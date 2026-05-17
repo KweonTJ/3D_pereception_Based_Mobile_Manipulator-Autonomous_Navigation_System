@@ -80,9 +80,8 @@ mp_control_node:
     # Front depth becomes unreliable below about 0.47 m. Once this is reached,
     # ignore later front-depth jumps and continue from the odom-latched object.
     ignore_depth_after_near_depth_m: 0.47
-    # Front depth reaches its near reliable limit at 0.47 m. In base_link this
-    # appears around 0.53-0.55 m because the front camera is mounted ahead of
-    # the arm base, so use the transformed object-x threshold below.
+    # Start arm/EEF handoff before the front camera gets so close that the box
+    # leaves the image. The arm still uses the latched depth object for target.
     eef_refinement_start_object_x_m: 0.42
     arm_start_max_error_m: 0.32
     arm_start_max_object_x_m: 0.42
