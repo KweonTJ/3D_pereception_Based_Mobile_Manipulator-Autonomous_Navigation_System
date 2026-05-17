@@ -93,10 +93,10 @@ hardware_interface::CallbackReturn TurtleBot3ManipulationSystemHardware::on_init
   dxl_wheel_commands_.resize(2, 0.0);
 
   dxl_joint_commands_.resize(4, 0.0);
-  dxl_joint_commands_[0] = 0.0;
-  dxl_joint_commands_[1] = -1.05;
-  dxl_joint_commands_[2] = 1.05;
-  dxl_joint_commands_[3] = 0.0;
+  dxl_joint_commands_[0] = 0.104311;
+  dxl_joint_commands_[1] = 0.027612;
+  dxl_joint_commands_[2] = -0.001534;
+  dxl_joint_commands_[3] = -1.638291;
 
   dxl_gripper_commands_.resize(2, 0.0);
 
