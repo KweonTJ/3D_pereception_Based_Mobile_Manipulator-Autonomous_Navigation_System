@@ -1627,7 +1627,7 @@ private:
       nearest_object_goal_x_m_ = goal_x;
     }
     if (ignore_depth_after_near_reached_ &&
-        (depth_m <= eef_refinement_start_depth_m_ || goal_x <= arm_start_max_object_x_m_)) {
+        (depth_m <= ignore_depth_after_near_depth_m_ || goal_x <= arm_start_max_object_x_m_)) {
       near_object_distance_reached_ = true;
     }
   }
