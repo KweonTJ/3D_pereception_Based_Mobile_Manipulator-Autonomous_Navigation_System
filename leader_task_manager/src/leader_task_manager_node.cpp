@@ -43,12 +43,14 @@ public:
     declare_parameter<std::string>("initial_platoon_mode", "FOLLOW");
     declare_parameter<bool>("initial_follower_enable", true);
     declare_parameter<bool>("follow_while_idle", true);
+    declare_parameter<double>("mp_control_status_timeout_s", 3.0);
 
     task_state_ = get_parameter("initial_task_state").as_string();
     cargo_state_ = get_parameter("initial_cargo_state").as_string();
     platoon_mode_ = get_parameter("initial_platoon_mode").as_string();
     follower_enable_ = get_parameter("initial_follower_enable").as_bool();
     follow_while_idle_ = get_parameter("follow_while_idle").as_bool();
+    mp_control_status_timeout_s_ = get_parameter("mp_control_status_timeout_s").as_double();
 
     const auto state_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
     task_state_pub_ = create_publisher<std_msgs::msg::String>(
@@ -133,6 +135,9 @@ private:
 
   void handle_mp_control_status(const std::string & raw_status)
   {
+    have_mp_control_status_ = true;
+    last_mp_control_status_time_ = now();
+
     const auto status = uppercase(raw_status);
     const auto stage = status_stage(status);
 
@@ -317,6 +322,8 @@ private:
 
   void publish_states()
   {
+    apply_mp_control_timeout();
+
     std_msgs::msg::String task_msg;
     task_msg.data = task_state_;
     task_state_pub_->publish(task_msg);
@@ -381,12 +388,35 @@ private:
     follower_enable_ = value;
   }
 
+  void apply_mp_control_timeout()
+  {
+    if (!have_mp_control_status_ || task_state_ == "IDLE" || task_state_ == "DONE") {
+      return;
+    }
+    const auto age_s = (now() - last_mp_control_status_time_).seconds();
+    if (age_s <= mp_control_status_timeout_s_) {
+      return;
+    }
+
+    RCLCPP_ERROR_THROTTLE(
+      get_logger(), *get_clock(), 2000,
+      "mp_control status timed out while task_state=%s; forcing ERROR",
+      task_state_.c_str());
+    set_task_state("ERROR");
+    set_cargo_state("ERROR");
+    set_follower_enable(false);
+    set_platoon_mode("STOP");
+  }
+
   std::string task_state_;
   std::string cargo_state_;
   std::string platoon_mode_;
   std::string current_cargo_id_;
   bool follower_enable_{false};
   bool follow_while_idle_{true};
+  bool have_mp_control_status_{false};
+  double mp_control_status_timeout_s_{3.0};
+  rclcpp::Time last_mp_control_status_time_{0, 0, RCL_ROS_TIME};
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr task_state_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_state_pub_;
