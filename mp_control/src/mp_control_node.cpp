@@ -1932,6 +1932,7 @@ private:
   double grasp_offset_z_{0.0};
   double eef_refinement_switch_distance_m_{0.12};
   double eef_refinement_start_depth_m_{0.47};
+  double ignore_depth_after_near_depth_m_{0.47};
   double eef_refinement_start_object_x_m_{0.55};
   double arm_start_max_error_m_{0.40};
   double arm_start_max_object_x_m_{0.55};
