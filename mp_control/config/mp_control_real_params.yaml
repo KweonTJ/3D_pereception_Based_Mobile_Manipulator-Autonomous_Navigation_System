@@ -135,21 +135,24 @@ mp_control_node:
     triangulation_extend_current_start_duration_s: 0.15
     triangulation_extend_current_start_max_age_s: 1.0
 
-    # Raw intermediate waypoints before transformPregraspWaypoint().
+    # Hardware stay pose reports joint2/joint3 near zero while joint4 is around
+    # -1.6 rad. Extend from that real pose by opening joint3 first, then folding
+    # joint2 forward. Keep joint4 near the stay-side wrist angle so the camera
+    # and gripper do not curl against the arm load.
     triangulation_extend_intermediate_joint_positions:
       - 0.05
-      - -0.25
-      - 0.00
-      - -1.20
+      - -0.10
+      - 0.55
+      - -1.60
       - 0.03
-      - -0.65
-      - 0.18
-      - -0.30
+      - -0.35
+      - 0.95
+      - -1.62
     triangulation_extend_intermediate_segment_duration_s: 1.2
 
     # Approximate EEF/gripper camera pitch = joint2 + joint3 + joint4.
     pregrasp_trajectory_transform_enabled: true
-    pregrasp_trajectory_use_pitch_blend: true
+    pregrasp_trajectory_use_pitch_blend: false
     pregrasp_trajectory_target_pitch_rad: 0.0
     pregrasp_trajectory_pitch_blend_weight: 1.0
 
@@ -159,7 +162,7 @@ mp_control_node:
     pregrasp_trajectory_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
     pregrasp_trajectory_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
 
-    triangulation_extend_joint_positions: [0.0, -1.05, 0.35, 0.70]
+    triangulation_extend_joint_positions: [0.0, -0.65, 1.25, -1.62]
     triangulation_extend_joint_duration_s: 1.2
     triangulation_extend_joint_settle_s: 0.5
 
