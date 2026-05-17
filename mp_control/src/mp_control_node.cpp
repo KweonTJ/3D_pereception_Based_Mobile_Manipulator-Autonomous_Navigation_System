@@ -418,6 +418,57 @@ private:
         "triangulation_extend_joint_positions must have four values; using default pre-grasp pose");
       triangulation_extend_joint_positions_ = {0.0, -1.05, 0.35, 0.70};
     }
+    if (!triangulation_extend_intermediate_joint_positions_.empty() &&
+        triangulation_extend_intermediate_joint_positions_.size() % 4 != 0) {
+      RCLCPP_WARN(
+        get_logger(),
+        "triangulation_extend_intermediate_joint_positions must contain 4*N values; ignoring it");
+      triangulation_extend_intermediate_joint_positions_.clear();
+    }
+
+    auto ensure_vector4 = [this](
+      std::vector<double> & values,
+      const std::vector<double> & fallback,
+      const std::string & name)
+    {
+      if (values.size() != 4) {
+        RCLCPP_WARN(get_logger(), "%s must contain exactly four values; using fallback", name.c_str());
+        values = fallback;
+      }
+    };
+
+    ensure_vector4(
+      pregrasp_trajectory_joint_scales_, {1.0, 1.0, 1.0, 1.0},
+      "pregrasp_trajectory_joint_scales");
+    ensure_vector4(
+      pregrasp_trajectory_joint_offsets_, {0.0, 0.0, 0.0, 0.0},
+      "pregrasp_trajectory_joint_offsets");
+    ensure_vector4(
+      pregrasp_trajectory_joint_min_positions_, {-3.14, -1.79, -0.94, -1.79},
+      "pregrasp_trajectory_joint_min_positions");
+    ensure_vector4(
+      pregrasp_trajectory_joint_max_positions_, {3.14, 1.57, 1.38, 2.04},
+      "pregrasp_trajectory_joint_max_positions");
+
+    for (std::size_t i = 0; i < 4; ++i) {
+      if (pregrasp_trajectory_joint_min_positions_[i] >
+          pregrasp_trajectory_joint_max_positions_[i]) {
+        std::swap(
+          pregrasp_trajectory_joint_min_positions_[i],
+          pregrasp_trajectory_joint_max_positions_[i]);
+      }
+    }
+
+    pregrasp_trajectory_pitch_blend_weight_ =
+      clampValue(pregrasp_trajectory_pitch_blend_weight_, 0.0, 1.0);
+    triangulation_extend_current_start_duration_s_ =
+      std::max(0.02, triangulation_extend_current_start_duration_s_);
+    triangulation_extend_current_start_max_age_s_ =
+      std::max(0.05, triangulation_extend_current_start_max_age_s_);
+    triangulation_extend_intermediate_segment_duration_s_ =
+      std::max(0.2, triangulation_extend_intermediate_segment_duration_s_);
+
+
     triangulation_extend_joint_duration_s_ =
       std::max(0.2, triangulation_extend_joint_duration_s_);
     triangulation_extend_joint_settle_s_ =
