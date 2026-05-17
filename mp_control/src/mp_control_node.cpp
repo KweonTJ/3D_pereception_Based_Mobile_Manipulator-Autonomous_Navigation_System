@@ -233,6 +233,8 @@ private:
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
     auto_init_eef_tracker_from_object_ =
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
+    use_cartesian_object_pregrasp_ =
+      declare_parameter<bool>("use_cartesian_object_pregrasp", false);
     use_depthless_triangulation_ =
       declare_parameter<bool>("use_depthless_triangulation", false);
     use_eef_stereo_triangulation_ =
@@ -634,7 +636,9 @@ private:
       if (!moveArmToTriangulationPose(eef_tf, &extension_cmd_published)) {
         return;
       }
-      if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
+      if (use_cartesian_object_pregrasp_ &&
+        !moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published))
+      {
         return;
       }
       if (!prepareEefRefinement(object)) {
@@ -1919,6 +1923,7 @@ private:
   bool wait_for_base_approach_{false};
   bool auto_init_eef_tracker_from_object_{true};
   bool allow_eef_camera_info_fallback_{true};
+  bool use_cartesian_object_pregrasp_{false};
   bool use_depthless_triangulation_{false};
   bool use_eef_stereo_triangulation_{false};
   bool ignore_depth_after_near_reached_{false};
