@@ -2359,6 +2359,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr eef_camera_info_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr arm_trajectory_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
