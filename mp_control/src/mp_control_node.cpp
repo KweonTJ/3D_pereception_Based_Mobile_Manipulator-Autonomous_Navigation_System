@@ -981,7 +981,9 @@ private:
     const geometry_msgs::msg::PointStamped & object_in_target,
     bool * command_published)
   {
-    const double target_x = object_in_target.point.x - object_pregrasp_standoff_m_ + grasp_offset_x_;
+    const double requested_target_x =
+      object_in_target.point.x - object_pregrasp_standoff_m_ + grasp_offset_x_;
+    const double target_x = std::min(requested_target_x, object_pregrasp_max_x_m_);
     const double target_y = object_in_target.point.y + grasp_offset_y_;
 
     const double eef_x = eef_tf.transform.translation.x;
@@ -1034,6 +1036,7 @@ private:
       "lowering arm toward depth object: target=(" :
       "extending arm horizontally toward depth object: target=(")
            << target_x << ", " << target_y << ", " << target_z
+           << ") requested_x=" << requested_target_x
            << ") err=(" << err_x << ", " << err_y << ", " << err_z
            << ") norm=" << err_norm;
     publishStatus(status.str());
