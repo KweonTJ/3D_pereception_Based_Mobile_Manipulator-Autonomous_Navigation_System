@@ -1,7 +1,7 @@
 # Default initial positions for turtlebot3_manipulation's ros2_control fake system
 
 initial_positions:
-  joint1: 0
-  joint2: 0
-  joint3: 0
-  joint4: 0
+  joint1: 0.0092
+  joint2: -1.1045
+  joint3: 0.0813
+  joint4: 0.5093
