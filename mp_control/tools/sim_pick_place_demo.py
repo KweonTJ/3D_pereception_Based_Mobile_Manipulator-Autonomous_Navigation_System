@@ -74,6 +74,8 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("gripper_finger_home_half_gap_m", 0.021)
         self.declare_parameter("gripper_pre_grasp_clearance_m", 0.012)
         self.declare_parameter("gripper_grasp_compression_m", 0.002)
+        self.declare_parameter(
+            "stay_arm_positions", [0.0092, -1.1045, 0.0813, 0.5093])
         self.declare_parameter("start_delay_s", 4.0)
         self.declare_parameter("object_frame", "odom")
         self.declare_parameter("place_frame", "odom")
@@ -158,7 +160,12 @@ class SimPickPlaceDemo(Node):
             0.0, float(self.get_parameter("gripper_grasp_compression_m").value))
         self.grasp_accuracy_tolerance_m = max(
             0.001, float(self.get_parameter("grasp_accuracy_tolerance_m").value))
-        self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
+        self.stay_arm_positions = [
+            float(v) for v in self.get_parameter("stay_arm_positions").value]
+        if len(self.stay_arm_positions) != 4:
+            self.get_logger().warn(
+                "stay_arm_positions must have four values; using hardware-aligned default")
+            self.stay_arm_positions = [0.0092, -1.1045, 0.0813, 0.5093]
         self.pre_grasp_arm_positions = self._level_gripper_pose(0.0, 0.82, -0.58)
         self.grasp_arm_positions = self._level_gripper_pose(0.0, 1.32, -0.94)
         self.pre_place_arm_positions = self._level_gripper_pose(-math.pi, 0.82, -0.58)

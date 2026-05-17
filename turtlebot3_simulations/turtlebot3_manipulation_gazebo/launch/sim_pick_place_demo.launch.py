@@ -108,6 +108,7 @@ def generate_launch_description():
             {"use_sim_time": True},
             {"start_delay_s": demo_start_delay},
             {"return_to_stow": return_to_stow},
+            {"stay_arm_positions": [0.0092, -1.1045, 0.0813, 0.5093]},
             {"direct_place_on_follower": direct_place_on_follower},
             {"base_approach_distance_m": base_approach_distance},
             {"base_approach_speed_mps": base_approach_speed},
