@@ -591,6 +591,38 @@ private:
     latest_eef_camera_info_ = info;
   }
 
+  void onJointState(const sensor_msgs::msg::JointState::ConstSharedPtr msg)
+  {
+    const std::vector<std::string> arm_joint_names = {"joint1", "joint2", "joint3", "joint4"};
+    std::vector<double> arm_positions(arm_joint_names.size(), 0.0);
+
+    for (std::size_t arm_index = 0; arm_index < arm_joint_names.size(); ++arm_index) {
+      bool found = false;
+
+      for (std::size_t msg_index = 0; msg_index < msg->name.size(); ++msg_index) {
+        if (msg->name[msg_index] != arm_joint_names[arm_index]) {
+          continue;
+        }
+
+        if (msg_index >= msg->position.size() || !std::isfinite(msg->position[msg_index])) {
+          return;
+        }
+
+        arm_positions[arm_index] = msg->position[msg_index];
+        found = true;
+        break;
+      }
+
+      if (!found) {
+        return;
+      }
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_arm_joint_positions_ = arm_positions;
+    latest_arm_joint_stamp_ = now();
+  }
+
   void startSequence()
   {
     active_ = true;
