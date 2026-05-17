@@ -926,6 +926,21 @@ private:
       reason.rfind("depth image on ", 0) == 0;
   }
 
+  bool isFrontBboxUnavailableReason(const std::string & reason) const
+  {
+    const auto bbox_description = bboxInputDescription();
+    return reason == bbox_description ||
+      reason.rfind("fresh " + bbox_description, 0) == 0;
+  }
+
+  bool canUseLatchedObjectAfterFrontLoss()
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    return ignore_depth_after_near_reached_ &&
+      near_object_distance_reached_ &&
+      latest_reliable_depth_object_.has_value();
+  }
+
   std::optional<geometry_msgs::msg::PointStamped> estimateObjectPointByTriangulation(
     const geometry_msgs::msg::TransformStamped & eef_tf,
     std::string * block_reason,
