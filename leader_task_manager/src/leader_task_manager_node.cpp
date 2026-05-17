@@ -390,7 +390,10 @@ private:
 
   void apply_mp_control_timeout()
   {
-    if (!have_mp_control_status_ || task_state_ == "IDLE" || task_state_ == "DONE") {
+    if (
+      !have_mp_control_status_ || task_state_ == "IDLE" ||
+      task_state_ == "DONE" || task_state_ == "ERROR")
+    {
       return;
     }
     const auto age_s = (now() - last_mp_control_status_time_).seconds();
