@@ -1037,7 +1037,7 @@ private:
       "extending arm horizontally toward depth object: target=(")
            << target_x << ", " << target_y << ", " << target_z
            << ") requested_x=" << requested_target_x
-           << ") err=(" << err_x << ", " << err_y << ", " << err_z
+           << " err=(" << err_x << ", " << err_y << ", " << err_z
            << ") norm=" << err_norm;
     publishStatus(status.str());
     return false;
