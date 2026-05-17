@@ -209,6 +209,7 @@ private:
     twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
     arm_trajectory_topic_ =
       declare_parameter<std::string>("arm_trajectory_topic", "/arm_controller/joint_trajectory");
+    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
     start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
     status_topic_ = declare_parameter<std::string>("status_topic", "/mp_control/status");
