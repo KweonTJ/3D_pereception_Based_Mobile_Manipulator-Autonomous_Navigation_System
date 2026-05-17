@@ -359,7 +359,7 @@ private:
       RCLCPP_WARN(
         get_logger(),
         "triangulation_extend_joint_positions must have four values; using default pre-grasp pose");
-      triangulation_extend_joint_positions_ = {0.0, 0.82, -0.58, -0.24};
+      triangulation_extend_joint_positions_ = {0.0, 1.0, -0.84, -0.16};
     }
     triangulation_extend_joint_duration_s_ =
       std::max(0.2, triangulation_extend_joint_duration_s_);
@@ -1964,7 +1964,7 @@ private:
   double triangulation_extend_gain_{0.7};
   double triangulation_extend_max_speed_{0.015};
   bool use_joint_trajectory_for_triangulation_extend_{true};
-  std::vector<double> triangulation_extend_joint_positions_{0.0, 0.82, -0.58, -0.24};
+  std::vector<double> triangulation_extend_joint_positions_{0.0, 1.0, -0.84, -0.16};
   double triangulation_extend_joint_duration_s_{2.0};
   double triangulation_extend_joint_settle_s_{0.3};
   double triangulation_min_range_m_{0.06};
