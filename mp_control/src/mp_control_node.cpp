@@ -613,11 +613,11 @@ private:
       err_norm <= eef_refinement_switch_distance_m_);
     if (use_eef_now) {
       publishBaseHold(true);
-      if (!prepareEefRefinement(object)) {
-        return;
-      }
       bool extension_cmd_published = false;
       if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
+        return;
+      }
+      if (!prepareEefRefinement(object)) {
         return;
       }
       stage_ = GraspStage::EEF_REFINE;
