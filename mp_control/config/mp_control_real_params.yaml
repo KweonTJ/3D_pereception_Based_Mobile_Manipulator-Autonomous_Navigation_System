@@ -155,7 +155,7 @@ mp_control_node:
     pregrasp_trajectory_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
 
     triangulation_extend_joint_positions: [0.0, 0.65, 1.25, -1.20]
-    triangulation_extend_joint_duration_s: 2.0
+    triangulation_extend_joint_duration_s: 1.2
     triangulation_extend_joint_settle_s: 0.5
 
     triangulation_min_range_m: 0.06
