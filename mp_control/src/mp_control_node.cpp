@@ -1945,6 +1945,7 @@ private:
   double eef_init_bbox_republish_period_s_{0.5};
   double eef_final_depth_m_{0.08};
   double object_pregrasp_standoff_m_{0.08};
+  double object_pregrasp_max_x_m_{0.29};
   double object_pregrasp_min_z_m_{0.50};
   double object_pregrasp_lower_standoff_m_{0.02};
   double object_pregrasp_min_lower_z_m_{0.12};
