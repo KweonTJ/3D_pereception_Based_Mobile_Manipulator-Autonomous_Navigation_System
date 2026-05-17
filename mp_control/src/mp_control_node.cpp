@@ -2388,6 +2388,8 @@ private:
   std::optional<double> nearest_object_goal_x_m_;
   std::optional<geometry_msgs::msg::PointStamped> latest_reliable_depth_object_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
+  std::optional<std::vector<double>> latest_arm_joint_positions_;
+  rclcpp::Time latest_arm_joint_stamp_;
 
   bool active_{false};
   bool done_{false};
