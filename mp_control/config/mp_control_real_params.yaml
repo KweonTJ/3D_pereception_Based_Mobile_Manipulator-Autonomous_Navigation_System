@@ -35,7 +35,11 @@ mp_control_node:
     # /target/init_bbox is only for initializing CSRT from YOLO.
     # Arm/depth control must follow the CSRT-tracked bbox, not repeated YOLO init boxes.
     use_fallback_bbox_for_control: false
-    start_servo_on_start: true
+    # Direct joint pregrasp publishes to /arm_controller/joint_trajectory.
+    # Keep Servo stopped until that pose is reached so Servo does not overwrite
+    # the pregrasp command with its current-pose hold trajectory.
+    start_servo_on_start: false
+    start_servo_after_pregrasp: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
     use_eef_refinement: true
