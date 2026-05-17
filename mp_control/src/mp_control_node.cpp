@@ -1383,7 +1383,98 @@ private:
     plan.wait_s = trajectory_time_s + triangulation_extend_joint_settle_s_;
     return plan;
   }
+  std::vector<double> transformPregraspWaypoint(
+    const std::vector<double> & raw_positions,
+    const std::optional<std::vector<double>> & current_joint_positions,
+    double progress) const
+  {
+    std::vector<double> transformed = raw_positions;
 
+    if (transformed.size() != 4) {
+      return transformed;
+    }
+
+    progress = clampValue(progress, 0.0, 1.0);
+
+    if (pregrasp_trajectory_transform_enabled_) {
+      for (std::size_t i = 0; i < 4; ++i) {
+        if (current_joint_positions && current_joint_positions->size() == 4) {
+          transformed[i] =
+            (*current_joint_positions)[i] +
+            (transformed[i] - (*current_joint_positions)[i]) *
+            pregrasp_trajectory_joint_scales_[i];
+        } else {
+          transformed[i] *= pregrasp_trajectory_joint_scales_[i];
+        }
+
+        transformed[i] += pregrasp_trajectory_joint_offsets_[i] * progress;
+      }
+
+      if (pregrasp_trajectory_use_pitch_blend_) {
+        double start_pitch = pregrasp_trajectory_target_pitch_rad_;
+
+        if (current_joint_positions && current_joint_positions->size() == 4) {
+          start_pitch =
+            (*current_joint_positions)[1] +
+            (*current_joint_positions)[2] +
+            (*current_joint_positions)[3];
+        }
+
+        const double desired_pitch =
+          start_pitch + progress * (pregrasp_trajectory_target_pitch_rad_ - start_pitch);
+
+        const double pitch_based_joint4 =
+          desired_pitch - transformed[1] - transformed[2];
+
+        transformed[3] =
+          (1.0 - pregrasp_trajectory_pitch_blend_weight_) * transformed[3] +
+          pregrasp_trajectory_pitch_blend_weight_ * pitch_based_joint4;
+      }
+    }
+
+    for (std::size_t i = 0; i < 4; ++i) {
+      transformed[i] = clampValue(
+        transformed[i],
+        pregrasp_trajectory_joint_min_positions_[i],
+        pregrasp_trajectory_joint_max_positions_[i]);
+    }
+
+    return transformed;
+  }
+
+  void appendJointTrajectoryPoint(
+    trajectory_msgs::msg::JointTrajectory & trajectory,
+    const std::vector<double> & positions,
+    double time_from_start_s) const
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions = positions;
+    point.velocities = std::vector<double>(positions.size(), 0.0);
+
+    const auto duration_ns = static_cast<int64_t>(
+      std::llround(std::max(0.0, time_from_start_s) * 1e9));
+
+    point.time_from_start.sec = static_cast<int32_t>(duration_ns / 1000000000LL);
+    point.time_from_start.nanosec = static_cast<uint32_t>(duration_ns % 1000000000LL);
+
+    trajectory.points.push_back(point);
+  }
+
+  std::optional<std::vector<double>> latestArmJointPositions()
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+
+    if (!latest_arm_joint_positions_ || latest_arm_joint_stamp_.nanoseconds() == 0) {
+      return std::nullopt;
+    }
+
+    if ((now() - latest_arm_joint_stamp_).seconds() >
+        triangulation_extend_current_start_max_age_s_) {
+      return std::nullopt;
+    }
+
+    return latest_arm_joint_positions_;
+  }
   std::optional<geometry_msgs::msg::PointStamped> triangulateObjectPoint(
     std::string * block_reason)
   {
