@@ -35,9 +35,8 @@ OpenCR::~OpenCR()
 {
   send_heartbeat(1);
 
-  std::array<int32_t, 4> tick = {2048, 750, 3040, 2500};
-  set_joints_variables(opencr_control_table.goal_position_joint_1.address, tick);
-  dxl_sdk_wrapper_->write_byte(opencr_control_table.goal_position_write_joints.address, 1);
+  std::vector<double> stay_pose = {0.104311, 0.027612, -0.001534, -1.638291};
+  set_joint_positions(stay_pose);
 
   init_gripper();
 
