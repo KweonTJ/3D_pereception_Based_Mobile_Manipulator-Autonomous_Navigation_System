@@ -1612,14 +1612,47 @@ private:
       return;
     }
 
+    auto latched_object = object;
+    if (!latched_depth_fixed_frame_.empty() &&
+        latched_depth_fixed_frame_ != object.header.frame_id) {
+      try {
+        auto latest_object = object;
+        latest_object.header.stamp = builtin_interfaces::msg::Time();
+        latched_object = tf_buffer_.transform(latest_object, latched_depth_fixed_frame_);
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 1000,
+          "latched depth object TF to %s unavailable: %s",
+          latched_depth_fixed_frame_.c_str(), ex.what());
+      }
+    }
+
     std::lock_guard<std::mutex> lock(data_mutex_);
-    latest_reliable_depth_object_ = object;
+    latest_reliable_depth_object_ = latched_object;
   }
 
   std::optional<geometry_msgs::msg::PointStamped> latestReliableDepthObject()
   {
-    std::lock_guard<std::mutex> lock(data_mutex_);
-    return latest_reliable_depth_object_;
+    std::optional<geometry_msgs::msg::PointStamped> latched_object;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      latched_object = latest_reliable_depth_object_;
+    }
+    if (!latched_object || latched_object->header.frame_id == target_frame_) {
+      return latched_object;
+    }
+
+    try {
+      auto latest_object = *latched_object;
+      latest_object.header.stamp = builtin_interfaces::msg::Time();
+      return tf_buffer_.transform(latest_object, target_frame_);
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "latched depth object TF to %s unavailable: %s",
+        target_frame_.c_str(), ex.what());
+      return std::nullopt;
+    }
   }
 
   double gripperPositionForGap(double gap_m) const
