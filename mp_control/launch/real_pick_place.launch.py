@@ -592,7 +592,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_depth_max_m",
-            default_value="1.2",
+            default_value="2.0",
             description="Maximum valid depth for depth_near automatic bbox detection.",
         ),
         DeclareLaunchArgument(
