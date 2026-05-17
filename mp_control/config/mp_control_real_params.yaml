@@ -119,8 +119,9 @@ mp_control_node:
     triangulation_extend_tolerance_m: 0.025
     triangulation_extend_gain: 0.7
     triangulation_extend_max_speed: 0.015
-    # Move to the hardware home-style safe pose before EEF refinement. The
-    # previous positive joint2 pregrasp could physically catch on the real arm.
+    # Move to the hardware home-style safe pose before EEF refinement.
+    # On the real arm, positive joint2 is the forward-fold direction from the
+    # hardware stay pose.
     # use_joint_trajectory_for_triangulation_extend: true
     # triangulation_extend_joint_positions: [0.0, -1.05, 0.35, 0.70]
     # triangulation_extend_joint_duration_s: 3.0
@@ -136,17 +137,16 @@ mp_control_node:
     triangulation_extend_current_start_max_age_s: 1.0
 
     # Hardware stay pose reports joint2/joint3 near zero while joint4 is around
-    # -1.6 rad. Extend from that real pose by opening joint3 first, then folding
-    # joint2 forward. Keep joint4 near the stay-side wrist angle so the camera
-    # and gripper do not curl against the arm load.
+    # -1.6 rad. Extend from that real pose in the physical load-friendly order:
+    # joint2 forward first, joint3 extension second, joint4 wrist alignment last.
     triangulation_extend_intermediate_joint_positions:
       - 0.05
-      - -0.10
-      - 0.55
-      - -1.60
+      - 0.35
+      - 0.00
+      - -1.62
       - 0.03
-      - -0.35
-      - 0.95
+      - 0.65
+      - 1.25
       - -1.62
     triangulation_extend_intermediate_segment_duration_s: 1.2
 
@@ -162,7 +162,7 @@ mp_control_node:
     pregrasp_trajectory_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
     pregrasp_trajectory_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
 
-    triangulation_extend_joint_positions: [0.0, -0.65, 1.25, -1.62]
+    triangulation_extend_joint_positions: [0.0, 0.65, 1.25, -1.20]
     triangulation_extend_joint_duration_s: 1.2
     triangulation_extend_joint_settle_s: 0.5
 
