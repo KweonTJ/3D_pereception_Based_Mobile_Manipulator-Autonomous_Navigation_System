@@ -1872,6 +1872,7 @@ private:
   std::string gripper_action_name_;
   std::string target_frame_;
   std::string end_effector_frame_;
+  std::string latched_depth_fixed_frame_;
   std::string camera_frame_override_;
   std::string eef_camera_frame_override_;
 
