@@ -1269,19 +1269,16 @@ private:
       publishStop();
       stopMoveItServo();
 
-      trajectory_msgs::msg::JointTrajectory trajectory;
-      trajectory.header.stamp = stamp;
-      trajectory.joint_names = {"joint1", "joint2", "joint3", "joint4"};
+      auto plan = buildTransformedPregraspJointTrajectory(stamp);
+      if (!plan) {
+        publishStatus(
+          "waiting for fresh arm joint_states before transformed pregrasp trajectory",
+          true);
+        return false;
+      }
 
-      trajectory_msgs::msg::JointTrajectoryPoint point;
-      point.positions = triangulation_extend_joint_positions_;
-      const auto duration_ns = static_cast<int64_t>(
-        std::llround(triangulation_extend_joint_duration_s_ * 1e9));
-      point.time_from_start.sec = static_cast<int32_t>(duration_ns / 1000000000LL);
-      point.time_from_start.nanosec = static_cast<uint32_t>(duration_ns % 1000000000LL);
-      trajectory.points.push_back(point);
-
-      arm_trajectory_pub_->publish(trajectory);
+      arm_trajectory_pub_->publish(plan->trajectory);
+      triangulation_joint_extend_wait_s_ = plan->wait_s;
       triangulation_joint_extend_sent_ = true;
       triangulation_joint_extend_stamp_ = stamp;
       stage_ = GraspStage::TRIANGULATION_EXTEND;
