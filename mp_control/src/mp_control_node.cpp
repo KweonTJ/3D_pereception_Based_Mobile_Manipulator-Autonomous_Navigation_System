@@ -2309,6 +2309,21 @@ private:
   double triangulation_extend_max_speed_{0.015};
   bool use_joint_trajectory_for_triangulation_extend_{true};
   std::vector<double> triangulation_extend_joint_positions_{0.0, -1.05, 0.35, 0.70};
+  std::vector<double> triangulation_extend_intermediate_joint_positions_;
+  double triangulation_extend_intermediate_segment_duration_s_{1.0};
+  double triangulation_extend_current_start_duration_s_{0.15};
+  double triangulation_extend_current_start_max_age_s_{1.0};
+  bool triangulation_extend_use_current_joint_state_start_{true};
+  bool triangulation_extend_require_current_joint_state_{false};
+
+  bool pregrasp_trajectory_transform_enabled_{true};
+  bool pregrasp_trajectory_use_pitch_blend_{true};
+  double pregrasp_trajectory_target_pitch_rad_{0.0};
+  double pregrasp_trajectory_pitch_blend_weight_{1.0};
+  std::vector<double> pregrasp_trajectory_joint_scales_{1.0, 1.0, 1.0, 1.0};
+  std::vector<double> pregrasp_trajectory_joint_offsets_{0.0, 0.0, 0.0, 0.0};
+  std::vector<double> pregrasp_trajectory_joint_min_positions_{-3.14, -1.79, -0.94, -1.79};
+  std::vector<double> pregrasp_trajectory_joint_max_positions_{3.14, 1.57, 1.38, 2.04};
   double triangulation_extend_joint_duration_s_{2.0};
   double triangulation_extend_joint_settle_s_{0.3};
   double triangulation_min_range_m_{0.06};
