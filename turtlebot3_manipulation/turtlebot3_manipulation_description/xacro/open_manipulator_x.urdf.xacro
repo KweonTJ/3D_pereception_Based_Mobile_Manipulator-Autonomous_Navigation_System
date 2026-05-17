@@ -108,7 +108,7 @@ https://github.com/ROBOTIS-GIT/open_manipulator/blob/kinetic-devel/open_manipula
     <joint name="${prefix}joint3" type="revolute">
       <parent link="${prefix}link3"/>
       <child link="${prefix}link4"/>
-      <origin xyz="0.024 0 0.128" rpy="0 1.5708 0"/>
+      <origin xyz="0.024 0 0.128" rpy="0 1.5708 0"/> # 영점 수정 0 -> 1.5708
       <axis xyz="0 1 0"/>
       <limit velocity="4.8" effort="1" lower="${-pi*0.3}" upper="${pi*0.44}" />
       <dynamics damping="0.1"/>
