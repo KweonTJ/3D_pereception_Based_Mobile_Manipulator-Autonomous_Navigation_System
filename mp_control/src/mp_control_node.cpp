@@ -187,6 +187,13 @@ private:
     tf2::Vector3 direction;
   };
 
+  struct PregraspTrajectoryPlan
+  {
+    trajectory_msgs::msg::JointTrajectory trajectory;
+    double wait_s{0.0};
+    bool current_start_used{false};
+  };
+
   void readParameters()
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
