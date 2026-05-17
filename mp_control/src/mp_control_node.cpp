@@ -1322,6 +1322,68 @@ private:
     return true;
   }
 
+  std::optional<PregraspTrajectoryPlan> buildTransformedPregraspJointTrajectory(
+    const rclcpp::Time & stamp)
+  {
+    auto current_joint_positions = latestArmJointPositions();
+
+    if (triangulation_extend_use_current_joint_state_start_ &&
+        !current_joint_positions &&
+        triangulation_extend_require_current_joint_state_) {
+      return std::nullopt;
+    }
+
+    PregraspTrajectoryPlan plan;
+    plan.trajectory.header.stamp = stamp;
+    plan.trajectory.joint_names = {"joint1", "joint2", "joint3", "joint4"};
+
+    double trajectory_time_s = 0.0;
+
+    if (triangulation_extend_use_current_joint_state_start_ && current_joint_positions) {
+      trajectory_time_s += triangulation_extend_current_start_duration_s_;
+
+      appendJointTrajectoryPoint(
+        plan.trajectory,
+        transformPregraspWaypoint(*current_joint_positions, current_joint_positions, 0.0),
+        trajectory_time_s);
+
+      plan.current_start_used = true;
+    }
+
+    std::vector<std::vector<double>> raw_waypoints;
+
+    for (std::size_t offset = 0;
+        offset < triangulation_extend_intermediate_joint_positions_.size();
+        offset += 4) {
+      raw_waypoints.emplace_back(
+        triangulation_extend_intermediate_joint_positions_.begin() + offset,
+        triangulation_extend_intermediate_joint_positions_.begin() + offset + 4);
+    }
+
+    raw_waypoints.push_back(triangulation_extend_joint_positions_);
+
+    const std::size_t motion_count = raw_waypoints.size();
+
+    for (std::size_t i = 0; i < motion_count; ++i) {
+      const bool is_final = i + 1 == motion_count;
+
+      trajectory_time_s += is_final ?
+        triangulation_extend_joint_duration_s_ :
+        triangulation_extend_intermediate_segment_duration_s_;
+
+      const double progress = static_cast<double>(i + 1) /
+        static_cast<double>(std::max<std::size_t>(1, motion_count));
+
+      appendJointTrajectoryPoint(
+        plan.trajectory,
+        transformPregraspWaypoint(raw_waypoints[i], current_joint_positions, progress),
+        trajectory_time_s);
+    }
+
+    plan.wait_s = trajectory_time_s + triangulation_extend_joint_settle_s_;
+    return plan;
+  }
+
   std::optional<geometry_msgs::msg::PointStamped> triangulateObjectPoint(
     std::string * block_reason)
   {
