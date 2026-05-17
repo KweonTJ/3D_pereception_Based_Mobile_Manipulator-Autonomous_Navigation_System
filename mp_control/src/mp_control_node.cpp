@@ -345,6 +345,7 @@ private:
     eef_init_bbox_republish_period_s_ = std::max(0.1, eef_init_bbox_republish_period_s_);
     eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
     object_pregrasp_standoff_m_ = std::max(0.0, object_pregrasp_standoff_m_);
+    object_pregrasp_max_x_m_ = std::max(0.05, object_pregrasp_max_x_m_);
     object_pregrasp_min_z_m_ = std::max(0.0, object_pregrasp_min_z_m_);
     object_pregrasp_lower_standoff_m_ = std::max(0.0, object_pregrasp_lower_standoff_m_);
     object_pregrasp_min_lower_z_m_ = std::max(0.0, object_pregrasp_min_lower_z_m_);
