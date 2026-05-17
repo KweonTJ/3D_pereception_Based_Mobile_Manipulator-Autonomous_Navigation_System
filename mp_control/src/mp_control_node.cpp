@@ -552,10 +552,19 @@ private:
 
     std::string object_block_reason;
     auto maybe_object = estimateObjectPoint(&object_block_reason);
+    const bool use_latched_object_after_front_loss =
+      canUseLatchedObjectAfterFrontLoss() &&
+      isFrontBboxUnavailableReason(object_block_reason);
     bool command_published = false;
     if (!maybe_object && use_depthless_triangulation_ &&
-        isDepthUnavailableReason(object_block_reason)) {
+        (isDepthUnavailableReason(object_block_reason) ||
+        use_latched_object_after_front_loss)) {
       publishBaseHold(true);
+      if (use_latched_object_after_front_loss) {
+        publishStatus(
+          "front bbox lost after near object distance; using latched object for EEF handoff",
+          true);
+      }
       maybe_object = estimateObjectPointByTriangulation(
         eef_tf, &object_block_reason, &command_published);
     }
