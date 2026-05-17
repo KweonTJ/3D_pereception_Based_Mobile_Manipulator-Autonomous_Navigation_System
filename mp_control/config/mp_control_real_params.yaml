@@ -12,6 +12,7 @@ mp_control_node:
 
     twist_topic: /servo_node/delta_twist_cmds
     arm_trajectory_topic: /arm_controller/joint_trajectory
+    joint_state_topic: /joint_states
     gripper_action_name: /gripper_controller/gripper_cmd
     start_topic: /mp_control/start
     cancel_topic: /mp_control/cancel
