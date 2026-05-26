@@ -159,8 +159,10 @@ class SimPickPlaceDemo(Node):
         self.grasp_accuracy_tolerance_m = max(
             0.001, float(self.get_parameter("grasp_accuracy_tolerance_m").value))
         self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
-        self.pre_grasp_arm_positions = self._level_gripper_pose(0.0, 0.82, -0.58)
-        self.grasp_arm_positions = self._level_gripper_pose(0.0, 1.32, -0.94)
+        self.pre_grasp_arm_positions = self._invert_joint3_from_stay(
+            self._level_gripper_pose(0.0, 0.82, -0.58))
+        self.grasp_arm_positions = self._invert_joint3_from_stay(
+            self._level_gripper_pose(0.0, 1.32, -0.94))
         self.pre_place_arm_positions = self._level_gripper_pose(-math.pi, 0.82, -0.58)
         self.place_arm_positions = self._level_gripper_pose(-math.pi, 1.56, -0.47)
         self.base_approach_distance_m = float(
@@ -250,6 +252,11 @@ class SimPickPlaceDemo(Node):
 
     def _level_gripper_pose(self, joint1, joint2, joint3):
         return [float(joint1), float(joint2), float(joint3), -float(joint2) - float(joint3)]
+
+    def _invert_joint3_from_stay(self, positions):
+        inverted = list(positions)
+        inverted[2] = self.stay_arm_positions[2] - (inverted[2] - self.stay_arm_positions[2])
+        return inverted
 
     def run(self):
         self._wait_for_gazebo_pose_service()
