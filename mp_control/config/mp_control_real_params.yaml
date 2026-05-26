@@ -148,8 +148,9 @@ mp_control_node:
     pregrasp_trajectory_target_pitch_rad: 0.0
     pregrasp_trajectory_pitch_blend_weight: 1.0
 
-    # Calibration knobs. Keep identity first.
-    pregrasp_trajectory_joint_scales: [1.0, 1.0, 1.0, 1.0]
+    # Calibration knobs. Joint3 is inverted around the measured current pose
+    # because the real hardware motion direction is opposite to the ready target.
+    pregrasp_trajectory_joint_scales: [1.0, 1.0, -1.0, 1.0]
     pregrasp_trajectory_joint_offsets: [0.0, 0.0, 0.0, 0.0]
     pregrasp_trajectory_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
     pregrasp_trajectory_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
