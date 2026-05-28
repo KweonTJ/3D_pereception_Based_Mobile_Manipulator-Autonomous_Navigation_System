@@ -37,6 +37,7 @@ mp_control_node:
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
     use_depthless_triangulation: true
+    use_color_triangulation_after_min_depth: true
 
     command_rate_hz: 20.0
     max_target_age_s: 2.0
@@ -94,6 +95,8 @@ mp_control_node:
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
+    color_triangulation_base_stop_object_x_m: 0.30
+    color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019
     gripper_close_position: -0.010
