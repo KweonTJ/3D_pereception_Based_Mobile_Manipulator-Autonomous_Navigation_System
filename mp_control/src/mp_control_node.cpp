@@ -460,6 +460,9 @@ private:
       latest_eef_bbox_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
+    min_depth_reached_ = false;
+    latest_depth_object_in_target_.reset();
+    latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -487,6 +490,9 @@ private:
       latest_eef_bbox_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
+    min_depth_reached_ = false;
+    latest_depth_object_in_target_.reset();
+    latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     stable_cycles_ = 0;
