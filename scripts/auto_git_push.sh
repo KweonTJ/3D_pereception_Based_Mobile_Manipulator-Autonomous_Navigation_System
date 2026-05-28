@@ -4,6 +4,7 @@ REPO_DIR="$HOME/turtlebot3_ws/src"
 OBSIDIAN_DIR="$HOME/Documents/Obsidian/2026/1학기/UROP/Project"
 DOCS_DIR="$REPO_DIR/docs"
 BRANCH="main"
+README_PATH="README.md"
 
 sync_obsidian_docs() {
     mkdir -p "$DOCS_DIR"
@@ -23,7 +24,7 @@ echo "  obsidian : $OBSIDIAN_DIR"
 
 while true; do
     inotifywait -r -e modify,create,delete,move \
-        --exclude '(\.git|build|install|log|__pycache__|\.vscode|.*~|.*\.swp)' \
+        --exclude '(\.git|build|install|log|__pycache__|\.vscode|README\.md$|.*~|.*\.swp)' \
         "$REPO_DIR" "$OBSIDIAN_DIR"
 
     echo "[auto-git] Change detected. Waiting 3 seconds..."
@@ -33,12 +34,20 @@ while true; do
 
     cd "$REPO_DIR" || exit 1
 
-    if git diff --quiet && git diff --cached --quiet; then
-        echo "[auto-git] No meaningful changes."
+    git restore --staged -- "$README_PATH" 2>/dev/null || true
+
+    if [[ -z "$(git status --porcelain --untracked-files=all -- . ":(exclude)$README_PATH")" ]]; then
+        echo "[auto-git] No meaningful changes outside $README_PATH."
         continue
     fi
 
-    git add .
+    git add -A -- . ":(exclude)$README_PATH"
+    git restore --staged -- "$README_PATH" 2>/dev/null || true
+
+    if git diff --cached --quiet; then
+        echo "[auto-git] No staged changes outside $README_PATH."
+        continue
+    fi
 
     COMMIT_MSG="auto: update $(date '+%Y-%m-%d %H:%M:%S')"
 
