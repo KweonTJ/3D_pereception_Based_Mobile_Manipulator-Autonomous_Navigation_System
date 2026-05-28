@@ -436,7 +436,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_gazebo_x",
-            default_value="-2.45",
+            default_value="-2.57",
             description="Initial Gazebo world x position for the platooning follower.",
         ),
         DeclareLaunchArgument(
