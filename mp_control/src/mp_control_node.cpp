@@ -749,6 +749,9 @@ private:
   {
     const auto stamp = now();
     std::lock_guard<std::mutex> lock(data_mutex_);
+    if (use_color_triangulation_after_min_depth_ && min_depth_reached_) {
+      return false;
+    }
     return latest_object_depth_m_ &&
       latest_object_depth_stamp_.nanoseconds() != 0 &&
       (stamp - latest_object_depth_stamp_).seconds() <= max_target_age_s_ &&
