@@ -406,6 +406,7 @@ private:
   std::string current_cargo_id_;
   bool follower_enable_{false};
   bool follow_while_idle_{true};
+  bool mp_control_active_{false};
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr task_state_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_state_pub_;
