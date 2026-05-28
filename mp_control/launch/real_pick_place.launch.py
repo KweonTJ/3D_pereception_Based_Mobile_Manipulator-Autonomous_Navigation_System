@@ -95,6 +95,8 @@ def generate_launch_description():
     eef_camera_output_encoding = LaunchConfiguration("eef_camera_output_encoding")
     eef_camera_image_width = LaunchConfiguration("eef_camera_image_width")
     eef_camera_image_height = LaunchConfiguration("eef_camera_image_height")
+    eef_camera_name = LaunchConfiguration("eef_camera_name")
+    eef_camera_info_url = LaunchConfiguration("eef_camera_info_url")
     start_monitor_uploader = LaunchConfiguration("start_monitor_uploader")
     monitor_server = LaunchConfiguration("monitor_server")
     monitor_token = LaunchConfiguration("monitor_token")
@@ -303,6 +305,8 @@ def generate_launch_description():
         parameters=[{
             "video_device": eef_camera_video_device,
             "camera_frame_id": eef_camera_frame_id,
+            "camera_name": eef_camera_name,
+            "camera_info_url": eef_camera_info_url,
             "pixel_format": eef_camera_pixel_format,
             "output_encoding": eef_camera_output_encoding,
             "image_size": [320, 240],
@@ -741,6 +745,24 @@ def generate_launch_description():
             "eef_camera_image_height",
             default_value="240",
             description="EEF USB camera image height.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_name",
+            default_value="eef_usb_camera",
+            description="Camera name used when loading and saving EEF USB camera calibration.",
+        ),
+        DeclareLaunchArgument(
+            "eef_camera_info_url",
+            default_value=[
+                "file://",
+                PathJoinSubstitution([
+                    EnvironmentVariable("HOME"),
+                    ".ros",
+                    "camera_info",
+                    "eef_usb_camera.yaml",
+                ]),
+            ],
+            description="Camera calibration URL for the EEF USB camera.",
         ),
         DeclareLaunchArgument(
             "start_monitor_uploader",
