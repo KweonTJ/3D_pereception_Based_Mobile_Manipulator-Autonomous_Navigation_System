@@ -6,7 +6,7 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:macro name="turtlebot3_waffle_pi" params="prefix use_collision:=true">
+  <xacro:macro name="turtlebot3_waffle_pi" params="prefix">
 
   <xacro:property
     name="meshes_file_direction"
@@ -29,14 +29,12 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
       <material name="light_black"/>
     </visual>
 
-    <xacro:if value="${use_collision}">
-      <collision>
-        <origin xyz="-0.064 0 0.030" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.266 0.266 0.060"/>
-        </geometry>
-      </collision>
-    </xacro:if>
+    <collision>
+      <origin xyz="-0.064 0 0.030" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.266 0.266 0.060"/>
+      </geometry>
+    </collision>
 
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -50,27 +48,25 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
   <joint name="${prefix}wheel_left_joint" type="continuous">
     <parent link="${prefix}base_link"/>
     <child link="${prefix}wheel_left_link"/>
-    <origin xyz="0.0 0.144 0.023" rpy="-1.57079632679 0 0"/>
+    <origin xyz="0.0 0.144 0.023" rpy="-1.57 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
   <link name="${prefix}wheel_left_link">
     <visual>
-      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <origin xyz="0 0 0" rpy="1.57 0 0"/>
       <geometry>
         <mesh filename="${meshes_file_direction}/left_tire.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="dark"/>
     </visual>
 
-    <xacro:if value="${use_collision}">
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <cylinder length="0.018" radius="0.033"/>
-        </geometry>
-      </collision>
-    </xacro:if>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.018" radius="0.033"/>
+      </geometry>
+    </collision>
 
     <inertial>
       <origin xyz="0 0 0" />
@@ -84,27 +80,25 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
   <joint name="${prefix}wheel_right_joint" type="continuous">
     <parent link="${prefix}base_link"/>
     <child link="${prefix}wheel_right_link"/>
-    <origin xyz="0.0 -0.144 0.023" rpy="-1.57079632679 0 0"/>
+    <origin xyz="0.0 -0.144 0.023" rpy="-1.57 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
   <link name="${prefix}wheel_right_link">
     <visual>
-      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <origin xyz="0 0 0" rpy="1.57 0 0"/>
       <geometry>
         <mesh filename="${meshes_file_direction}/right_tire.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="dark"/>
     </visual>
 
-    <xacro:if value="${use_collision}">
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <cylinder length="0.018" radius="0.033"/>
-        </geometry>
-      </collision>
-    </xacro:if>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.018" radius="0.033"/>
+      </geometry>
+    </collision>
 
     <inertial>
       <origin xyz="0 0 0" />
@@ -118,18 +112,16 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
   <joint name="${prefix}caster_back_right_joint" type="fixed">
     <parent link="${prefix}base_link"/>
     <child link="${prefix}caster_back_right_link"/>
-    <origin xyz="-0.177 -0.064 -0.004" rpy="-1.57079632679 0 0"/>
+    <origin xyz="-0.177 -0.064 -0.004" rpy="-1.57 0 0"/>
   </joint>
 
   <link name="${prefix}caster_back_right_link">
-    <xacro:if value="${use_collision}">
-      <collision>
-        <origin xyz="0 0.001 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.030 0.009 0.020"/>
-        </geometry>
-      </collision>
-    </xacro:if>
+    <collision>
+      <origin xyz="0 0.001 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.030 0.009 0.020"/>
+      </geometry>
+    </collision>
 
     <inertial>
       <origin xyz="0 0 0" />
@@ -143,18 +135,16 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
   <joint name="${prefix}caster_back_left_joint" type="fixed">
     <parent link="${prefix}base_link"/>
     <child link="${prefix}caster_back_left_link"/>
-    <origin xyz="-0.177 0.064 -0.004" rpy="-1.57079632679 0 0"/>
+    <origin xyz="-0.177 0.064 -0.004" rpy="-1.57 0 0"/>
   </joint>
 
   <link name="${prefix}caster_back_left_link">
-    <xacro:if value="${use_collision}">
-      <collision>
-        <origin xyz="0 0.001 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.030 0.009 0.020"/>
-        </geometry>
-      </collision>
-    </xacro:if>
+    <collision>
+      <origin xyz="0 0.001 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.030 0.009 0.020"/>
+      </geometry>
+    </collision>
 
     <inertial>
       <origin xyz="0 0 0" />
@@ -173,39 +163,6 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
 
   <link name="${prefix}imu_link"/>
 
-  <joint name="${prefix}cargo_deck_joint" type="fixed">
-    <parent link="${prefix}base_link"/>
-    <child link="${prefix}cargo_deck_link"/>
-    <origin xyz="-0.045 0 0.105" rpy="0 0 0"/>
-  </joint>
-
-  <link name="${prefix}cargo_deck_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.180 0.160 0.012"/>
-      </geometry>
-      <material name="dark"/>
-    </visual>
-
-    <xacro:if value="${use_collision}">
-      <collision>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.180 0.160 0.012"/>
-        </geometry>
-      </collision>
-    </xacro:if>
-
-    <inertial>
-      <origin xyz="0 0 0" />
-      <mass value="0.050" />
-      <inertia ixx="1.117e-04" ixy="0.0" ixz="0.0"
-               iyy="1.620e-04" iyz="0.0"
-               izz="2.417e-04" />
-    </inertial>
-  </link>
-
   <joint name="${prefix}camera_joint" type="fixed">
     <parent link="${prefix}base_link"/>
     <child link="${prefix}camera_link"/>
@@ -213,14 +170,12 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
   </joint>
 
   <link name="${prefix}camera_link">
-    <xacro:if value="${use_collision}">
-      <collision>
-        <origin xyz="0.005 0.011 0.013" rpy="0 0 0"/>
-        <geometry>
-          <box size="0.015 0.030 0.027"/>
-        </geometry>
-      </collision>
-    </xacro:if>
+    <collision>
+      <origin xyz="0.005 0.011 0.013" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.030 0.027"/>
+      </geometry>
+    </collision>
   </link>
 
   <joint name="${prefix}camera_rgb_joint" type="fixed">
@@ -234,7 +189,7 @@ https://github.com/ROBOTIS-GIT/turtlebot3/blob/kinetic-devel/turtlebot3_descript
   <joint name="${prefix}camera_rgb_optical_joint" type="fixed">
     <parent link="${prefix}camera_rgb_frame"/>
     <child link="${prefix}camera_rgb_optical_frame"/>
-    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
+    <origin xyz="0 0 0" rpy="-1.57 0 -1.57"/>
   </joint>
 
   <link name="${prefix}camera_rgb_optical_frame"/>
