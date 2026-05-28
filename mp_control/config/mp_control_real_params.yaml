@@ -65,9 +65,9 @@ mp_control_node:
     eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
     eef_refinement_start_depth_m: 0.47
-    # Front depth reaches its near reliable limit at 0.47 m. In base_link this
-    # appears around 0.53-0.55 m because the front camera is mounted ahead of
-    # the arm base, so use the transformed object-x threshold below.
+    # Front depth is trusted only until 0.47 m. Once that near limit is reached,
+    # depth is ignored and front RGB + EEF RGB triangulation keeps the base
+    # approaching until color_triangulation_base_stop_object_x_m.
     eef_refinement_start_object_x_m: 0.55
     arm_start_max_error_m: 0.50
     arm_start_max_object_x_m: 0.55
