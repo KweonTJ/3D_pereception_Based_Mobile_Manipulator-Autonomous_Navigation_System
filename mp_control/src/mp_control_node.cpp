@@ -677,6 +677,63 @@ private:
     publishStatus(status.str());
   }
 
+  bool useColorTriangulationAfterMinDepth()
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    return use_color_triangulation_after_min_depth_ && min_depth_reached_;
+  }
+
+  std::optional<geometry_msgs::msg::PointStamped> latestDepthObjectInTarget()
+  {
+    const auto stamp = now();
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    if (!latest_depth_object_in_target_ ||
+        latest_depth_object_stamp_.nanoseconds() == 0 ||
+        (stamp - latest_depth_object_stamp_).seconds() > max_target_age_s_) {
+      return std::nullopt;
+    }
+    return latest_depth_object_in_target_;
+  }
+
+  bool prepareEefColorTriangulation(
+    const geometry_msgs::msg::PointStamped & object_in_target,
+    std::string * block_reason)
+  {
+    CameraInfo info;
+    std::optional<Bbox> eef_bbox;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (latest_eef_camera_info_) {
+        info = *latest_eef_camera_info_;
+      } else {
+        auto fallback_info = fallbackEefCameraInfo();
+        if (!fallback_info) {
+          setBlockReason(block_reason, "end-effector camera info");
+          return false;
+        }
+        info = *fallback_info;
+      }
+      eef_bbox = latest_eef_bbox_;
+    }
+
+    publishEefAutoInitEnable(true);
+
+    const auto stamp = now();
+    if (eef_bbox && (stamp - eef_bbox->stamp).seconds() <= max_target_age_s_) {
+      return true;
+    }
+
+    if (last_eef_init_bbox_stamp_.nanoseconds() == 0 ||
+        (stamp - last_eef_init_bbox_stamp_).seconds() >= eef_init_bbox_republish_period_s_) {
+      if (publishProjectedEefInitBbox(object_in_target, info)) {
+        last_eef_init_bbox_stamp_ = stamp;
+      }
+    }
+
+    setBlockReason(block_reason, "fresh end-effector bbox for color triangulation");
+    return false;
+  }
+
   bool shouldHoldForEefRefinement()
   {
     const auto stamp = now();
