@@ -36,7 +36,7 @@ mp_control_node:
     use_eef_refinement: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
-    use_depthless_triangulation: true
+    use_depthless_triangulation: false
     use_color_triangulation_after_min_depth: true
 
     command_rate_hz: 20.0
