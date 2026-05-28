@@ -530,7 +530,7 @@ private:
         color_reason = "latched depth object for color triangulation";
       }
 
-      auto maybe_color_object = triangulateObjectPoint(&color_reason);
+      auto maybe_color_object = triangulateObjectPoint(&color_reason, false);
       if (maybe_color_object &&
           maybe_color_object->point.x < color_triangulation_min_object_x_m_) {
         std::ostringstream reason;
@@ -1120,7 +1120,8 @@ private:
   }
 
   std::optional<geometry_msgs::msg::PointStamped> triangulateObjectPoint(
-    std::string * block_reason)
+    std::string * block_reason,
+    bool publish_triangulation_status = true)
   {
     Bbox front_bbox;
     Bbox eef_bbox;
@@ -1230,11 +1231,13 @@ private:
     point.point.y = object.y();
     point.point.z = object.z();
 
-    std::ostringstream status;
-    status << "stereo triangulation object=(" << point.point.x << ", "
-           << point.point.y << ", " << point.point.z
-           << ") ray_gap=" << ray_gap;
-    publishStatus(status.str());
+    if (publish_triangulation_status) {
+      std::ostringstream status;
+      status << "stereo triangulation object=(" << point.point.x << ", "
+             << point.point.y << ", " << point.point.z
+             << ") ray_gap=" << ray_gap;
+      publishStatus(status.str());
+    }
     return point;
   }
 
