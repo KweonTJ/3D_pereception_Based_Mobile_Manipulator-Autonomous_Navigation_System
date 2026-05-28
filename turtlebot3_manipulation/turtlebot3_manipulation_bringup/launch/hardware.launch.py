@@ -24,9 +24,11 @@ from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import EnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import ThisLaunchFileDir
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -64,6 +66,33 @@ def launch_lidar(context):
                 'frame_id': LaunchConfiguration('lidar_frame_id'),
             }.items(),
             condition=IfCondition(LaunchConfiguration('start_lidar')),
+        )
+    ]
+
+
+def launch_eef_camera(context):
+    if LaunchConfiguration('start_eef_camera_driver').perform(context).lower() != 'true':
+        return []
+
+    width = int(LaunchConfiguration('eef_camera_image_width').perform(context))
+    height = int(LaunchConfiguration('eef_camera_image_height').perform(context))
+
+    return [
+        Node(
+            package='v4l2_camera',
+            executable='v4l2_camera_node',
+            namespace='eef_camera',
+            name='v4l2_camera',
+            output='screen',
+            parameters=[{
+                'video_device': LaunchConfiguration('eef_camera_video_device').perform(context),
+                'camera_frame_id': LaunchConfiguration('eef_camera_frame_id').perform(context),
+                'camera_name': LaunchConfiguration('eef_camera_name').perform(context),
+                'camera_info_url': LaunchConfiguration('eef_camera_info_url').perform(context),
+                'pixel_format': LaunchConfiguration('eef_camera_pixel_format').perform(context),
+                'output_encoding': LaunchConfiguration('eef_camera_output_encoding').perform(context),
+                'image_size': [width, height],
+            }],
         )
     ]
 
@@ -127,6 +156,59 @@ def generate_launch_description():
             description='Whether to launch the Astra Mini camera driver.'),
 
         DeclareLaunchArgument(
+            'start_eef_camera_driver',
+            default_value='true',
+            description='Whether to launch the v4l2 end-effector USB camera driver.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_video_device',
+            default_value='/dev/video0',
+            description='Linux video device for the end-effector USB camera.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_frame_id',
+            default_value='eef_usb_camera_optical_frame',
+            description='Frame id used by the end-effector camera images.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_pixel_format',
+            default_value='YUYV',
+            description='V4L2 pixel format requested from the end-effector camera.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_output_encoding',
+            default_value='rgb8',
+            description='ROS image encoding published by the end-effector camera.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_image_width',
+            default_value='320',
+            description='EEF USB camera image width.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_image_height',
+            default_value='240',
+            description='EEF USB camera image height.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_name',
+            default_value='eef_usb_camera',
+            description='Camera name used when loading and saving EEF USB camera calibration.'),
+
+        DeclareLaunchArgument(
+            'eef_camera_info_url',
+            default_value=[
+                'file://',
+                PathJoinSubstitution([
+                    EnvironmentVariable('HOME'),
+                    '.ros',
+                    'camera_info',
+                    'eef_usb_camera.yaml',
+                ]),
+            ],
+            description='Camera calibration URL for the EEF USB camera.'),
+
+        DeclareLaunchArgument(
             'move_to_stay_pose',
             default_value='true',
             description='Move the manipulator to the saved stay pose after the arm controller starts.'),
@@ -177,4 +259,6 @@ def generate_launch_description():
         ),
 
         OpaqueFunction(function=launch_lidar),
+
+        OpaqueFunction(function=launch_eef_camera),
     ])
