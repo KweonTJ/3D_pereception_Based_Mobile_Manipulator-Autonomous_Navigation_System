@@ -48,8 +48,10 @@ csrt_ibvs_node:
     # Desired target pose in image/depth space.
     desired_u_ratio: 0.5
     desired_v_ratio: 0.5
-    desired_depth_m: 0.47
-    desired_area_ratio: 0.09
+    # Keep the base moving past Astra's 0.47 m near reliable depth limit.
+    # mp_control stops the base at 0.30 m using front RGB + EEF RGB triangulation.
+    desired_depth_m: 0.30
+    desired_area_ratio: 0.08
 
     # Real pickup recenters the YOLO/CSRT bbox before and during approach.
     yaw_gain: 0.8
