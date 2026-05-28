@@ -1756,6 +1756,7 @@ private:
   bool auto_init_eef_tracker_from_object_{true};
   bool allow_eef_camera_info_fallback_{true};
   bool use_depthless_triangulation_{false};
+  bool use_color_triangulation_after_min_depth_{false};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -1798,6 +1799,8 @@ private:
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
   double triangulation_max_ray_gap_m_{0.08};
+  double color_triangulation_base_stop_object_x_m_{0.30};
+  double color_triangulation_min_object_x_m_{0.05};
   int eef_camera_fallback_width_px_{640};
   int eef_camera_fallback_height_px_{480};
   double eef_camera_fallback_fx_{554.0};
@@ -1847,6 +1850,8 @@ private:
   std::optional<double> latest_object_width_m_;
   std::optional<double> latest_object_depth_m_;
   rclcpp::Time latest_object_depth_stamp_;
+  std::optional<geometry_msgs::msg::PointStamped> latest_depth_object_in_target_;
+  rclcpp::Time latest_depth_object_stamp_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
 
   bool active_{false};
@@ -1855,6 +1860,7 @@ private:
   bool close_sent_{false};
   bool eef_refinement_requested_{false};
   bool object_pregrasp_horizontal_done_{false};
+  bool min_depth_reached_{false};
   GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
   rclcpp::Time last_status_stamp_;
