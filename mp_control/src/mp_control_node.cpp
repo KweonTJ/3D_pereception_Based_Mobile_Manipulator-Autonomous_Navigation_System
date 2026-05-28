@@ -1302,6 +1302,10 @@ private:
         setBlockReason(block_reason, "depth image on " + depth_topic_);
         return std::nullopt;
       }
+      if (use_color_triangulation_after_min_depth_ && min_depth_reached_) {
+        setBlockReason(block_reason, "color triangulation after minimum depth");
+        return std::nullopt;
+      }
       bbox = *latest_bbox_;
       info = *latest_camera_info_;
       depth = latest_depth_;
