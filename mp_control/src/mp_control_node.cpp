@@ -614,12 +614,15 @@ private:
     const bool depth_ready_for_eef = use_color_triangulation_after_min_depth_ ?
       false :
       shouldStartEefRefinementByDepth();
-    const bool use_eef_now =
-      use_eef_refinement_ &&
-      (shouldHoldForEefRefinement() ||
+    const bool eef_candidate =
+      shouldHoldForEefRefinement() ||
       depth_ready_for_eef ||
       object_x_ready_for_eef ||
-      err_norm <= eef_refinement_switch_distance_m_);
+      err_norm <= eef_refinement_switch_distance_m_;
+    const bool use_eef_now =
+      use_eef_refinement_ &&
+      (!use_color_triangulation_after_min_depth_ || object_x_ready_for_eef) &&
+      eef_candidate;
     if (use_eef_now) {
       publishBaseHold(true);
       if (!prepareEefRefinement(object)) {
