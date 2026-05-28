@@ -124,12 +124,13 @@ def generate_launch_description():
             "lidar_frame_id": lidar_frame_id,
             "move_to_stay_pose": move_to_stay_pose,
             "use_camera_driver_tf": use_camera_driver_tf,
-            "use_eef_usb_camera": use_eef_usb_camera,
-            "eef_usb_camera_parent": eef_usb_camera_parent,
-            "eef_usb_camera_xyz": eef_usb_camera_xyz,
-            "eef_usb_camera_rpy": eef_usb_camera_rpy,
-        }.items(),
-    )
+                "use_eef_usb_camera": use_eef_usb_camera,
+                "eef_usb_camera_parent": eef_usb_camera_parent,
+                "eef_usb_camera_xyz": eef_usb_camera_xyz,
+                "eef_usb_camera_rpy": eef_usb_camera_rpy,
+                "start_eef_camera_driver": "false",
+            }.items(),
+        )
 
     grasp_stack_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
