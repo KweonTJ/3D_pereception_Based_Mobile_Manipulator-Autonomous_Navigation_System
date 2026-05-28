@@ -608,11 +608,17 @@ private:
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
 
+    const bool object_x_ready_for_eef = use_color_triangulation_after_min_depth_ ?
+      goal_x <= color_triangulation_base_stop_object_x_m_ :
+      goal_x <= eef_refinement_start_object_x_m_;
+    const bool depth_ready_for_eef = use_color_triangulation_after_min_depth_ ?
+      false :
+      shouldStartEefRefinementByDepth();
     const bool use_eef_now =
       use_eef_refinement_ &&
       (shouldHoldForEefRefinement() ||
-      shouldStartEefRefinementByDepth() ||
-      goal_x <= eef_refinement_start_object_x_m_ ||
+      depth_ready_for_eef ||
+      object_x_ready_for_eef ||
       err_norm <= eef_refinement_switch_distance_m_);
     if (use_eef_now) {
       publishBaseHold(true);
