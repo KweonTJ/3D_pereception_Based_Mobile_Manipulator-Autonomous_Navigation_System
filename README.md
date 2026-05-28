@@ -153,6 +153,9 @@ turtlebot3_ws/src
 ros2 launch turtlebot3_manipulation_gazebo sim_pick_place_demo.launch.py
 ```
 - 해당 시뮬레이션은 정제된 환경에서 Gazebo, RViz2를 활용하여 로봇이 물체까지 이동 -> 물체를 Pick-and-Place -> 특정 위치로 이동 까지가 하나의 프로세서로 작동한다.
+<img width="800" height="245" alt="Simulation" src="https://github.com/user-attachments/assets/86477b9c-4821-42f8-bfd2-26aae47b8236" />
+
+
 
 ## Sim2Real
 
