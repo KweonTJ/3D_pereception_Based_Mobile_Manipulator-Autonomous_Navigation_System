@@ -227,6 +227,8 @@ private:
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
     use_depthless_triangulation_ =
       declare_parameter<bool>("use_depthless_triangulation", false);
+    use_color_triangulation_after_min_depth_ =
+      declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -276,6 +278,10 @@ private:
     triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
     triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
     triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
+    color_triangulation_base_stop_object_x_m_ =
+      declare_parameter<double>("color_triangulation_base_stop_object_x_m", 0.30);
+    color_triangulation_min_object_x_m_ =
+      declare_parameter<double>("color_triangulation_min_object_x_m", 0.05);
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
@@ -324,6 +330,10 @@ private:
     triangulation_min_range_m_ = std::max(0.01, triangulation_min_range_m_);
     triangulation_max_range_m_ = std::max(triangulation_min_range_m_, triangulation_max_range_m_);
     triangulation_max_ray_gap_m_ = std::max(0.005, triangulation_max_ray_gap_m_);
+    color_triangulation_base_stop_object_x_m_ =
+      std::max(0.01, color_triangulation_base_stop_object_x_m_);
+    color_triangulation_min_object_x_m_ =
+      clampValue(color_triangulation_min_object_x_m_, 0.0, color_triangulation_base_stop_object_x_m_);
     cargo_sequence_next_ = std::max(1, cargo_sequence_next_);
     if (gripper_min_position_ > gripper_max_position_) {
       std::swap(gripper_min_position_, gripper_max_position_);
