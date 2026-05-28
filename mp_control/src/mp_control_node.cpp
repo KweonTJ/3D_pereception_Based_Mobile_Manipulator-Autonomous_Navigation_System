@@ -571,6 +571,7 @@ private:
     }
 
     if (!maybe_object && use_depthless_triangulation_ &&
+        !use_color_triangulation_after_min_depth_ &&
         isDepthUnavailableReason(object_block_reason)) {
       publishBaseHold(true);
       maybe_object = estimateObjectPointByTriangulation(
@@ -578,7 +579,9 @@ private:
     }
 
     if (!maybe_object) {
-      if (use_eef_refinement_ && shouldHoldForEefRefinement()) {
+      if (use_eef_refinement_ &&
+          (!use_color_triangulation_after_min_depth_ || useColorTriangulationAfterMinDepth()) &&
+          shouldHoldForEefRefinement()) {
         publishBaseHold(true);
       }
       if (!command_published) {
