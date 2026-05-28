@@ -1336,7 +1336,9 @@ private:
     object_camera.point.y = (v - info.cy) * (*depth_m) / info.fy;
 
     try {
-      return tf_buffer_.transform(object_camera, target_frame_);
+      auto object_in_target = tf_buffer_.transform(object_camera, target_frame_);
+      rememberDepthObjectPoint(object_in_target);
+      return object_in_target;
     } catch (const tf2::TransformException & ex) {
       setBlockReason(block_reason, "TF from " + object_camera.header.frame_id + " to " + target_frame_);
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "object TF transform failed: %s", ex.what());
