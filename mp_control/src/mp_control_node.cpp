@@ -520,6 +520,56 @@ private:
     std::string object_block_reason;
     auto maybe_object = estimateObjectPoint(&object_block_reason);
     bool command_published = false;
+    if (useColorTriangulationAfterMinDepth()) {
+      std::string color_reason;
+      auto depth_reference = maybe_object ? maybe_object : latestDepthObjectInTarget();
+      if (depth_reference) {
+        prepareEefColorTriangulation(*depth_reference, &color_reason);
+      } else {
+        publishEefAutoInitEnable(true);
+        color_reason = "latched depth object for color triangulation";
+      }
+
+      auto maybe_color_object = triangulateObjectPoint(&color_reason);
+      if (maybe_color_object &&
+          maybe_color_object->point.x < color_triangulation_min_object_x_m_) {
+        std::ostringstream reason;
+        reason << "color triangulation object_x=" << maybe_color_object->point.x
+               << " below " << color_triangulation_min_object_x_m_;
+        color_reason = reason.str();
+        maybe_color_object.reset();
+      }
+
+      if (!maybe_color_object) {
+        stable_cycles_ = 0;
+        publishBaseHold(false);
+        publishStop();
+        std::ostringstream status;
+        status << "after depth limit; waiting for color triangulation: "
+               << color_reason
+               << "; base continuing toward object_x="
+               << color_triangulation_base_stop_object_x_m_;
+        publishStatus(status.str());
+        return;
+      }
+
+      const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
+      if (color_goal_x > color_triangulation_base_stop_object_x_m_) {
+        stable_cycles_ = 0;
+        publishBaseHold(false);
+        publishStop();
+        std::ostringstream status;
+        status << "color triangulation approach: object_x=" << color_goal_x
+               << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
+               << "; depth ignored after " << eef_refinement_start_depth_m_ << "m";
+        publishStatus(status.str());
+        return;
+      }
+
+      maybe_object = maybe_color_object;
+      object_block_reason.clear();
+    }
+
     if (!maybe_object && use_depthless_triangulation_ &&
         isDepthUnavailableReason(object_block_reason)) {
       publishBaseHold(true);
