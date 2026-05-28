@@ -83,8 +83,6 @@ def generate_launch_description():
     auto_eef_init_bbox_start_delay = LaunchConfiguration("auto_eef_init_bbox_start_delay")
     auto_eef_init_bbox_image_topic = LaunchConfiguration("auto_eef_init_bbox_image_topic")
     auto_eef_init_bbox_topic = LaunchConfiguration("auto_eef_init_bbox_topic")
-    auto_eef_init_tracked_bbox_topic = LaunchConfiguration("auto_eef_init_tracked_bbox_topic")
-    auto_eef_init_publish_tracked_bbox = LaunchConfiguration("auto_eef_init_publish_tracked_bbox")
     auto_eef_init_bbox_status_topic = LaunchConfiguration("auto_eef_init_bbox_status_topic")
     auto_eef_init_color_mode = LaunchConfiguration("auto_eef_init_color_mode")
     auto_eef_init_min_mask_pixels = LaunchConfiguration("auto_eef_init_min_mask_pixels")
@@ -230,8 +228,8 @@ def generate_launch_description():
             "yolo_class_name": auto_init_yolo_class_name,
             "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
             "yolo_lock_target": True,
-            "yolo_min_accept_confidence": 0.20,
-            "yolo_locked_min_accept_confidence": 0.20,
+            "yolo_min_accept_confidence": 0.30,
+            "yolo_locked_min_accept_confidence": 0.35,
             "yolo_max_center_jump_ratio": 0.08,
             "yolo_anchor_max_center_jump_ratio": 0.18,
             "yolo_min_reselect_iou": 0.10,
@@ -253,9 +251,6 @@ def generate_launch_description():
         parameters=[{
             "image_topic": auto_eef_init_bbox_image_topic,
             "bbox_topic": auto_eef_init_bbox_topic,
-            "tracked_bbox_topic": auto_eef_init_tracked_bbox_topic,
-            "publish_tracked_bbox": ParameterValue(
-                auto_eef_init_publish_tracked_bbox, value_type=bool),
             "status_topic": auto_eef_init_bbox_status_topic,
             "enable_topic": "/target/eef_auto_init_enable",
             "start_enabled": False,
@@ -293,10 +288,8 @@ def generate_launch_description():
             "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
             "yolo_class_name": auto_init_yolo_class_name,
             "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
-            "yolo_lock_target": True,
             "continuous_publish": False,
             "continuous_publish_period_s": 0.5,
-            "reuse_last_bbox_on_loss": False,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
     )
@@ -428,7 +421,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "start_eef_tracker",
             default_value="true",
-            description="Launch the EEF CSRT tracker for near-field refinement.",
+            description="Launch the EEF tracker for near-field refinement only; it must not initialize the primary target.",
         ),
         DeclareLaunchArgument(
             "start_servo",
@@ -592,7 +585,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_depth_max_m",
-            default_value="2.0",
+            default_value="1.2",
             description="Maximum valid depth for depth_near automatic bbox detection.",
         ),
         DeclareLaunchArgument(
@@ -671,8 +664,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_auto_eef_init_bbox",
-            default_value="false",
-            description="Optional EEF camera auto bbox detector. Disabled by default; mp_control projects /target/eef_init_bbox for the EEF CSRT tracker.",
+            default_value="true",
+            description="Auto-detect the target from the EEF camera when front depth is unavailable for stereo triangulation.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_start_delay",
@@ -690,23 +683,13 @@ def generate_launch_description():
             description="Initial bbox topic published for the EEF tracker.",
         ),
         DeclareLaunchArgument(
-            "auto_eef_init_tracked_bbox_topic",
-            default_value="/target/eef_tracked_bbox",
-            description="Tracked bbox topic published directly by EEF YOLO for near-field control.",
-        ),
-        DeclareLaunchArgument(
-            "auto_eef_init_publish_tracked_bbox",
-            default_value="false",
-            description="Publish EEF auto detections directly to the EEF tracked bbox topic.",
-        ),
-        DeclareLaunchArgument(
             "auto_eef_init_bbox_status_topic",
             default_value="/target/auto_eef_init_bbox_status",
             description="Status topic for EEF automatic bbox detection.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_color_mode",
-            default_value="black",
+            default_value="yolo",
             description="Target appearance to detect from the EEF RGB camera.",
         ),
         DeclareLaunchArgument(
@@ -781,8 +764,8 @@ def generate_launch_description():
         DeclareLaunchArgument("monitor_status_period", default_value="0.2"),
         DeclareLaunchArgument("monitor_video_period", default_value="0.5"),
         DeclareLaunchArgument("monitor_jpeg_quality", default_value="50"),
-        DeclareLaunchArgument("monitor_image_width", default_value="320"),
-        DeclareLaunchArgument("monitor_image_height", default_value="240"),
+        DeclareLaunchArgument("monitor_image_width", default_value="424"),
+        DeclareLaunchArgument("monitor_image_height", default_value="318"),
         DeclareLaunchArgument("monitor_http_timeout", default_value="3.0"),
         hardware_launch,
         TimerAction(

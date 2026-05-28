@@ -48,7 +48,7 @@ csrt_ibvs_node:
     # Desired target pose in image/depth space.
     desired_u_ratio: 0.5
     desired_v_ratio: 0.5
-    desired_depth_m: 0.35
+    desired_depth_m: 0.47
     desired_area_ratio: 0.09
 
     # Real pickup recenters the YOLO/CSRT bbox before and during approach.
@@ -77,10 +77,8 @@ csrt_ibvs_node:
     depth_sample_percentile: 25.0
     depth_min_valid_pixels: 5
     depth_unit_scale: 0.001
-    min_valid_depth_m: 0.35
-    # Use farther depth only for coarse base approach. The manipulation node
-    # still switches to arm/EEF refinement at the near-object threshold.
-    max_valid_depth_m: 2.0
+    min_valid_depth_m: 0.47
+    max_valid_depth_m: 1.0
     emergency_stop_depth_m: 0.18
     max_depth_stamp_age_s: 1.0
     status_period_s: 0.5

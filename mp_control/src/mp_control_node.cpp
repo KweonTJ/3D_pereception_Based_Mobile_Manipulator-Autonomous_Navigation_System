@@ -20,7 +20,6 @@
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -30,8 +29,6 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-#include <trajectory_msgs/msg/joint_trajectory.hpp>
-#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 
 namespace mp_control
 {
@@ -90,9 +87,6 @@ public:
     eef_camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
       eef_camera_info_topic_, sensor_qos,
       [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onEefCameraInfo(msg); });
-    joint_state_sub_ = create_subscription<sensor_msgs::msg::JointState>(
-      joint_state_topic_, sensor_qos,
-      [this](const sensor_msgs::msg::JointState::ConstSharedPtr msg) { onJointState(msg); });
     start_sub_ = create_subscription<std_msgs::msg::Bool>(
       start_topic_, default_qos,
       [this](const std_msgs::msg::Bool::ConstSharedPtr msg) {
@@ -119,11 +113,8 @@ public:
       create_publisher<std_msgs::msg::Bool>(eef_auto_init_enable_topic_, init_bbox_qos);
     base_hold_pub_ =
       create_publisher<std_msgs::msg::Bool>(base_hold_topic_, init_bbox_qos);
-    arm_trajectory_pub_ =
-      create_publisher<trajectory_msgs::msg::JointTrajectory>(arm_trajectory_topic_, default_qos);
     gripper_client_ = rclcpp_action::create_client<GripperCommand>(this, gripper_action_name_);
     servo_start_client_ = create_client<Trigger>("/servo_node/start_servo");
-    servo_stop_client_ = create_client<Trigger>("/servo_node/stop_servo");
 
     if (auto_start_) {
       startSequence();
@@ -187,13 +178,6 @@ private:
     tf2::Vector3 direction;
   };
 
-  struct PregraspTrajectoryPlan
-  {
-    trajectory_msgs::msg::JointTrajectory trajectory;
-    double wait_s{0.0};
-    bool current_start_used{false};
-  };
-
   void readParameters()
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
@@ -207,9 +191,6 @@ private:
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
     base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
     twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
-    arm_trajectory_topic_ =
-      declare_parameter<std::string>("arm_trajectory_topic", "/arm_controller/joint_trajectory");
-    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
     start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
     status_topic_ = declare_parameter<std::string>("status_topic", "/mp_control/status");
@@ -221,40 +202,31 @@ private:
     gripper_action_name_ = declare_parameter<std::string>("gripper_action_name", "/gripper_controller/gripper_cmd");
     target_frame_ = declare_parameter<std::string>("target_frame", "base_link");
     end_effector_frame_ = declare_parameter<std::string>("end_effector_frame", "end_effector_link");
-    latched_depth_fixed_frame_ =
-      declare_parameter<std::string>("latched_depth_fixed_frame", "odom");
     camera_frame_override_ = declare_parameter<std::string>("camera_frame_override", "");
     eef_camera_frame_override_ =
       declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
     allow_eef_camera_info_fallback_ =
       declare_parameter<bool>("allow_eef_camera_info_fallback", true);
     eef_camera_fallback_width_px_ =
-      declare_parameter<int>("eef_camera_fallback_width_px", 320);
+      declare_parameter<int>("eef_camera_fallback_width_px", 640);
     eef_camera_fallback_height_px_ =
-      declare_parameter<int>("eef_camera_fallback_height_px", 240);
-    eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 277.0);
-    eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 277.0);
+      declare_parameter<int>("eef_camera_fallback_height_px", 480);
+    eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 554.0);
+    eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 554.0);
 
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
     use_fallback_bbox_for_control_ =
       declare_parameter<bool>("use_fallback_bbox_for_control", false);
     start_servo_on_start_ = declare_parameter<bool>("start_servo_on_start", true);
-    start_servo_after_pregrasp_ = declare_parameter<bool>("start_servo_after_pregrasp", true);
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
     auto_init_eef_tracker_from_object_ =
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
-    use_cartesian_object_pregrasp_ =
-      declare_parameter<bool>("use_cartesian_object_pregrasp", false);
     use_depthless_triangulation_ =
       declare_parameter<bool>("use_depthless_triangulation", false);
-    use_eef_stereo_triangulation_ =
-      declare_parameter<bool>("use_eef_stereo_triangulation", false);
-    ignore_depth_after_near_reached_ =
-      declare_parameter<bool>("ignore_depth_after_near_reached", false);
     command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -271,12 +243,10 @@ private:
     eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
     eef_refinement_start_depth_m_ =
       declare_parameter<double>("eef_refinement_start_depth_m", min_valid_depth_m_);
-    ignore_depth_after_near_depth_m_ =
-      declare_parameter<double>("ignore_depth_after_near_depth_m", eef_refinement_start_depth_m_);
     eef_refinement_start_object_x_m_ =
-      declare_parameter<double>("eef_refinement_start_object_x_m", 0.55);
+      declare_parameter<double>("eef_refinement_start_object_x_m", 0.50);
     arm_start_max_error_m_ = declare_parameter<double>("arm_start_max_error_m", 0.40);
-    arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.55);
+    arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.60);
     object_height_m_ = declare_parameter<double>("object_height_m", 0.10);
     eef_init_bbox_min_size_px_ = declare_parameter<double>("eef_init_bbox_min_size_px", 32.0);
     eef_init_bbox_max_size_px_ = declare_parameter<double>("eef_init_bbox_max_size_px", 180.0);
@@ -285,7 +255,6 @@ private:
       declare_parameter<double>("eef_init_bbox_republish_period_s", 0.5);
     eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
     object_pregrasp_standoff_m_ = declare_parameter<double>("object_pregrasp_standoff_m", 0.08);
-    object_pregrasp_max_x_m_ = declare_parameter<double>("object_pregrasp_max_x_m", 0.29);
     object_pregrasp_min_z_m_ = declare_parameter<double>("object_pregrasp_min_z_m", 0.50);
     object_pregrasp_lower_standoff_m_ =
       declare_parameter<double>("object_pregrasp_lower_standoff_m", 0.02);
@@ -304,66 +273,9 @@ private:
     triangulation_extend_gain_ = declare_parameter<double>("triangulation_extend_gain", 0.7);
     triangulation_extend_max_speed_ =
       declare_parameter<double>("triangulation_extend_max_speed", 0.015);
-    use_joint_trajectory_for_triangulation_extend_ =
-      declare_parameter<bool>("use_joint_trajectory_for_triangulation_extend", true);
-    triangulation_extend_use_current_joint_state_start_ =
-      declare_parameter<bool>("triangulation_extend_use_current_joint_state_start", true);
-    triangulation_extend_require_current_joint_state_ =
-      declare_parameter<bool>("triangulation_extend_require_current_joint_state", false);
-    triangulation_extend_current_start_duration_s_ =
-      declare_parameter<double>("triangulation_extend_current_start_duration_s", 0.15);
-    triangulation_extend_current_start_max_age_s_ =
-      declare_parameter<double>("triangulation_extend_current_start_max_age_s", 1.0);
-
-    triangulation_extend_intermediate_joint_positions_ =
-      declare_parameter<std::vector<double>>(
-        "triangulation_extend_intermediate_joint_positions",
-        std::vector<double>{});
-    triangulation_extend_intermediate_segment_duration_s_ =
-      declare_parameter<double>("triangulation_extend_intermediate_segment_duration_s", 1.0);
-
-    pregrasp_trajectory_transform_enabled_ =
-      declare_parameter<bool>("pregrasp_trajectory_transform_enabled", true);
-    pregrasp_trajectory_use_pitch_blend_ =
-      declare_parameter<bool>("pregrasp_trajectory_use_pitch_blend", true);
-    pregrasp_trajectory_target_pitch_rad_ =
-      declare_parameter<double>("pregrasp_trajectory_target_pitch_rad", 0.0);
-    pregrasp_trajectory_pitch_blend_weight_ =
-      declare_parameter<double>("pregrasp_trajectory_pitch_blend_weight", 1.0);
-
-    pregrasp_trajectory_joint_scales_ =
-      declare_parameter<std::vector<double>>(
-        "pregrasp_trajectory_joint_scales",
-        std::vector<double>{1.0, 1.0, 1.0, 1.0});
-    pregrasp_trajectory_joint_offsets_ =
-      declare_parameter<std::vector<double>>(
-        "pregrasp_trajectory_joint_offsets",
-        std::vector<double>{0.0, 0.0, 0.0, 0.0});
-    pregrasp_trajectory_joint_min_positions_ =
-      declare_parameter<std::vector<double>>(
-        "pregrasp_trajectory_joint_min_positions",
-        std::vector<double>{-3.14, -1.79, -0.94, -1.79});
-    pregrasp_trajectory_joint_max_positions_ =
-      declare_parameter<std::vector<double>>(
-        "pregrasp_trajectory_joint_max_positions",
-        std::vector<double>{3.14, 1.57, 1.38, 2.04});
-    triangulation_extend_joint_positions_ =
-      declare_parameter<std::vector<double>>(
-        "triangulation_extend_joint_positions",
-        std::vector<double>{0.0, 0.82, -0.58, -0.24});
-    triangulation_extend_joint_duration_s_ =
-      declare_parameter<double>("triangulation_extend_joint_duration_s", 2.0);
-    triangulation_extend_joint_settle_s_ =
-      declare_parameter<double>("triangulation_extend_joint_settle_s", 0.3);
     triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
     triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
     triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
-    triangulation_accept_reverse_ranges_ =
-      declare_parameter<bool>("triangulation_accept_reverse_ranges", true);
-    triangulation_min_object_x_m_ =
-      declare_parameter<double>("triangulation_min_object_x_m", 0.05);
-    use_latched_depth_point_on_bad_triangulation_ =
-      declare_parameter<bool>("use_latched_depth_point_on_bad_triangulation", true);
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
@@ -390,8 +302,6 @@ private:
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
     eef_refinement_start_depth_m_ = std::max(min_valid_depth_m_, eef_refinement_start_depth_m_);
-    ignore_depth_after_near_depth_m_ =
-      std::max(min_valid_depth_m_, ignore_depth_after_near_depth_m_);
     eef_refinement_start_object_x_m_ = std::max(0.01, eef_refinement_start_object_x_m_);
     arm_start_max_error_m_ = std::max(0.05, arm_start_max_error_m_);
     arm_start_max_object_x_m_ = std::max(0.05, arm_start_max_object_x_m_);
@@ -402,7 +312,6 @@ private:
     eef_init_bbox_republish_period_s_ = std::max(0.1, eef_init_bbox_republish_period_s_);
     eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
     object_pregrasp_standoff_m_ = std::max(0.0, object_pregrasp_standoff_m_);
-    object_pregrasp_max_x_m_ = std::max(0.05, object_pregrasp_max_x_m_);
     object_pregrasp_min_z_m_ = std::max(0.0, object_pregrasp_min_z_m_);
     object_pregrasp_lower_standoff_m_ = std::max(0.0, object_pregrasp_lower_standoff_m_);
     object_pregrasp_min_lower_z_m_ = std::max(0.0, object_pregrasp_min_lower_z_m_);
@@ -412,71 +321,9 @@ private:
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
-    if (triangulation_extend_joint_positions_.size() != 4) {
-      RCLCPP_WARN(
-        get_logger(),
-        "triangulation_extend_joint_positions must have four values; using default pre-grasp pose");
-      triangulation_extend_joint_positions_ = {0.0, -1.05, 0.35, 0.70};
-    }
-    if (!triangulation_extend_intermediate_joint_positions_.empty() &&
-        triangulation_extend_intermediate_joint_positions_.size() % 4 != 0) {
-      RCLCPP_WARN(
-        get_logger(),
-        "triangulation_extend_intermediate_joint_positions must contain 4*N values; ignoring it");
-      triangulation_extend_intermediate_joint_positions_.clear();
-    }
-
-    auto ensure_vector4 = [this](
-      std::vector<double> & values,
-      const std::vector<double> & fallback,
-      const std::string & name)
-    {
-      if (values.size() != 4) {
-        RCLCPP_WARN(get_logger(), "%s must contain exactly four values; using fallback", name.c_str());
-        values = fallback;
-      }
-    };
-
-    ensure_vector4(
-      pregrasp_trajectory_joint_scales_, {1.0, 1.0, 1.0, 1.0},
-      "pregrasp_trajectory_joint_scales");
-    ensure_vector4(
-      pregrasp_trajectory_joint_offsets_, {0.0, 0.0, 0.0, 0.0},
-      "pregrasp_trajectory_joint_offsets");
-    ensure_vector4(
-      pregrasp_trajectory_joint_min_positions_, {-3.14, -1.79, -0.94, -1.79},
-      "pregrasp_trajectory_joint_min_positions");
-    ensure_vector4(
-      pregrasp_trajectory_joint_max_positions_, {3.14, 1.57, 1.38, 2.04},
-      "pregrasp_trajectory_joint_max_positions");
-
-    for (std::size_t i = 0; i < 4; ++i) {
-      if (pregrasp_trajectory_joint_min_positions_[i] >
-          pregrasp_trajectory_joint_max_positions_[i]) {
-        std::swap(
-          pregrasp_trajectory_joint_min_positions_[i],
-          pregrasp_trajectory_joint_max_positions_[i]);
-      }
-    }
-
-    pregrasp_trajectory_pitch_blend_weight_ =
-      clampValue(pregrasp_trajectory_pitch_blend_weight_, 0.0, 1.0);
-    triangulation_extend_current_start_duration_s_ =
-      std::max(0.02, triangulation_extend_current_start_duration_s_);
-    triangulation_extend_current_start_max_age_s_ =
-      std::max(0.05, triangulation_extend_current_start_max_age_s_);
-    triangulation_extend_intermediate_segment_duration_s_ =
-      std::max(0.2, triangulation_extend_intermediate_segment_duration_s_);
-
-
-    triangulation_extend_joint_duration_s_ =
-      std::max(0.2, triangulation_extend_joint_duration_s_);
-    triangulation_extend_joint_settle_s_ =
-      std::max(0.0, triangulation_extend_joint_settle_s_);
     triangulation_min_range_m_ = std::max(0.01, triangulation_min_range_m_);
     triangulation_max_range_m_ = std::max(triangulation_min_range_m_, triangulation_max_range_m_);
     triangulation_max_ray_gap_m_ = std::max(0.005, triangulation_max_ray_gap_m_);
-    triangulation_min_object_x_m_ = std::max(-1.0, triangulation_min_object_x_m_);
     cargo_sequence_next_ = std::max(1, cargo_sequence_next_);
     if (gripper_min_position_ > gripper_max_position_) {
       std::swap(gripper_min_position_, gripper_max_position_);
@@ -591,38 +438,6 @@ private:
     latest_eef_camera_info_ = info;
   }
 
-  void onJointState(const sensor_msgs::msg::JointState::ConstSharedPtr msg)
-  {
-    const std::vector<std::string> arm_joint_names = {"joint1", "joint2", "joint3", "joint4"};
-    std::vector<double> arm_positions(arm_joint_names.size(), 0.0);
-
-    for (std::size_t arm_index = 0; arm_index < arm_joint_names.size(); ++arm_index) {
-      bool found = false;
-
-      for (std::size_t msg_index = 0; msg_index < msg->name.size(); ++msg_index) {
-        if (msg->name[msg_index] != arm_joint_names[arm_index]) {
-          continue;
-        }
-
-        if (msg_index >= msg->position.size() || !std::isfinite(msg->position[msg_index])) {
-          return;
-        }
-
-        arm_positions[arm_index] = msg->position[msg_index];
-        found = true;
-        break;
-      }
-
-      if (!found) {
-        return;
-      }
-    }
-
-    std::lock_guard<std::mutex> lock(data_mutex_);
-    latest_arm_joint_positions_ = arm_positions;
-    latest_arm_joint_stamp_ = now();
-  }
-
   void startSequence()
   {
     active_ = true;
@@ -633,15 +448,8 @@ private:
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
-      near_object_distance_reached_ = false;
-      nearest_object_goal_x_m_.reset();
-      latest_reliable_depth_object_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
-    triangulation_joint_extend_sent_ = false;
-    servo_started_after_pregrasp_ = false;
-    triangulation_joint_extend_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-    triangulation_joint_extend_wait_s_ = 0.0;
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -655,8 +463,6 @@ private:
     }
     if (start_servo_on_start_) {
       startMoveItServo();
-    } else if (use_joint_trajectory_for_triangulation_extend_) {
-      stopMoveItServo();
     }
     publishStatus("grasp sequence started", true);
   }
@@ -669,15 +475,8 @@ private:
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
-      near_object_distance_reached_ = false;
-      nearest_object_goal_x_m_.reset();
-      latest_reliable_depth_object_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
-    triangulation_joint_extend_sent_ = false;
-    servo_started_after_pregrasp_ = false;
-    triangulation_joint_extend_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-    triangulation_joint_extend_wait_s_ = 0.0;
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     stable_cycles_ = 0;
@@ -704,19 +503,10 @@ private:
 
     std::string object_block_reason;
     auto maybe_object = estimateObjectPoint(&object_block_reason);
-    const bool use_latched_object_after_front_loss =
-      canUseLatchedObjectAfterFrontLoss() &&
-      isFrontBboxUnavailableReason(object_block_reason);
     bool command_published = false;
     if (!maybe_object && use_depthless_triangulation_ &&
-        (isDepthUnavailableReason(object_block_reason) ||
-        use_latched_object_after_front_loss)) {
+        isDepthUnavailableReason(object_block_reason)) {
       publishBaseHold(true);
-      if (use_latched_object_after_front_loss) {
-        publishStatus(
-          "front bbox lost after near object distance; using latched object for EEF handoff",
-          true);
-      }
       maybe_object = estimateObjectPointByTriangulation(
         eef_tf, &object_block_reason, &command_published);
     }
@@ -751,22 +541,6 @@ private:
     const double err_y = goal_y - eef_y;
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
-    const double forward_err = std::max(0.0, err_x);
-
-    if (wait_for_base_approach_ &&
-        goal_x > arm_start_max_object_x_m_ &&
-        forward_err > arm_start_max_error_m_) {
-      stable_cycles_ = 0;
-      publishBaseHold(false);
-      publishStop();
-      object_pregrasp_horizontal_done_ = false;
-      std::ostringstream status;
-      status << "waiting for base approach before arm motion: goal_x=" << goal_x
-             << " forward_err=" << forward_err
-             << " err_norm=" << err_norm;
-      publishStatus(status.str());
-      return;
-    }
 
     const bool use_eef_now =
       use_eef_refinement_ &&
@@ -776,22 +550,31 @@ private:
       err_norm <= eef_refinement_switch_distance_m_);
     if (use_eef_now) {
       publishBaseHold(true);
-      bool extension_cmd_published = false;
-      if (!moveArmToTriangulationPose(eef_tf, &extension_cmd_published)) {
-        return;
-      }
-      if (use_cartesian_object_pregrasp_ &&
-        !moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published))
-      {
-        return;
-      }
       if (!prepareEefRefinement(object)) {
+        return;
+      }
+      bool extension_cmd_published = false;
+      if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
         return;
       }
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
       publishStatus("base stopped, depth+EEF ready; arm extended toward object and switching to refinement", true);
       updateEefRefinement(object);
+      return;
+    }
+
+    const double forward_err = std::max(0.0, err_x);
+    if (wait_for_base_approach_ &&
+        (forward_err > arm_start_max_error_m_ || goal_x > arm_start_max_object_x_m_)) {
+      stable_cycles_ = 0;
+      publishBaseHold(false);
+      publishStop();
+      std::ostringstream status;
+      status << "waiting for base approach before arm motion: goal_x=" << goal_x
+             << " forward_err=" << forward_err
+             << " err_norm=" << err_norm;
+      publishStatus(status.str());
       return;
     }
 
@@ -884,11 +667,8 @@ private:
     const auto stamp = now();
     if (last_eef_init_bbox_stamp_.nanoseconds() == 0 ||
         (stamp - last_eef_init_bbox_stamp_).seconds() >= eef_init_bbox_republish_period_s_) {
-      std::string init_bbox_reason;
-      if (publishProjectedEefInitBbox(object_in_target, info, &init_bbox_reason)) {
+      if (publishProjectedEefInitBbox(object_in_target, info)) {
         last_eef_init_bbox_stamp_ = stamp;
-      } else if (!init_bbox_reason.empty()) {
-        publishStatus("waiting for end-effector visual feature bbox near object: " + init_bbox_reason);
       }
     }
 
@@ -899,8 +679,7 @@ private:
 
   bool publishProjectedEefInitBbox(
     const geometry_msgs::msg::PointStamped & object_in_target,
-    const CameraInfo & info,
-    std::string * block_reason = nullptr)
+    const CameraInfo & info)
   {
     const std::string eef_camera_frame =
       eef_camera_frame_override_.empty() ? info.frame_id : eef_camera_frame_override_;
@@ -912,7 +691,6 @@ private:
     try {
       object_in_eef_camera = tf_buffer_.transform(object_latest, eef_camera_frame);
     } catch (const tf2::TransformException & ex) {
-      setBlockReason(block_reason, std::string("EEF init bbox TF unavailable: ") + ex.what());
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "end-effector init bbox TF unavailable: %s", ex.what());
@@ -921,28 +699,18 @@ private:
 
     const double z_m = object_in_eef_camera.point.z;
     if (!std::isfinite(z_m) || z_m <= 0.01) {
-      std::ostringstream reason;
-      reason << "EEF projected object behind/too close to camera z=" << z_m;
-      setBlockReason(block_reason, reason.str());
       return false;
     }
 
     const double u = info.fx * object_in_eef_camera.point.x / z_m + info.cx;
     const double v = info.fy * object_in_eef_camera.point.y / z_m + info.cy;
     if (!std::isfinite(u) || !std::isfinite(v)) {
-      setBlockReason(block_reason, "EEF init bbox projection produced non-finite image coordinates");
       return false;
     }
 
     const double image_width = std::max(1.0, static_cast<double>(info.width));
     const double image_height = std::max(1.0, static_cast<double>(info.height));
     if (u < 0.0 || u >= image_width || v < 0.0 || v >= image_height) {
-      std::ostringstream reason;
-      reason << "EEF projected object outside image: uv=(" << u << ", " << v
-             << ") size=" << image_width << "x" << image_height
-             << " camera_point=(" << object_in_eef_camera.point.x << ", "
-             << object_in_eef_camera.point.y << ", " << z_m << ")";
-      setBlockReason(block_reason, reason.str());
       return false;
     }
 
@@ -964,9 +732,6 @@ private:
     const double w = std::min(bbox_w, image_width - x);
     const double h = std::min(bbox_h, image_height - y);
     if (w < 2.0 || h < 2.0) {
-      std::ostringstream reason;
-      reason << "EEF init bbox too small: " << w << "x" << h;
-      setBlockReason(block_reason, reason.str());
       return false;
     }
 
@@ -1094,23 +859,7 @@ private:
   bool isDepthUnavailableReason(const std::string & reason) const
   {
     return reason.rfind("valid depth inside bbox", 0) == 0 ||
-      reason.rfind("front depth ignored after near object distance reached", 0) == 0 ||
       reason.rfind("depth image on ", 0) == 0;
-  }
-
-  bool isFrontBboxUnavailableReason(const std::string & reason) const
-  {
-    const auto bbox_description = bboxInputDescription();
-    return reason == bbox_description ||
-      reason.rfind("fresh " + bbox_description, 0) == 0;
-  }
-
-  bool canUseLatchedObjectAfterFrontLoss()
-  {
-    std::lock_guard<std::mutex> lock(data_mutex_);
-    return ignore_depth_after_near_reached_ &&
-      near_object_distance_reached_ &&
-      latest_reliable_depth_object_.has_value();
   }
 
   std::optional<geometry_msgs::msg::PointStamped> estimateObjectPointByTriangulation(
@@ -1123,15 +872,6 @@ private:
       eef_refinement_requested_ = true;
     }
     publishEefAutoInitEnable(true);
-
-    if (!use_eef_stereo_triangulation_) {
-      auto latched_object = latestReliableDepthObject();
-      if (latched_object) {
-        return latched_object;
-      }
-      setBlockReason(block_reason, "latched depth object before EEF IBVS refinement");
-      return std::nullopt;
-    }
 
     if (stage_ != GraspStage::EEF_REFINE &&
         !moveArmToTriangulationPose(eef_tf, command_published)) {
@@ -1147,9 +887,7 @@ private:
     const geometry_msgs::msg::PointStamped & object_in_target,
     bool * command_published)
   {
-    const double requested_target_x =
-      object_in_target.point.x - object_pregrasp_standoff_m_ + grasp_offset_x_;
-    const double target_x = std::min(requested_target_x, object_pregrasp_max_x_m_);
+    const double target_x = object_in_target.point.x - object_pregrasp_standoff_m_ + grasp_offset_x_;
     const double target_y = object_in_target.point.y + grasp_offset_y_;
 
     const double eef_x = eef_tf.transform.translation.x;
@@ -1202,8 +940,7 @@ private:
       "lowering arm toward depth object: target=(" :
       "extending arm horizontally toward depth object: target=(")
            << target_x << ", " << target_y << ", " << target_z
-           << ") requested_x=" << requested_target_x
-           << " err=(" << err_x << ", " << err_y << ", " << err_z
+           << ") err=(" << err_x << ", " << err_y << ", " << err_z
            << ") norm=" << err_norm;
     publishStatus(status.str());
     return false;
@@ -1213,10 +950,6 @@ private:
     const geometry_msgs::msg::TransformStamped & eef_tf,
     bool * command_published)
   {
-    if (use_joint_trajectory_for_triangulation_extend_) {
-      return moveArmToTriangulationJointPose(command_published);
-    }
-
     const double eef_x = eef_tf.transform.translation.x;
     const double eef_y = eef_tf.transform.translation.y;
     const double eef_z = eef_tf.transform.translation.z;
@@ -1260,222 +993,6 @@ private:
     return false;
   }
 
-  bool moveArmToTriangulationJointPose(bool * command_published)
-  {
-    const auto stamp = now();
-    const double wait_s =
-      triangulation_joint_extend_wait_s_ > 0.0 ?
-      triangulation_joint_extend_wait_s_ :
-      triangulation_extend_joint_duration_s_ + triangulation_extend_joint_settle_s_;
-
-    if (!triangulation_joint_extend_sent_) {
-      publishStop();
-      stopMoveItServo();
-
-      auto plan = buildTransformedPregraspJointTrajectory(stamp);
-      if (!plan) {
-        publishStatus(
-          "waiting for fresh arm joint_states before transformed pregrasp trajectory",
-          true);
-        return false;
-      }
-
-      arm_trajectory_pub_->publish(plan->trajectory);
-      triangulation_joint_extend_wait_s_ = plan->wait_s;
-      triangulation_joint_extend_sent_ = true;
-      triangulation_joint_extend_stamp_ = stamp;
-      stage_ = GraspStage::TRIANGULATION_EXTEND;
-      stable_cycles_ = 0;
-      if (command_published) {
-        *command_published = true;
-      }
-
-      std::ostringstream status;
-      status << "moving arm to pregrasp joint pose: joints=["
-             << triangulation_extend_joint_positions_[0] << ", "
-             << triangulation_extend_joint_positions_[1] << ", "
-             << triangulation_extend_joint_positions_[2] << ", "
-             << triangulation_extend_joint_positions_[3] << "]";
-      publishStatus(status.str(), true);
-      return false;
-    }
-
-    const double elapsed_s = (stamp - triangulation_joint_extend_stamp_).seconds();
-    if (elapsed_s < wait_s) {
-      if (command_published) {
-        *command_published = true;
-      }
-      std::ostringstream status;
-      status << "waiting for pregrasp joint pose: elapsed="
-             << elapsed_s << "/" << wait_s;
-      publishStatus(status.str());
-      return false;
-    }
-
-    if (stage_ == GraspStage::TRIANGULATION_EXTEND) {
-      stage_ = GraspStage::DEPTH_APPROACH;
-    }
-    if ((start_servo_on_start_ || start_servo_after_pregrasp_) &&
-        !servo_started_after_pregrasp_) {
-      startMoveItServo();
-      servo_started_after_pregrasp_ = true;
-    }
-    return true;
-  }
-
-  std::optional<PregraspTrajectoryPlan> buildTransformedPregraspJointTrajectory(
-    const rclcpp::Time & stamp)
-  {
-    auto current_joint_positions = latestArmJointPositions();
-
-    if (triangulation_extend_use_current_joint_state_start_ &&
-        !current_joint_positions &&
-        triangulation_extend_require_current_joint_state_) {
-      return std::nullopt;
-    }
-
-    PregraspTrajectoryPlan plan;
-    plan.trajectory.header.stamp = stamp;
-    plan.trajectory.joint_names = {"joint1", "joint2", "joint3", "joint4"};
-
-    double trajectory_time_s = 0.0;
-
-    if (triangulation_extend_use_current_joint_state_start_ && current_joint_positions) {
-      trajectory_time_s += triangulation_extend_current_start_duration_s_;
-
-      appendJointTrajectoryPoint(
-        plan.trajectory,
-        transformPregraspWaypoint(*current_joint_positions, current_joint_positions, 0.0),
-        trajectory_time_s);
-
-      plan.current_start_used = true;
-    }
-
-    std::vector<std::vector<double>> raw_waypoints;
-
-    for (std::size_t offset = 0;
-        offset < triangulation_extend_intermediate_joint_positions_.size();
-        offset += 4) {
-      raw_waypoints.emplace_back(
-        triangulation_extend_intermediate_joint_positions_.begin() + offset,
-        triangulation_extend_intermediate_joint_positions_.begin() + offset + 4);
-    }
-
-    raw_waypoints.push_back(triangulation_extend_joint_positions_);
-
-    const std::size_t motion_count = raw_waypoints.size();
-
-    for (std::size_t i = 0; i < motion_count; ++i) {
-      const bool is_final = i + 1 == motion_count;
-
-      trajectory_time_s += is_final ?
-        triangulation_extend_joint_duration_s_ :
-        triangulation_extend_intermediate_segment_duration_s_;
-
-      const double progress = static_cast<double>(i + 1) /
-        static_cast<double>(std::max<std::size_t>(1, motion_count));
-
-      appendJointTrajectoryPoint(
-        plan.trajectory,
-        transformPregraspWaypoint(raw_waypoints[i], current_joint_positions, progress),
-        trajectory_time_s);
-    }
-
-    plan.wait_s = trajectory_time_s + triangulation_extend_joint_settle_s_;
-    return plan;
-  }
-  std::vector<double> transformPregraspWaypoint(
-    const std::vector<double> & raw_positions,
-    const std::optional<std::vector<double>> & current_joint_positions,
-    double progress) const
-  {
-    std::vector<double> transformed = raw_positions;
-
-    if (transformed.size() != 4) {
-      return transformed;
-    }
-
-    progress = clampValue(progress, 0.0, 1.0);
-
-    if (pregrasp_trajectory_transform_enabled_) {
-      for (std::size_t i = 0; i < 4; ++i) {
-        if (current_joint_positions && current_joint_positions->size() == 4) {
-          transformed[i] =
-            (*current_joint_positions)[i] +
-            (transformed[i] - (*current_joint_positions)[i]) *
-            pregrasp_trajectory_joint_scales_[i];
-        } else {
-          transformed[i] *= pregrasp_trajectory_joint_scales_[i];
-        }
-
-        transformed[i] += pregrasp_trajectory_joint_offsets_[i] * progress;
-      }
-
-      if (pregrasp_trajectory_use_pitch_blend_) {
-        double start_pitch = pregrasp_trajectory_target_pitch_rad_;
-
-        if (current_joint_positions && current_joint_positions->size() == 4) {
-          start_pitch =
-            (*current_joint_positions)[1] +
-            (*current_joint_positions)[2] +
-            (*current_joint_positions)[3];
-        }
-
-        const double desired_pitch =
-          start_pitch + progress * (pregrasp_trajectory_target_pitch_rad_ - start_pitch);
-
-        const double pitch_based_joint4 =
-          desired_pitch - transformed[1] - transformed[2];
-
-        transformed[3] =
-          (1.0 - pregrasp_trajectory_pitch_blend_weight_) * transformed[3] +
-          pregrasp_trajectory_pitch_blend_weight_ * pitch_based_joint4;
-      }
-    }
-
-    for (std::size_t i = 0; i < 4; ++i) {
-      transformed[i] = clampValue(
-        transformed[i],
-        pregrasp_trajectory_joint_min_positions_[i],
-        pregrasp_trajectory_joint_max_positions_[i]);
-    }
-
-    return transformed;
-  }
-
-  void appendJointTrajectoryPoint(
-    trajectory_msgs::msg::JointTrajectory & trajectory,
-    const std::vector<double> & positions,
-    double time_from_start_s) const
-  {
-    trajectory_msgs::msg::JointTrajectoryPoint point;
-    point.positions = positions;
-    point.velocities = std::vector<double>(positions.size(), 0.0);
-
-    const auto duration_ns = static_cast<int64_t>(
-      std::llround(std::max(0.0, time_from_start_s) * 1e9));
-
-    point.time_from_start.sec = static_cast<int32_t>(duration_ns / 1000000000LL);
-    point.time_from_start.nanosec = static_cast<uint32_t>(duration_ns % 1000000000LL);
-
-    trajectory.points.push_back(point);
-  }
-
-  std::optional<std::vector<double>> latestArmJointPositions()
-  {
-    std::lock_guard<std::mutex> lock(data_mutex_);
-
-    if (!latest_arm_joint_positions_ || latest_arm_joint_stamp_.nanoseconds() == 0) {
-      return std::nullopt;
-    }
-
-    if ((now() - latest_arm_joint_stamp_).seconds() >
-        triangulation_extend_current_start_max_age_s_) {
-      return std::nullopt;
-    }
-
-    return latest_arm_joint_positions_;
-  }
   std::optional<geometry_msgs::msg::PointStamped> triangulateObjectPoint(
     std::string * block_reason)
   {
@@ -1483,10 +1000,8 @@ private:
     Bbox eef_bbox;
     CameraInfo front_info;
     CameraInfo eef_info;
-    std::optional<geometry_msgs::msg::PointStamped> latched_depth_object;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
-      latched_depth_object = latest_reliable_depth_object_;
       if (!latest_bbox_) {
         setBlockReason(block_reason, bboxInputDescription());
         return std::nullopt;
@@ -1496,16 +1011,6 @@ private:
         return std::nullopt;
       }
       if (!latest_eef_bbox_) {
-        if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
-          std::ostringstream status;
-          status << "using latched depth object while waiting for end-effector bbox for "
-                    "stereo triangulation=("
-                 << latched_depth_object->point.x << ", "
-                 << latched_depth_object->point.y << ", "
-                 << latched_depth_object->point.z << ")";
-          publishStatus(status.str(), true);
-          return latched_depth_object;
-        }
         setBlockReason(block_reason, "end-effector bbox for stereo triangulation");
         return std::nullopt;
       }
@@ -1530,16 +1035,6 @@ private:
       return std::nullopt;
     }
     if ((stamp - eef_bbox.stamp).seconds() > max_target_age_s_) {
-      if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
-        std::ostringstream status;
-        status << "using latched depth object while end-effector bbox is stale for "
-                  "stereo triangulation=("
-               << latched_depth_object->point.x << ", "
-               << latched_depth_object->point.y << ", "
-               << latched_depth_object->point.z << ")";
-        publishStatus(status.str(), true);
-        return latched_depth_object;
-      }
       setBlockReason(block_reason, "fresh end-effector bbox for stereo triangulation");
       return std::nullopt;
     }
@@ -1576,27 +1071,8 @@ private:
 
     const double front_range = (b * e - c * d) / denom;
     const double eef_range = (a * e - b * d) / denom;
-    const auto range_in_bounds = [this](double range) {
-      return range >= triangulation_min_range_m_ && range <= triangulation_max_range_m_;
-    };
-    const bool forward_ranges =
-      range_in_bounds(front_range) && range_in_bounds(eef_range);
-    const bool reverse_ranges =
-      triangulation_accept_reverse_ranges_ &&
-      front_range < 0.0 && eef_range < 0.0 &&
-      range_in_bounds(std::abs(front_range)) && range_in_bounds(std::abs(eef_range));
-    if (!forward_ranges && !reverse_ranges) {
-      if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
-        std::ostringstream status;
-        status << "using latched depth object after invalid stereo triangulation range "
-               << "front=" << front_range << " eef=" << eef_range
-               << " object=(" << latched_depth_object->point.x << ", "
-               << latched_depth_object->point.y << ", "
-               << latched_depth_object->point.z << ")";
-        publishStatus(status.str(), true);
-        return latched_depth_object;
-      }
-
+    if (front_range < triangulation_min_range_m_ || front_range > triangulation_max_range_m_ ||
+        eef_range < triangulation_min_range_m_ || eef_range > triangulation_max_range_m_) {
       std::ostringstream reason;
       reason << "triangulation range front=" << front_range << " eef=" << eef_range;
       setBlockReason(block_reason, reason.str());
@@ -1607,16 +1083,6 @@ private:
     const tf2::Vector3 eef_point = eef_ray->origin + eef_ray->direction * eef_range;
     const double ray_gap = (front_point - eef_point).length();
     if (ray_gap > triangulation_max_ray_gap_m_) {
-      if (use_latched_depth_point_on_bad_triangulation_ && latched_depth_object) {
-        std::ostringstream status;
-        status << "using latched depth object after stereo triangulation ray gap "
-               << ray_gap << " object=(" << latched_depth_object->point.x << ", "
-               << latched_depth_object->point.y << ", "
-               << latched_depth_object->point.z << ")";
-        publishStatus(status.str(), true);
-        return latched_depth_object;
-      }
-
       std::ostringstream reason;
       reason << "triangulation ray gap " << ray_gap;
       setBlockReason(block_reason, reason.str());
@@ -1629,24 +1095,7 @@ private:
       return std::nullopt;
     }
 
-    if (object.x() < triangulation_min_object_x_m_) {
-      auto latched_object = latestReliableDepthObject();
-      if (use_latched_depth_point_on_bad_triangulation_ && latched_object) {
-        std::ostringstream status;
-        status << "stereo triangulation object behind base_link x=" << object.x()
-               << "; using latched depth object=(" << latched_object->point.x << ", "
-               << latched_object->point.y << ", " << latched_object->point.z << ")";
-        publishStatus(status.str(), true);
-        return latched_object;
-      }
-
-      std::ostringstream reason;
-      reason << "plausible forward stereo triangulation object x=" << object.x();
-      setBlockReason(block_reason, reason.str());
-      return std::nullopt;
-    }
-
-    rememberMeasuredObjectWidth(eef_bbox.width * std::abs(eef_range) / eef_info.fx);
+    rememberMeasuredObjectWidth(eef_bbox.width * eef_range / eef_info.fx);
 
     geometry_msgs::msg::PointStamped point;
     point.header.stamp = stamp;
@@ -1658,8 +1107,7 @@ private:
     std::ostringstream status;
     status << "stereo triangulation object=(" << point.point.x << ", "
            << point.point.y << ", " << point.point.z
-           << ") ray_gap=" << ray_gap
-           << " reverse_ranges=" << (reverse_ranges ? "true" : "false");
+           << ") ray_gap=" << ray_gap;
     publishStatus(status.str());
     return point;
   }
@@ -1724,10 +1172,6 @@ private:
         setBlockReason(block_reason, "camera info on " + camera_info_topic_);
         return std::nullopt;
       }
-      if (shouldIgnoreFrontDepthLocked()) {
-        setBlockReason(block_reason, "front depth ignored after near object distance reached");
-        return std::nullopt;
-      }
       if (!latest_depth_) {
         setBlockReason(block_reason, "depth image on " + depth_topic_);
         return std::nullopt;
@@ -1755,6 +1199,9 @@ private:
       setBlockReason(block_reason, reason.str());
       return std::nullopt;
     }
+    rememberObjectDepth(*depth_m);
+    rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
+
     geometry_msgs::msg::PointStamped object_camera;
     object_camera.header.stamp = depth->header.stamp;
     object_camera.header.frame_id = camera_frame_override_.empty() ? info.frame_id : camera_frame_override_;
@@ -1763,12 +1210,7 @@ private:
     object_camera.point.y = (v - info.cy) * (*depth_m) / info.fy;
 
     try {
-      auto object_target = tf_buffer_.transform(object_camera, target_frame_);
-      const double goal_x = object_target.point.x + grasp_offset_x_;
-      rememberReliableDepthObject(object_target);
-      rememberObjectDepth(*depth_m, goal_x);
-      rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
-      return object_target;
+      return tf_buffer_.transform(object_camera, target_frame_);
     } catch (const tf2::TransformException & ex) {
       setBlockReason(block_reason, "TF from " + object_camera.header.frame_id + " to " + target_frame_);
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "object TF transform failed: %s", ex.what());
@@ -1935,12 +1377,7 @@ private:
     latest_object_width_m_ = width_m;
   }
 
-  bool shouldIgnoreFrontDepthLocked() const
-  {
-    return ignore_depth_after_near_reached_ && near_object_distance_reached_;
-  }
-
-  void rememberObjectDepth(double depth_m, double goal_x)
+  void rememberObjectDepth(double depth_m)
   {
     if (!std::isfinite(depth_m)) {
       return;
@@ -1948,65 +1385,6 @@ private:
     std::lock_guard<std::mutex> lock(data_mutex_);
     latest_object_depth_m_ = depth_m;
     latest_object_depth_stamp_ = now();
-    if (std::isfinite(goal_x) &&
-        (!nearest_object_goal_x_m_ || goal_x < *nearest_object_goal_x_m_)) {
-      nearest_object_goal_x_m_ = goal_x;
-    }
-    if (ignore_depth_after_near_reached_ &&
-        (depth_m <= ignore_depth_after_near_depth_m_ || goal_x <= arm_start_max_object_x_m_)) {
-      near_object_distance_reached_ = true;
-    }
-  }
-
-  void rememberReliableDepthObject(const geometry_msgs::msg::PointStamped & object)
-  {
-    if (!std::isfinite(object.point.x) ||
-        !std::isfinite(object.point.y) ||
-        !std::isfinite(object.point.z)) {
-      return;
-    }
-
-    auto latched_object = object;
-    if (!latched_depth_fixed_frame_.empty() &&
-        latched_depth_fixed_frame_ != object.header.frame_id) {
-      try {
-        auto latest_object = object;
-        latest_object.header.stamp = builtin_interfaces::msg::Time();
-        latched_object = tf_buffer_.transform(latest_object, latched_depth_fixed_frame_);
-      } catch (const tf2::TransformException & ex) {
-        RCLCPP_WARN_THROTTLE(
-          get_logger(), *get_clock(), 1000,
-          "latched depth object TF to %s unavailable: %s",
-          latched_depth_fixed_frame_.c_str(), ex.what());
-      }
-    }
-
-    std::lock_guard<std::mutex> lock(data_mutex_);
-    latest_reliable_depth_object_ = latched_object;
-  }
-
-  std::optional<geometry_msgs::msg::PointStamped> latestReliableDepthObject()
-  {
-    std::optional<geometry_msgs::msg::PointStamped> latched_object;
-    {
-      std::lock_guard<std::mutex> lock(data_mutex_);
-      latched_object = latest_reliable_depth_object_;
-    }
-    if (!latched_object || latched_object->header.frame_id == target_frame_) {
-      return latched_object;
-    }
-
-    try {
-      auto latest_object = *latched_object;
-      latest_object.header.stamp = builtin_interfaces::msg::Time();
-      return tf_buffer_.transform(latest_object, target_frame_);
-    } catch (const tf2::TransformException & ex) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 1000,
-        "latched depth object TF to %s unavailable: %s",
-        target_frame_.c_str(), ex.what());
-      return std::nullopt;
-    }
   }
 
   double gripperPositionForGap(double gap_m) const
@@ -2115,27 +1493,6 @@ private:
       });
   }
 
-  void stopMoveItServo()
-  {
-    if (!servo_stop_client_->wait_for_service(std::chrono::milliseconds(100))) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 1000,
-        "MoveIt Servo stop service unavailable: /servo_node/stop_servo");
-      return;
-    }
-
-    servo_stop_client_->async_send_request(
-      std::make_shared<Trigger::Request>(),
-      [this](rclcpp::Client<Trigger>::SharedFuture future) {
-        const auto response = future.get();
-        if (!response->success) {
-          RCLCPP_WARN(
-            get_logger(), "MoveIt Servo stop request returned false: %s",
-            response->message.c_str());
-        }
-      });
-  }
-
   void publishStop()
   {
     geometry_msgs::msg::TwistStamped stop;
@@ -2237,7 +1594,6 @@ private:
   std::string eef_auto_init_enable_topic_;
   std::string base_hold_topic_;
   std::string twist_topic_;
-  std::string arm_trajectory_topic_;
   std::string start_topic_;
   std::string cancel_topic_;
   std::string status_topic_;
@@ -2247,26 +1603,20 @@ private:
   std::string gripper_action_name_;
   std::string target_frame_;
   std::string end_effector_frame_;
-  std::string latched_depth_fixed_frame_;
   std::string camera_frame_override_;
   std::string eef_camera_frame_override_;
-  std::string joint_state_topic_;
 
   bool auto_start_{false};
   bool auto_start_on_bbox_{false};
   bool use_fallback_bbox_for_control_{false};
   bool start_servo_on_start_{true};
-  bool start_servo_after_pregrasp_{true};
   bool open_gripper_on_start_{true};
   bool close_gripper_on_arrival_{true};
   bool use_eef_refinement_{true};
   bool wait_for_base_approach_{false};
   bool auto_init_eef_tracker_from_object_{true};
   bool allow_eef_camera_info_fallback_{true};
-  bool use_cartesian_object_pregrasp_{false};
   bool use_depthless_triangulation_{false};
-  bool use_eef_stereo_triangulation_{false};
-  bool ignore_depth_after_near_reached_{false};
   double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -2282,10 +1632,9 @@ private:
   double grasp_offset_z_{0.0};
   double eef_refinement_switch_distance_m_{0.12};
   double eef_refinement_start_depth_m_{0.47};
-  double ignore_depth_after_near_depth_m_{0.47};
-  double eef_refinement_start_object_x_m_{0.55};
+  double eef_refinement_start_object_x_m_{0.50};
   double arm_start_max_error_m_{0.40};
-  double arm_start_max_object_x_m_{0.55};
+  double arm_start_max_object_x_m_{0.60};
   double object_height_m_{0.10};
   double eef_init_bbox_min_size_px_{32.0};
   double eef_init_bbox_max_size_px_{180.0};
@@ -2293,7 +1642,6 @@ private:
   double eef_init_bbox_republish_period_s_{0.5};
   double eef_final_depth_m_{0.08};
   double object_pregrasp_standoff_m_{0.08};
-  double object_pregrasp_max_x_m_{0.29};
   double object_pregrasp_min_z_m_{0.50};
   double object_pregrasp_lower_standoff_m_{0.02};
   double object_pregrasp_min_lower_z_m_{0.12};
@@ -2308,35 +1656,13 @@ private:
   double triangulation_extend_tolerance_m_{0.025};
   double triangulation_extend_gain_{0.7};
   double triangulation_extend_max_speed_{0.015};
-  bool use_joint_trajectory_for_triangulation_extend_{true};
-  std::vector<double> triangulation_extend_joint_positions_{0.0, -1.05, 0.35, 0.70};
-  std::vector<double> triangulation_extend_intermediate_joint_positions_;
-  double triangulation_extend_intermediate_segment_duration_s_{1.0};
-  double triangulation_extend_current_start_duration_s_{0.15};
-  double triangulation_extend_current_start_max_age_s_{1.0};
-  bool triangulation_extend_use_current_joint_state_start_{true};
-  bool triangulation_extend_require_current_joint_state_{false};
-
-  bool pregrasp_trajectory_transform_enabled_{true};
-  bool pregrasp_trajectory_use_pitch_blend_{true};
-  double pregrasp_trajectory_target_pitch_rad_{0.0};
-  double pregrasp_trajectory_pitch_blend_weight_{1.0};
-  std::vector<double> pregrasp_trajectory_joint_scales_{1.0, 1.0, 1.0, 1.0};
-  std::vector<double> pregrasp_trajectory_joint_offsets_{0.0, 0.0, 0.0, 0.0};
-  std::vector<double> pregrasp_trajectory_joint_min_positions_{-3.14, -1.79, -0.94, -1.79};
-  std::vector<double> pregrasp_trajectory_joint_max_positions_{3.14, 1.57, 1.38, 2.04};
-  double triangulation_extend_joint_duration_s_{2.0};
-  double triangulation_extend_joint_settle_s_{0.3};
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
   double triangulation_max_ray_gap_m_{0.08};
-  bool triangulation_accept_reverse_ranges_{true};
-  double triangulation_min_object_x_m_{0.05};
-  bool use_latched_depth_point_on_bad_triangulation_{true};
-  int eef_camera_fallback_width_px_{320};
-  int eef_camera_fallback_height_px_{240};
-  double eef_camera_fallback_fx_{277.0};
-  double eef_camera_fallback_fy_{277.0};
+  int eef_camera_fallback_width_px_{640};
+  int eef_camera_fallback_height_px_{480};
+  double eef_camera_fallback_fx_{554.0};
+  double eef_camera_fallback_fy_{554.0};
   double gripper_open_position_{0.025};
   double gripper_close_position_{-0.015};
   double gripper_max_effort_{-1.0};
@@ -2360,9 +1686,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr eef_camera_info_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
-  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr arm_trajectory_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_event_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_current_id_pub_;
@@ -2371,7 +1695,6 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr base_hold_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
-  rclcpp::Client<Trigger>::SharedPtr servo_stop_client_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   tf2_ros::Buffer tf_buffer_;
@@ -2385,12 +1708,7 @@ private:
   std::optional<double> latest_object_width_m_;
   std::optional<double> latest_object_depth_m_;
   rclcpp::Time latest_object_depth_stamp_;
-  bool near_object_distance_reached_{false};
-  std::optional<double> nearest_object_goal_x_m_;
-  std::optional<geometry_msgs::msg::PointStamped> latest_reliable_depth_object_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
-  std::optional<std::vector<double>> latest_arm_joint_positions_;
-  rclcpp::Time latest_arm_joint_stamp_;
 
   bool active_{false};
   bool done_{false};
@@ -2398,10 +1716,6 @@ private:
   bool close_sent_{false};
   bool eef_refinement_requested_{false};
   bool object_pregrasp_horizontal_done_{false};
-  bool triangulation_joint_extend_sent_{false};
-  bool servo_started_after_pregrasp_{false};
-  rclcpp::Time triangulation_joint_extend_stamp_;
-  double triangulation_joint_extend_wait_s_{0.0};
   GraspStage stage_{GraspStage::DEPTH_APPROACH};
   int stable_cycles_{0};
   rclcpp::Time last_status_stamp_;

@@ -63,16 +63,16 @@ def generate_launch_description():
         FindPackageShare("turtlebot3_manipulation_gazebo"),
         "..",
     ])
-    follower_platooning_xacro = PathJoinSubstitution([
-        FindPackageShare("turtlebot3_manipulation_gazebo"),
-        "urdf",
-        "turtlebot3_platooning_follower.urdf.xacro",
-    ])
+
     follower_description = ParameterValue(
         Command([
             PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
-            follower_platooning_xacro,
+            PathJoinSubstitution([
+                FindPackageShare("turtlebot3_manipulation_gazebo"),
+                "urdf",
+                "turtlebot3_platooning_follower.urdf.xacro",
+            ]),
         ]),
         value_type=str,
     )
@@ -436,7 +436,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "follower_gazebo_x",
-            default_value="-2.57",
+            default_value="-2.45",
             description="Initial Gazebo world x position for the platooning follower.",
         ),
         DeclareLaunchArgument(

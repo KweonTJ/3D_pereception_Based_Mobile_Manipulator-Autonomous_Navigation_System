@@ -16,4 +16,3 @@ leader_task_manager:
     initial_platoon_mode: "FOLLOW"
     initial_follower_enable: true
     follow_while_idle: true
-    mp_control_status_timeout_s: 3.0

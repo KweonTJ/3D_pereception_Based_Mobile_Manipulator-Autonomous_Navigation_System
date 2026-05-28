@@ -11,8 +11,6 @@ mp_control_node:
     base_hold_topic: /target/base_hold
 
     twist_topic: /servo_node/delta_twist_cmds
-    arm_trajectory_topic: /arm_controller/joint_trajectory
-    joint_state_topic: /joint_states
     gripper_action_name: /gripper_controller/gripper_cmd
     start_topic: /mp_control/start
     cancel_topic: /mp_control/cancel
@@ -24,10 +22,6 @@ mp_control_node:
 
     target_frame: base_link
     end_effector_frame: end_effector_link
-    # Store the last reliable front-depth object in odom so, after front depth
-    # is ignored at the near limit, continued base motion still reduces the
-    # object's current base_link x before the arm starts.
-    latched_depth_fixed_frame: odom
     camera_frame_override: ""
     eef_camera_frame_override: eef_usb_camera_optical_frame
 
@@ -36,26 +30,13 @@ mp_control_node:
     # /target/init_bbox is only for initializing CSRT from YOLO.
     # Arm/depth control must follow the CSRT-tracked bbox, not repeated YOLO init boxes.
     use_fallback_bbox_for_control: false
-    # Direct joint pregrasp publishes to /arm_controller/joint_trajectory.
-    # Keep Servo stopped until that pose is reached so Servo does not overwrite
-    # the pregrasp command with its current-pose hold trajectory.
-    start_servo_on_start: false
-    start_servo_after_pregrasp: true
+    start_servo_on_start: true
     open_gripper_on_start: true
     close_gripper_on_arrival: true
     use_eef_refinement: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: true
-    # Joint pregrasp already stretches the arm. Do not require Cartesian Servo
-    # to reach the depth object before EEF IBVS, because this pose is near a
-    # singularity on the real arm.
-    use_cartesian_object_pregrasp: false
     use_depthless_triangulation: true
-    # The EEF camera is reserved for near-field IBVS correction. Keep stereo
-    # triangulation disabled by default and use the last reliable depth point
-    # after the front depth reaches its near limit.
-    use_eef_stereo_triangulation: false
-    ignore_depth_after_near_reached: true
 
     command_rate_hz: 20.0
     max_target_age_s: 2.0
@@ -66,10 +47,8 @@ mp_control_node:
 
     depth_roi_radius_px: 5
     depth_unit_scale: 0.001
-    min_valid_depth_m: 0.35
-    # Allow the leader to start from farther away. Near-field grasp handoff is
-    # still governed by eef_refinement_start_object_x_m / arm_start_max_object_x_m.
-    max_valid_depth_m: 2.0
+    min_valid_depth_m: 0.47
+    max_valid_depth_m: 1.0
 
     # Offset is applied in target_frame after the camera point is transformed.
     # Tune these slowly if the gripper consistently stops beside/above/in front of the object.
@@ -78,22 +57,19 @@ mp_control_node:
     grasp_offset_z: 0.0
 
     # Use fallback intrinsics if the EEF USB camera publishes image_raw without camera_info.
-    # Keep this matched to the real EEF USB camera stream: 320x240.
     allow_eef_camera_info_fallback: true
-    eef_camera_fallback_width_px: 320
-    eef_camera_fallback_height_px: 240
-    eef_camera_fallback_fx: 277.0
-    eef_camera_fallback_fy: 277.0
+    eef_camera_fallback_width_px: 640
+    eef_camera_fallback_height_px: 480
+    eef_camera_fallback_fx: 554.0
+    eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
-    eef_refinement_start_depth_m: 0.35
-    # Front depth becomes unreliable below about 0.47 m. Once this is reached,
-    # ignore later front-depth jumps and continue from the odom-latched object.
-    ignore_depth_after_near_depth_m: 0.47
-    # Start arm/EEF handoff before the front camera gets so close that the box
-    # leaves the image. The arm still uses the latched depth object for target.
-    eef_refinement_start_object_x_m: 0.42
-    arm_start_max_error_m: 0.32
-    arm_start_max_object_x_m: 0.42
+    eef_refinement_start_depth_m: 0.47
+    # Front depth reaches its near reliable limit at 0.47 m. In base_link this
+    # appears around 0.53-0.55 m because the front camera is mounted ahead of
+    # the arm base, so use the transformed object-x threshold below.
+    eef_refinement_start_object_x_m: 0.55
+    arm_start_max_error_m: 0.50
+    arm_start_max_object_x_m: 0.55
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
@@ -101,11 +77,7 @@ mp_control_node:
     eef_init_bbox_republish_period_s: 0.5
     eef_final_depth_m: 0.08
     object_pregrasp_standoff_m: 0.08
-    # The OpenMANIPULATOR-X mounted on the TurtleBot3 reaches about 0.29 m in
-    # base_link x at a safe pregrasp height. Clamp the Cartesian pregrasp target
-    # so Servo does not keep pushing into a singular/unreachable command.
-    object_pregrasp_max_x_m: 0.29
-    object_pregrasp_min_z_m: 0.28
+    object_pregrasp_min_z_m: 0.50
     object_pregrasp_lower_standoff_m: 0.02
     object_pregrasp_min_lower_z_m: 0.12
     eef_center_tolerance_px: 18.0
@@ -119,57 +91,9 @@ mp_control_node:
     triangulation_extend_tolerance_m: 0.025
     triangulation_extend_gain: 0.7
     triangulation_extend_max_speed: 0.015
-    # Move to the hardware home-style safe pose before EEF refinement.
-    # On the real arm, positive joint2 is the forward-fold direction from the
-    # hardware stay pose.
-    # use_joint_trajectory_for_triangulation_extend: true
-    # triangulation_extend_joint_positions: [0.0, -1.05, 0.35, 0.70]
-    # triangulation_extend_joint_duration_s: 3.0
-    # triangulation_extend_joint_settle_s: 0.5
-
-    use_joint_trajectory_for_triangulation_extend: true # pregrasp trajectory 변형 파라미터 추가
-
-    # Build the pregrasp command from the real measured joint states.
-    # Joint order is [joint1, joint2, joint3, joint4].
-    triangulation_extend_use_current_joint_state_start: true
-    triangulation_extend_require_current_joint_state: true
-    triangulation_extend_current_start_duration_s: 0.15
-    triangulation_extend_current_start_max_age_s: 1.0
-
-    # Hardware stay pose reports joint2/joint3 near zero while joint4 is around
-    # -1.6 rad. Keep this empty so joint2, joint3, and joint4 unfold together
-    # in one trajectory segment; staged motion can dip the arm into the base.
-    triangulation_extend_intermediate_joint_positions: []
-    triangulation_extend_intermediate_segment_duration_s: 1.2
-
-    # Approximate EEF/gripper camera pitch = joint2 + joint3 + joint4.
-    pregrasp_trajectory_transform_enabled: true
-    pregrasp_trajectory_use_pitch_blend: false
-    pregrasp_trajectory_target_pitch_rad: 0.0
-    pregrasp_trajectory_pitch_blend_weight: 1.0
-
-    # Calibration knobs. Joint3 is inverted around the measured current pose
-    # because the real hardware motion direction is opposite to the ready target.
-    pregrasp_trajectory_joint_scales: [1.0, 1.0, -1.0, 1.0]
-    pregrasp_trajectory_joint_offsets: [0.0, 0.0, 0.0, 0.0]
-    pregrasp_trajectory_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
-    pregrasp_trajectory_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
-
-    triangulation_extend_joint_positions: [0.0, 0.65, -0.85, -1.20]
-    triangulation_extend_joint_duration_s: 1.2
-    triangulation_extend_joint_settle_s: 0.5
-
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
-    # Some camera TFs report the optical ray in the opposite direction. If both
-    # camera ranges are negative but otherwise plausible, keep the triangulated
-    # point and mark the status as reverse_ranges=true.
-    triangulation_accept_reverse_ranges: true
-    triangulation_min_object_x_m: 0.05
-    # If stereo returns a point behind base_link after depth has already reached
-    # the reliable near limit, keep using the last valid front-depth object point.
-    use_latched_depth_point_on_bad_triangulation: true
 
     gripper_open_position: 0.019
     gripper_close_position: -0.010
