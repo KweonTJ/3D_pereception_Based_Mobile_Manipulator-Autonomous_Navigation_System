@@ -137,6 +137,7 @@ private:
     const auto stage = status_stage(status);
 
     if (contains_any(stage, {"ERROR", "FAIL"})) {
+      mp_control_active_ = false;
       set_task_state("ERROR");
       set_cargo_state("ERROR");
       set_follower_enable(false);
@@ -144,42 +145,76 @@ private:
       return;
     }
 
-    if (
-      stage == "READY" || stage == "DETECTED" ||
-      contains_any(stage, {"WAITING FOR FRESH", "WAITING FOR VALID DEPTH", "WAITING FOR CAMERA INFO"}))
-    {
+    if (starts_with(stage, "READY") || stage == "DETECTED") {
+      mp_control_active_ = false;
       set_task_state("IDLE");
       set_idle_platooning_state();
       return;
     }
 
     if (contains(stage, "GRASP SEQUENCE STARTED")) {
+      mp_control_active_ = true;
       set_task_state("MOVING");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
       return;
     }
 
-    if (contains(stage, "WAITING FOR BASE APPROACH")) {
+    if (
+      contains(stage, "WAITING FOR BASE APPROACH") ||
+      contains(stage, "COLOR TRIANGULATION APPROACH") ||
+      contains(stage, "AFTER DEPTH LIMIT"))
+    {
+      mp_control_active_ = true;
       set_task_state("MOVING");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
+      return;
+    }
+
+    if (
+      contains_any(stage, {"WAITING FOR FRESH", "WAITING FOR VALID DEPTH", "WAITING FOR CAMERA INFO"}))
+    {
+      if (mp_control_active_) {
+        if (contains_any(stage, {"END-EFFECTOR", "EEF"})) {
+          set_task_state("PICKING");
+        } else {
+          set_task_state("MOVING");
+          set_follower_enable(true);
+          set_platoon_mode("FOLLOW");
+        }
+      } else {
+        set_task_state("IDLE");
+        set_idle_platooning_state();
+      }
       return;
     }
 
     if (stage == "BASE_APPROACH") {
+      mp_control_active_ = true;
       set_task_state("MOVING");
       set_follower_enable(true);
       set_platoon_mode("FOLLOW");
       return;
     }
 
-    if (stage == "BASE_ALIGNED" || stage == "APPROACH" || stage == "FULL_REACH") {
+    if (
+      stage == "BASE_ALIGNED" || stage == "APPROACH" || stage == "FULL_REACH" ||
+      contains_any(stage, {
+        "BASE STOPPED", "MOVING ARM", "WAITING FOR PREGRASP", "EXTENDING ARM",
+        "HOLDING NEAR", "EEF CAMERA ALIGNED"}))
+    {
+      mp_control_active_ = true;
       set_task_state("PICKING");
       return;
     }
 
-    if (contains_any(stage, {"GRASPED", "PICK_SUCCESS", "PICK_DONE", "PICKED"})) {
+    if (
+      contains_any(stage, {
+        "GRASPED", "PICK_SUCCESS", "PICK_DONE", "PICKED", "GRASP TARGET REACHED",
+        "EEF CAMERA REFINED GRASP REACHED"}))
+    {
+      mp_control_active_ = false;
       set_cargo_state("GRASPED");
       set_task_state("WAIT_FOLLOWER");
       set_follower_enable(true);
@@ -212,6 +247,7 @@ private:
     }
 
     if (stage == "DONE") {
+      mp_control_active_ = false;
       set_task_state("DONE");
       set_follower_enable(false);
       set_platoon_mode("STOP");
