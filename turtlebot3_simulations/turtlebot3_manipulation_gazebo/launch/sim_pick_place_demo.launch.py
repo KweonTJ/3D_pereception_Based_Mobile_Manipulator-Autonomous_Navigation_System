@@ -55,6 +55,14 @@ def generate_launch_description():
     start_leader_task_manager = LaunchConfiguration("start_leader_task_manager")
     start_leader_beacon = LaunchConfiguration("start_leader_beacon")
     start_domain_bridge = LaunchConfiguration("start_domain_bridge")
+    description_share_parent = PathJoinSubstitution([
+        FindPackageShare("turtlebot3_manipulation_description"),
+        "..",
+    ])
+    gazebo_share_parent = PathJoinSubstitution([
+        FindPackageShare("turtlebot3_manipulation_gazebo"),
+        "..",
+    ])
     follower_platooning_xacro = PathJoinSubstitution([
         FindPackageShare("turtlebot3_manipulation_gazebo"),
         "urdf",
