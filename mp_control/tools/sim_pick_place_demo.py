@@ -115,6 +115,18 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("gazebo_world_origin_xyz", [-2.12, -0.5, 0.0])
         self.declare_parameter("gazebo_pose_update_period_s", 0.10)
         self.declare_parameter("gazebo_pose_wait_timeout_s", 8.0)
+        self.declare_parameter("triangulation_extend_joint_positions", [0.0, 0.65, -0.85, -1.20])
+        self.declare_parameter("triangulation_extend_current_start_duration_s", 0.15)
+        self.declare_parameter("triangulation_extend_joint_duration_s", 1.2)
+        self.declare_parameter("triangulation_extend_joint_settle_s", 0.5)
+        self.declare_parameter("pregrasp_trajectory_transform_enabled", True)
+        self.declare_parameter("pregrasp_trajectory_use_pitch_blend", False)
+        self.declare_parameter("pregrasp_trajectory_target_pitch_rad", 0.0)
+        self.declare_parameter("pregrasp_trajectory_pitch_blend_weight", 1.0)
+        self.declare_parameter("pregrasp_trajectory_joint_scales", [1.0, 1.0, -1.0, 1.0])
+        self.declare_parameter("pregrasp_trajectory_joint_offsets", [0.0, 0.0, 0.0, 0.0])
+        self.declare_parameter("pregrasp_trajectory_joint_min_positions", [-3.14, -1.79, -0.94, -1.79])
+        self.declare_parameter("pregrasp_trajectory_joint_max_positions", [3.14, 1.57, 1.38, 2.04])
 
         self.bbox = [float(v) for v in self.get_parameter("bbox").value]
         self.eef_bbox = [float(v) for v in self.get_parameter("eef_bbox").value]
@@ -159,10 +171,42 @@ class SimPickPlaceDemo(Node):
         self.grasp_accuracy_tolerance_m = max(
             0.001, float(self.get_parameter("grasp_accuracy_tolerance_m").value))
         self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
-        self.pre_grasp_arm_positions = self._invert_joint3_from_stay(
-            self._level_gripper_pose(0.0, 0.82, -0.58))
-        self.grasp_arm_positions = self._invert_joint3_from_stay(
-            self._level_gripper_pose(0.0, 1.32, -0.94))
+        self.triangulation_extend_joint_positions = self._float_list_parameter(
+            "triangulation_extend_joint_positions", [0.0, 0.65, -0.85, -1.20], 4)
+        self.triangulation_extend_current_start_duration_s = max(
+            0.0,
+            float(self.get_parameter("triangulation_extend_current_start_duration_s").value))
+        self.triangulation_extend_joint_duration_s = max(
+            0.2, float(self.get_parameter("triangulation_extend_joint_duration_s").value))
+        self.triangulation_extend_joint_settle_s = max(
+            0.0, float(self.get_parameter("triangulation_extend_joint_settle_s").value))
+        self.pregrasp_trajectory_transform_enabled = bool(
+            self.get_parameter("pregrasp_trajectory_transform_enabled").value)
+        self.pregrasp_trajectory_use_pitch_blend = bool(
+            self.get_parameter("pregrasp_trajectory_use_pitch_blend").value)
+        self.pregrasp_trajectory_target_pitch_rad = float(
+            self.get_parameter("pregrasp_trajectory_target_pitch_rad").value)
+        self.pregrasp_trajectory_pitch_blend_weight = min(
+            max(float(self.get_parameter("pregrasp_trajectory_pitch_blend_weight").value), 0.0),
+            1.0,
+        )
+        self.pregrasp_trajectory_joint_scales = self._float_list_parameter(
+            "pregrasp_trajectory_joint_scales", [1.0, 1.0, -1.0, 1.0], 4)
+        self.pregrasp_trajectory_joint_offsets = self._float_list_parameter(
+            "pregrasp_trajectory_joint_offsets", [0.0, 0.0, 0.0, 0.0], 4)
+        self.pregrasp_trajectory_joint_min_positions = self._float_list_parameter(
+            "pregrasp_trajectory_joint_min_positions", [-3.14, -1.79, -0.94, -1.79], 4)
+        self.pregrasp_trajectory_joint_max_positions = self._float_list_parameter(
+            "pregrasp_trajectory_joint_max_positions", [3.14, 1.57, 1.38, 2.04], 4)
+        for i in range(4):
+            if self.pregrasp_trajectory_joint_min_positions[i] > self.pregrasp_trajectory_joint_max_positions[i]:
+                self.pregrasp_trajectory_joint_min_positions[i], self.pregrasp_trajectory_joint_max_positions[i] = (
+                    self.pregrasp_trajectory_joint_max_positions[i],
+                    self.pregrasp_trajectory_joint_min_positions[i],
+                )
+        self.pre_grasp_arm_positions = self._real_pregrasp_target_positions(
+            self.stay_arm_positions)
+        self.grasp_arm_positions = list(self.pre_grasp_arm_positions)
         self.pre_place_arm_positions = self._level_gripper_pose(-math.pi, 0.82, -0.58)
         self.place_arm_positions = self._level_gripper_pose(-math.pi, 1.56, -0.47)
         self.base_approach_distance_m = float(
@@ -253,10 +297,90 @@ class SimPickPlaceDemo(Node):
     def _level_gripper_pose(self, joint1, joint2, joint3):
         return [float(joint1), float(joint2), float(joint3), -float(joint2) - float(joint3)]
 
-    def _invert_joint3_from_stay(self, positions):
-        inverted = list(positions)
-        inverted[2] = self.stay_arm_positions[2] - (inverted[2] - self.stay_arm_positions[2])
-        return inverted
+    def _float_list_parameter(self, name, default, expected_len):
+        values = [float(v) for v in self.get_parameter(name).value]
+        if len(values) != expected_len:
+            self.get_logger().warn(
+                f"{name} must have {expected_len} values; using default {default}")
+            return [float(v) for v in default]
+        return values
+
+    def _clamp(self, value, lower, upper):
+        return max(float(lower), min(float(value), float(upper)))
+
+    def _transform_pregrasp_waypoint(self, raw_positions, current_positions, progress):
+        transformed = [float(v) for v in raw_positions]
+        if len(transformed) != 4:
+            return transformed
+
+        current = [float(v) for v in current_positions] if len(current_positions) == 4 else None
+        progress = self._clamp(progress, 0.0, 1.0)
+
+        if self.pregrasp_trajectory_transform_enabled:
+            for i in range(4):
+                if current is not None:
+                    transformed[i] = (
+                        current[i] +
+                        (transformed[i] - current[i]) *
+                        self.pregrasp_trajectory_joint_scales[i]
+                    )
+                else:
+                    transformed[i] *= self.pregrasp_trajectory_joint_scales[i]
+                transformed[i] += self.pregrasp_trajectory_joint_offsets[i] * progress
+
+            if self.pregrasp_trajectory_use_pitch_blend:
+                start_pitch = self.pregrasp_trajectory_target_pitch_rad
+                if current is not None:
+                    start_pitch = current[1] + current[2] + current[3]
+                desired_pitch = (
+                    start_pitch +
+                    progress * (self.pregrasp_trajectory_target_pitch_rad - start_pitch)
+                )
+                pitch_based_joint4 = desired_pitch - transformed[1] - transformed[2]
+                weight = self.pregrasp_trajectory_pitch_blend_weight
+                transformed[3] = (1.0 - weight) * transformed[3] + weight * pitch_based_joint4
+
+        for i in range(4):
+            transformed[i] = self._clamp(
+                transformed[i],
+                self.pregrasp_trajectory_joint_min_positions[i],
+                self.pregrasp_trajectory_joint_max_positions[i],
+            )
+        return transformed
+
+    def _build_real_pregrasp_trajectory(self, current_positions=None):
+        current = list(current_positions or self.arm_positions)
+        if len(current) != 4:
+            current = list(self.stay_arm_positions)
+
+        points = []
+        trajectory_time_s = 0.0
+
+        if self.triangulation_extend_current_start_duration_s > 0.0:
+            trajectory_time_s += self.triangulation_extend_current_start_duration_s
+            points.append((
+                self._transform_pregrasp_waypoint(current, current, 0.0),
+                trajectory_time_s,
+            ))
+
+        trajectory_time_s += self.triangulation_extend_joint_duration_s
+        points.append((
+            self._transform_pregrasp_waypoint(
+                self.triangulation_extend_joint_positions,
+                current,
+                1.0,
+            ),
+            trajectory_time_s,
+        ))
+        return points
+
+    def _real_pregrasp_target_positions(self, current_positions=None):
+        return self._build_real_pregrasp_trajectory(current_positions)[-1][0]
+
+    def _real_pregrasp_wait_s(self, points):
+        if not points:
+            return self.triangulation_extend_joint_settle_s
+        return max(float(t) for _, t in points) + self.triangulation_extend_joint_settle_s
 
     def run(self):
         self._wait_for_gazebo_pose_service()
@@ -282,13 +406,10 @@ class SimPickPlaceDemo(Node):
         self._status("APPROACH: moving arm to pre-grasp pose")
         if not self._send_gripper(self._object_gripper_open_position()):
             return
-        if not self._send_trajectory([
-            (self.stay_arm_positions, 1.5),
-            (self.pre_grasp_arm_positions, 3.5),
-            (self.grasp_arm_positions, 5.5),
-        ]):
+        pregrasp_points = self._build_real_pregrasp_trajectory(self.arm_positions)
+        if not self._send_trajectory(pregrasp_points):
             return
-        self._sleep(5.8)
+        self._sleep(self._real_pregrasp_wait_s(pregrasp_points))
         self._status("FULL_REACH: arm fully extended at target")
         self._publish_eef_bbox(repeats=10)
         self._sleep(2.0)
@@ -309,18 +430,16 @@ class SimPickPlaceDemo(Node):
             self._status("HANDOFF_ALIGN: follower cargo deck ready behind leader")
             self._sleep(self.follower_handoff_wait_s)
             self._status("HANDOFF_LIFT: lifting object clear for direct follower placement")
-            if not self._send_trajectory([
-                (self.pre_grasp_arm_positions, 1.8),
-            ]):
+            lift_points = self._build_real_pregrasp_trajectory(self.arm_positions)
+            if not self._send_trajectory(lift_points):
                 return
-            self._sleep(2.0)
+            self._sleep(self._real_pregrasp_wait_s(lift_points))
         else:
             self._status("CARRY: lifting object into transport pose")
-            if not self._send_trajectory([
-                (self.pre_grasp_arm_positions, 1.8),
-            ]):
+            lift_points = self._build_real_pregrasp_trajectory(self.arm_positions)
+            if not self._send_trajectory(lift_points):
                 return
-            self._sleep(2.0)
+            self._sleep(self._real_pregrasp_wait_s(lift_points))
 
             if abs(self.base_turn_angle_rad) > 0.001:
                 self._status("TURN_WITH_CARGO: rotating robot before transport")
