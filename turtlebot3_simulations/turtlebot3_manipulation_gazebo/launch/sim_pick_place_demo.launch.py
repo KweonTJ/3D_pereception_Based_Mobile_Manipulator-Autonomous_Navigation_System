@@ -64,15 +64,16 @@ def generate_launch_description():
         "..",
     ])
 
+    follower_platooning_urdf = (
+        "/home/ktj/Desktop/Turtlebot3_Platooning/src/"
+        "turtlebot3_manipulation/turtlebot3_manipulation_description/"
+        "urdf/turtlebot3_platooning.urdf"
+    )
     follower_description = ParameterValue(
         Command([
-            PathJoinSubstitution([FindExecutable(name="xacro")]),
+            PathJoinSubstitution([FindExecutable(name="cat")]),
             " ",
-            PathJoinSubstitution([
-                FindPackageShare("turtlebot3_manipulation_gazebo"),
-                "urdf",
-                "turtlebot3_platooning_follower.urdf.xacro",
-            ]),
+            follower_platooning_urdf,
         ]),
         value_type=str,
     )
@@ -199,6 +200,7 @@ def generate_launch_description():
         parameters=[
             {"robot_description": follower_description},
             {"use_sim_time": True},
+            {"frame_prefix": "follower_"},
         ],
         remappings=[
             ("robot_description", "/follower/robot_description"),
