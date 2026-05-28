@@ -1513,6 +1513,17 @@ private:
     std::lock_guard<std::mutex> lock(data_mutex_);
     latest_object_depth_m_ = depth_m;
     latest_object_depth_stamp_ = now();
+    if (use_color_triangulation_after_min_depth_ &&
+        depth_m <= eef_refinement_start_depth_m_) {
+      min_depth_reached_ = true;
+    }
+  }
+
+  void rememberDepthObjectPoint(const geometry_msgs::msg::PointStamped & object_in_target)
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_depth_object_in_target_ = object_in_target;
+    latest_depth_object_stamp_ = now();
   }
 
   double gripperPositionForGap(double gap_m) const
