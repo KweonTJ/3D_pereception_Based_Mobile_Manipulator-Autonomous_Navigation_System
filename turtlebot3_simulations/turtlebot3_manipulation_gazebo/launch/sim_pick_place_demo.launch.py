@@ -55,25 +55,16 @@ def generate_launch_description():
     start_leader_task_manager = LaunchConfiguration("start_leader_task_manager")
     start_leader_beacon = LaunchConfiguration("start_leader_beacon")
     start_domain_bridge = LaunchConfiguration("start_domain_bridge")
-    description_share_parent = PathJoinSubstitution([
-        FindPackageShare("turtlebot3_manipulation_description"),
-        "..",
-    ])
-    gazebo_share_parent = PathJoinSubstitution([
+    follower_platooning_xacro = PathJoinSubstitution([
         FindPackageShare("turtlebot3_manipulation_gazebo"),
-        "..",
+        "urdf",
+        "turtlebot3_platooning_follower.urdf.xacro",
     ])
-
-    follower_platooning_urdf = (
-        "/home/ktj/Desktop/Turtlebot3_Platooning/src/"
-        "turtlebot3_manipulation/turtlebot3_manipulation_description/"
-        "urdf/turtlebot3_platooning.urdf"
-    )
     follower_description = ParameterValue(
         Command([
-            PathJoinSubstitution([FindExecutable(name="cat")]),
+            PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
-            follower_platooning_urdf,
+            follower_platooning_xacro,
         ]),
         value_type=str,
     )
@@ -200,7 +191,6 @@ def generate_launch_description():
         parameters=[
             {"robot_description": follower_description},
             {"use_sim_time": True},
-            {"frame_prefix": "follower_"},
         ],
         remappings=[
             ("robot_description", "/follower/robot_description"),
