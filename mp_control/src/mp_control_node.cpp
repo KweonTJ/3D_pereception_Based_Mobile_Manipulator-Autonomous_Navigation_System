@@ -1556,7 +1556,7 @@ private:
       }
     }
 
-    if (samples.size() < static_cast<size_t>(depth_min_valid_pixels_)) {
+    if (samples.size() < 5U) {
       return std::nullopt;
     }
 
