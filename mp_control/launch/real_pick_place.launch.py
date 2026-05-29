@@ -212,7 +212,7 @@ def generate_launch_description():
             "min_mask_pixels": ParameterValue(auto_init_min_mask_pixels, value_type=int),
             "min_bbox_width_px": ParameterValue(auto_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_init_min_bbox_height_px, value_type=float),
-            "max_bbox_area_ratio": ParameterValue(auto_init_max_bbox_area_ratio, value_type=float),
+            "max_bbox_area_ratio": 0.98,
             "min_bbox_aspect_ratio": ParameterValue(auto_init_min_bbox_aspect_ratio, value_type=float),
             "max_bbox_aspect_ratio": ParameterValue(auto_init_max_bbox_aspect_ratio, value_type=float),
             "roi_min_x_ratio": ParameterValue(auto_init_roi_min_x_ratio, value_type=float),
@@ -303,8 +303,11 @@ def generate_launch_description():
             "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
             "yolo_class_name": auto_init_yolo_class_name,
             "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
-            "continuous_publish": False,
-            "continuous_publish_period_s": 0.5,
+            "yolo_lock_target": False,
+            "continuous_publish": True,
+            "continuous_publish_period_s": 0.35,
+            "reuse_last_bbox_on_loss": True,
+            "lock_first_bbox": False,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
     )
@@ -704,7 +707,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_color_mode",
-            default_value="auto",
+            default_value="yolo",
             description="Target appearance to detect from the EEF RGB camera when EEF auto init is enabled.",
         ),
         DeclareLaunchArgument(
