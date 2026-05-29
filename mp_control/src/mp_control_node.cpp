@@ -1657,6 +1657,22 @@ private:
     return samples[samples.size() / 2];
   }
 
+  std::optional<double> estimateRangeFromBboxSize(
+    const Bbox & bbox,
+    const CameraInfo & info) const
+  {
+    if (bbox.height <= 2.0 || info.fy <= 0.0 || object_height_m_ <= 0.0) {
+      return std::nullopt;
+    }
+
+    const double range_m = object_height_m_ * info.fy / bbox.height;
+    if (!std::isfinite(range_m) || range_m <= 0.0) {
+      return std::nullopt;
+    }
+
+    return clampValue(range_m, color_triangulation_min_object_x_m_, eef_refinement_start_depth_m_);
+  }
+
   double bboxAreaRatio(const Bbox & bbox, const CameraInfo & info) const
   {
     const double image_width = std::max(1.0, static_cast<double>(info.width));
