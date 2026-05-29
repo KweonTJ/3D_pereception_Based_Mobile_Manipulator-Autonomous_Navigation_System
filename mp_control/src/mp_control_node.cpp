@@ -1070,7 +1070,7 @@ private:
     twist_pub_->publish(cmd);
 
     std::ostringstream status;
-    status << "eef refine pixel_err=(" << err_u_px << ", " << err_v_px
+    status << "eef refine pixel_err=(" << err_u_px << ", " << err_v_px << ")"
            << " feature_err=(" << (bbox_u - u) << ", " << (bbox_v - v) << ")"
            << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
            << " range_cmd=disabled"
