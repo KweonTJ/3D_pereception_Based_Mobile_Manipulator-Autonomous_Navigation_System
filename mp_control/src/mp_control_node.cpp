@@ -1399,7 +1399,8 @@ private:
     const double u = bbox.x + 0.5 * bbox.width;
     const double v = bbox.y + 0.5 * bbox.height;
     if (use_color_triangulation_after_min_depth_ && shouldHandoffByBboxSize(bbox, info)) {
-      const double handoff_depth = eef_refinement_start_depth_m_;
+      const double handoff_depth =
+        estimateRangeFromBboxSize(bbox, info).value_or(eef_refinement_start_depth_m_);
       rememberObjectDepth(handoff_depth);
 
       geometry_msgs::msg::PointStamped object_camera;
@@ -1422,6 +1423,7 @@ private:
       reason << "minimum depth reached by bbox size"
              << " area_ratio=" << bboxAreaRatio(bbox, info)
              << " height_ratio=" << bboxHeightRatio(bbox, info)
+             << " estimated_range=" << handoff_depth
              << "; switching to color triangulation";
       setBlockReason(block_reason, reason.str());
       return std::nullopt;
