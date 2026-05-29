@@ -1000,8 +1000,18 @@ private:
       return;
     }
 
-    const double u = bbox.x + 0.5 * bbox.width;
-    const double v = bbox.y + 0.5 * bbox.height;
+    const double bbox_u = bbox.x + 0.5 * bbox.width;
+    const double bbox_v = bbox.y + 0.5 * bbox.height;
+    const double projected_u =
+      info.fx * object_in_eef_camera.point.x / object_in_eef_camera.point.z + info.cx;
+    const double projected_v =
+      info.fy * object_in_eef_camera.point.y / object_in_eef_camera.point.z + info.cy;
+    const bool projected_center_valid =
+      std::isfinite(projected_u) && std::isfinite(projected_v) &&
+      projected_u >= 0.0 && projected_u < static_cast<double>(info.width) &&
+      projected_v >= 0.0 && projected_v < static_cast<double>(info.height);
+    const double u = projected_center_valid ? projected_u : bbox_u;
+    const double v = projected_center_valid ? projected_v : bbox_v;
     const double err_u_px = u - info.cx;
     const double err_v_px = v - info.cy;
     const double z_m = std::max(eef_final_depth_m_, object_in_eef_camera.point.z);
@@ -1055,6 +1065,7 @@ private:
     std::ostringstream status;
     status << "eef refine pixel_err=(" << err_u_px << ", " << err_v_px
            << ") depth_err=" << depth_error_m
+           << " feature_err=(" << (bbox_u - u) << ", " << (bbox_v - v) << ")"
            << " cmd_frame=" << eef_camera_frame;
     publishStatus(status.str());
   }
