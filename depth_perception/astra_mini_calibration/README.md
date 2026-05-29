@@ -53,5 +53,6 @@ After recalibration, launch the calibrated camera-info publisher with:
 ros2 launch astra_mini_calibration astra_mini_calibrated.launch.py \
   start_camera:=false \
   image_topic:=/camera/color/image_raw \
-  calibrated_camera_info_topic:=/camera/color/camera_info_calibrated
+  calibrated_camera_info_topic:=/camera/color/camera_info_calibrated \
+  rectify_image:=false
 ```

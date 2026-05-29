@@ -61,7 +61,7 @@ def generate_launch_description():
 
     rectify_image_arg = DeclareLaunchArgument(
         'rectify_image',
-        default_value='true',
+        default_value='false',
         description='Whether to publish a rectified image using image_proc.',
     )
 
