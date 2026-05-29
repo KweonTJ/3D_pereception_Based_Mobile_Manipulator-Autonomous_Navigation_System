@@ -5,7 +5,7 @@ mp_control_node:
     eef_bbox_topic: /target/eef_tracked_bbox
     eef_init_bbox_topic: /target/eef_init_bbox
     depth_topic: /camera/depth/image_raw
-    camera_info_topic: /camera/color/camera_info
+    camera_info_topic: /camera/color/camera_info_calibrated
     eef_camera_info_topic: /eef_camera/camera_info
     eef_auto_init_enable_topic: /target/eef_auto_init_enable
     base_hold_topic: /target/base_hold

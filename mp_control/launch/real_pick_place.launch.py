@@ -88,6 +88,10 @@ def generate_launch_description():
     auto_eef_init_min_mask_pixels = LaunchConfiguration("auto_eef_init_min_mask_pixels")
     auto_eef_init_min_bbox_width_px = LaunchConfiguration("auto_eef_init_min_bbox_width_px")
     auto_eef_init_min_bbox_height_px = LaunchConfiguration("auto_eef_init_min_bbox_height_px")
+    start_calibrated_camera_info = LaunchConfiguration("start_calibrated_camera_info")
+    calibrated_camera_info_json_path = LaunchConfiguration("calibrated_camera_info_json_path")
+    calibrated_camera_image_topic = LaunchConfiguration("calibrated_camera_image_topic")
+    calibrated_camera_info_topic = LaunchConfiguration("calibrated_camera_info_topic")
     start_eef_camera_driver = LaunchConfiguration("start_eef_camera_driver")
     eef_camera_video_device = LaunchConfiguration("eef_camera_video_device")
     eef_camera_frame_id = LaunchConfiguration("eef_camera_frame_id")
@@ -313,6 +317,22 @@ def generate_launch_description():
             "image_size": [320, 240],
         }],
         condition=IfCondition(start_eef_camera_driver),
+    )
+
+    calibrated_camera_info_node = Node(
+        package="astra_mini_calibration",
+        executable="camera_info_from_json.py",
+        name="astra_mini_camera_info_from_json",
+        output="screen",
+        parameters=[{
+            "json_path": calibrated_camera_info_json_path,
+            "camera_info_key": "camera_info",
+        }],
+        remappings=[
+            ("image", calibrated_camera_image_topic),
+            ("camera_info", calibrated_camera_info_topic),
+        ],
+        condition=IfCondition(start_calibrated_camera_info),
     )
 
     monitor_uploader_node = Node(
@@ -713,6 +733,34 @@ def generate_launch_description():
             description="Minimum EEF detected bbox height in pixels.",
         ),
         DeclareLaunchArgument(
+            "start_calibrated_camera_info",
+            default_value="true",
+            description="Publish calibrated Astra color camera_info from the saved JSON.",
+        ),
+        DeclareLaunchArgument(
+            "calibrated_camera_info_json_path",
+            default_value=PathJoinSubstitution([
+                EnvironmentVariable("HOME"),
+                "turtlebot3_ws",
+                "src",
+                "depth_perception",
+                "astra_mini_calibration",
+                "config",
+                "astra_mini_color.json",
+            ]),
+            description="Astra color calibration JSON used after the depth near-limit handoff.",
+        ),
+        DeclareLaunchArgument(
+            "calibrated_camera_image_topic",
+            default_value="/camera/color/image_raw",
+            description="Image topic paired with the calibrated Astra color camera_info.",
+        ),
+        DeclareLaunchArgument(
+            "calibrated_camera_info_topic",
+            default_value="/camera/color/camera_info_calibrated",
+            description="Calibrated Astra color camera_info topic.",
+        ),
+        DeclareLaunchArgument(
             "start_eef_camera_driver",
             default_value="true",
             description="Start the v4l2 end-effector USB camera driver.",
@@ -798,6 +846,7 @@ def generate_launch_description():
             period=control_start_delay,
             actions=[
                 eef_camera_node,
+                calibrated_camera_info_node,
                 grasp_stack_launch,
                 leader_task_manager_launch,
                 leader_beacon_launch,

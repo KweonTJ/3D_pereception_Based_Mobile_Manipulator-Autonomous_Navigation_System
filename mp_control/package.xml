@@ -25,6 +25,7 @@
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>ros_gz_interfaces</exec_depend>
   <exec_depend>hybrid_csrt_ibvs</exec_depend>
+  <exec_depend>astra_mini_calibration</exec_depend>
   <exec_depend>leader_platooning_beacon</exec_depend>
   <exec_depend>leader_task_manager</exec_depend>
   <exec_depend>platooning_bridge_config</exec_depend>

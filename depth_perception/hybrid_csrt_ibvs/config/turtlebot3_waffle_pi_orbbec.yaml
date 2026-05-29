@@ -4,7 +4,7 @@ csrt_ibvs_node:
     # a separate input used only for distance/3D control.
     image_topic: /camera/color/image_raw
     depth_topic: /camera/depth/image_raw
-    camera_info_topic: /camera/color/camera_info
+    camera_info_topic: /camera/color/camera_info_calibrated
 
     # A bbox message is Float32MultiArray: [x, y, width, height] in tracker image pixels.
     init_bbox_topic: /target/init_bbox
