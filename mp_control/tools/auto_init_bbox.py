@@ -135,7 +135,7 @@ class AutoInitBbox(Node):
                 Bool,
                 self.enable_topic,
                 self.on_enable,
-                QoSProfile(depth=1))
+                latched_qos)
         self.timeout_timer = self.create_timer(0.5, self.on_timeout)
         self.heartbeat_timer = self.create_timer(2.0, self.on_heartbeat)
 
