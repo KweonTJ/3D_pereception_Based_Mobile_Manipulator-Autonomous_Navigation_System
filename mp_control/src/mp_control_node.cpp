@@ -271,6 +271,7 @@ private:
     object_pregrasp_enable_lowering_ =
       declare_parameter<bool>("object_pregrasp_enable_lowering", false);
     eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
+    eef_close_tolerance_px_ = declare_parameter<double>("eef_close_tolerance_px", eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
     eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
     eef_refine_depth_gain_ = declare_parameter<double>("eef_refine_depth_gain", 0.5);
@@ -335,6 +336,7 @@ private:
     object_pregrasp_lower_standoff_m_ = std::max(0.0, object_pregrasp_lower_standoff_m_);
     object_pregrasp_min_lower_z_m_ = std::max(0.0, object_pregrasp_min_lower_z_m_);
     eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
+    eef_close_tolerance_px_ = std::max(eef_center_tolerance_px_, eef_close_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
@@ -1033,8 +1035,11 @@ private:
     const bool centered =
       std::abs(err_u_px) <= eef_center_tolerance_px_ &&
       std::abs(err_v_px) <= eef_center_tolerance_px_;
+    const bool close_ready =
+      std::abs(err_u_px) <= eef_close_tolerance_px_ &&
+      std::abs(err_v_px) <= eef_close_tolerance_px_;
 
-    if (centered) {
+    if (close_ready) {
       stable_cycles_ += 1;
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
@@ -1051,7 +1056,11 @@ private:
         }
         publishStatus("eef camera refined grasp reached; width-aware gripper command sent", true);
       } else {
-        publishStatus("eef camera aligned; holding before closing");
+        std::ostringstream hold_status;
+        hold_status << "eef camera close-ready; holding before closing"
+                    << " pixel_err=(" << err_u_px << ", " << err_v_px << ")"
+                    << " strict_centered=" << (centered ? "true" : "false");
+        publishStatus(hold_status.str());
       }
       return;
     }
@@ -1074,6 +1083,7 @@ private:
            << " feature_err=(" << (bbox_u - u) << ", " << (bbox_v - v) << ")"
            << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
            << " range_cmd=disabled"
+           << " close_tol_px=" << eef_close_tolerance_px_
            << " cmd_frame=" << eef_camera_frame;
     publishStatus(status.str());
   }
@@ -2061,6 +2071,7 @@ private:
   double object_pregrasp_min_lower_z_m_{0.12};
   bool object_pregrasp_enable_lowering_{false};
   double eef_center_tolerance_px_{18.0};
+  double eef_close_tolerance_px_{18.0};
   double eef_depth_tolerance_m_{0.018};
   double eef_refine_lateral_gain_{0.8};
   double eef_refine_depth_gain_{0.5};
