@@ -51,7 +51,7 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY config launch models
+install(DIRECTORY calibration config launch models
   DESTINATION share/${PROJECT_NAME}
 )
 
