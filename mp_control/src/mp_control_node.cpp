@@ -1601,6 +1601,36 @@ private:
     return samples[samples.size() / 2];
   }
 
+  double bboxAreaRatio(const Bbox & bbox, const CameraInfo & info) const
+  {
+    const double image_width = std::max(1.0, static_cast<double>(info.width));
+    const double image_height = std::max(1.0, static_cast<double>(info.height));
+    return std::max(0.0, bbox.width) * std::max(0.0, bbox.height) /
+      (image_width * image_height);
+  }
+
+  double bboxHeightRatio(const Bbox & bbox, const CameraInfo & info) const
+  {
+    const double image_height = std::max(1.0, static_cast<double>(info.height));
+    return std::max(0.0, bbox.height) / image_height;
+  }
+
+  bool shouldHandoffByBboxSize(const Bbox & bbox, const CameraInfo & info) const
+  {
+    if (min_depth_handoff_bbox_area_ratio_ <= 0.0 &&
+        min_depth_handoff_bbox_height_ratio_ <= 0.0) {
+      return false;
+    }
+
+    const double area_ratio = bboxAreaRatio(bbox, info);
+    const double height_ratio = bboxHeightRatio(bbox, info);
+    return
+      (min_depth_handoff_bbox_area_ratio_ > 0.0 &&
+      area_ratio >= min_depth_handoff_bbox_area_ratio_) ||
+      (min_depth_handoff_bbox_height_ratio_ > 0.0 &&
+      height_ratio >= min_depth_handoff_bbox_height_ratio_);
+  }
+
   std::optional<double> depthPixelMeters(const sensor_msgs::msg::Image & depth, int row, int col) const
   {
     if (row < 0 || col < 0 || row >= static_cast<int>(depth.height) || col >= static_cast<int>(depth.width)) {
