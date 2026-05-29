@@ -128,11 +128,19 @@ def generate_launch_description():
             "lidar_frame_id": lidar_frame_id,
             "move_to_stay_pose": move_to_stay_pose,
             "use_camera_driver_tf": use_camera_driver_tf,
-                "use_eef_usb_camera": use_eef_usb_camera,
-                "eef_usb_camera_parent": eef_usb_camera_parent,
-                "eef_usb_camera_xyz": eef_usb_camera_xyz,
-                "eef_usb_camera_rpy": eef_usb_camera_rpy,
-                "start_eef_camera_driver": "false",
+            "use_eef_usb_camera": use_eef_usb_camera,
+            "eef_usb_camera_parent": eef_usb_camera_parent,
+            "eef_usb_camera_xyz": eef_usb_camera_xyz,
+            "eef_usb_camera_rpy": eef_usb_camera_rpy,
+            "start_eef_camera_driver": start_eef_camera_driver,
+            "eef_camera_video_device": eef_camera_video_device,
+            "eef_camera_frame_id": eef_camera_frame_id,
+            "eef_camera_pixel_format": eef_camera_pixel_format,
+            "eef_camera_output_encoding": eef_camera_output_encoding,
+            "eef_camera_image_width": eef_camera_image_width,
+            "eef_camera_image_height": eef_camera_image_height,
+            "eef_camera_name": eef_camera_name,
+            "eef_camera_info_url": eef_camera_info_url,
             }.items(),
         )
 
@@ -299,24 +307,6 @@ def generate_launch_description():
             "continuous_publish_period_s": 0.5,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
-    )
-
-    eef_camera_node = Node(
-        package="v4l2_camera",
-        executable="v4l2_camera_node",
-        namespace="eef_camera",
-        name="v4l2_camera",
-        output="screen",
-        parameters=[{
-            "video_device": eef_camera_video_device,
-            "camera_frame_id": eef_camera_frame_id,
-            "camera_name": eef_camera_name,
-            "camera_info_url": eef_camera_info_url,
-            "pixel_format": eef_camera_pixel_format,
-            "output_encoding": eef_camera_output_encoding,
-            "image_size": [320, 240],
-        }],
-        condition=IfCondition(start_eef_camera_driver),
     )
 
     calibrated_camera_info_node = Node(
@@ -845,7 +835,6 @@ def generate_launch_description():
         TimerAction(
             period=control_start_delay,
             actions=[
-                eef_camera_node,
                 calibrated_camera_info_node,
                 grasp_stack_launch,
                 leader_task_manager_launch,
