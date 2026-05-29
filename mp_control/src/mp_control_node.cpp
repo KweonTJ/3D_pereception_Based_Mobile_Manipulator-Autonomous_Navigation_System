@@ -1341,6 +1341,35 @@ private:
       depth_m = medianDepthAt(*depth, info, u, v);
     }
     if (!depth_m) {
+      if (use_color_triangulation_after_min_depth_) {
+        const auto near_limit_depth = nearLimitDepthInBbox(*depth, info, bbox);
+        if (near_limit_depth) {
+          rememberObjectDepth(*near_limit_depth);
+
+          geometry_msgs::msg::PointStamped object_camera;
+          object_camera.header.stamp = depth->header.stamp;
+          object_camera.header.frame_id =
+            camera_frame_override_.empty() ? info.frame_id : camera_frame_override_;
+          object_camera.point.z = *near_limit_depth;
+          object_camera.point.x = (u - info.cx) * (*near_limit_depth) / info.fx;
+          object_camera.point.y = (v - info.cy) * (*near_limit_depth) / info.fy;
+
+          try {
+            rememberDepthObjectPoint(tf_buffer_.transform(object_camera, target_frame_));
+          } catch (const tf2::TransformException & ex) {
+            RCLCPP_WARN_THROTTLE(
+              get_logger(), *get_clock(), 1000,
+              "near-limit object TF transform failed: %s", ex.what());
+          }
+
+          std::ostringstream reason;
+          reason << "minimum depth reached by near-limit sample "
+                 << *near_limit_depth << "m; switching to color triangulation";
+          setBlockReason(block_reason, reason.str());
+          return std::nullopt;
+        }
+      }
+
       std::ostringstream reason;
       reason << "valid depth inside bbox in ["
              << min_valid_depth_m_ << ", " << max_valid_depth_m_ << "] m";
@@ -1474,6 +1503,65 @@ private:
     std::sort(samples.begin(), samples.end());
     const size_t index = std::min(samples.size() - 1, samples.size() / 4);
     return samples[index];
+  }
+
+  std::optional<double> nearLimitDepthInBbox(
+    const sensor_msgs::msg::Image & depth,
+    const CameraInfo & info,
+    const Bbox & bbox) const
+  {
+    const double image_width =
+      info.width > 0 ? static_cast<double>(info.width) : static_cast<double>(depth.width);
+    const double image_height =
+      info.height > 0 ? static_cast<double>(info.height) : static_cast<double>(depth.height);
+
+    const int col_begin = clampValue(
+      static_cast<int>(std::floor(bbox.x * static_cast<double>(depth.width) /
+      std::max(1.0, image_width))),
+      0,
+      static_cast<int>(depth.width) - 1);
+    const int col_end = clampValue(
+      static_cast<int>(std::ceil((bbox.x + bbox.width) * static_cast<double>(depth.width) /
+      std::max(1.0, image_width))),
+      0,
+      static_cast<int>(depth.width) - 1);
+    const int row_begin = clampValue(
+      static_cast<int>(std::floor(bbox.y * static_cast<double>(depth.height) /
+      std::max(1.0, image_height))),
+      0,
+      static_cast<int>(depth.height) - 1);
+    const int row_end = clampValue(
+      static_cast<int>(std::ceil((bbox.y + bbox.height) * static_cast<double>(depth.height) /
+      std::max(1.0, image_height))),
+      0,
+      static_cast<int>(depth.height) - 1);
+
+    if (row_end < row_begin || col_end < col_begin) {
+      return std::nullopt;
+    }
+
+    const int roi_width = std::max(1, col_end - col_begin + 1);
+    const int roi_height = std::max(1, row_end - row_begin + 1);
+    const int step = std::max(1, std::min(roi_width, roi_height) / 24);
+    const double handoff_depth = eef_refinement_start_depth_m_ + min_depth_handoff_margin_m_;
+
+    std::vector<double> samples;
+    samples.reserve(static_cast<size_t>((roi_width / step + 1) * (roi_height / step + 1)));
+    for (int row = row_begin; row <= row_end; row += step) {
+      for (int col = col_begin; col <= col_end; col += step) {
+        const auto meters = depthPixelMeters(depth, row, col);
+        if (meters && *meters > 0.02 && *meters <= handoff_depth) {
+          samples.push_back(*meters);
+        }
+      }
+    }
+
+    if (samples.size() < static_cast<size_t>(depth_min_valid_pixels_)) {
+      return std::nullopt;
+    }
+
+    std::sort(samples.begin(), samples.end());
+    return samples[samples.size() / 2];
   }
 
   std::optional<double> depthPixelMeters(const sensor_msgs::msg::Image & depth, int row, int col) const
