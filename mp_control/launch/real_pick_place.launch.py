@@ -704,8 +704,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_color_mode",
-            default_value="yolo",
-            description="Target appearance to detect from the EEF RGB camera.",
+            default_value="auto",
+            description="Target appearance to detect from the EEF RGB camera when EEF auto init is enabled.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_min_mask_pixels",
