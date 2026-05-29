@@ -1,0 +1,20 @@
+image_width: 320
+image_height: 240
+camera_name: eef_usb_camera
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [403.553185, 0.0, 179.643123, 0.0, 530.112088, 160.983312, 0.0, 0.0, 1.0]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [-0.544612, 0.034976, -0.044001, -0.002390, 0.0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [358.360962, 0.0, 184.181941, 0.0, 0.0, 517.729797, 159.013212, 0.0, 0.0, 0.0, 1.0, 0.0]

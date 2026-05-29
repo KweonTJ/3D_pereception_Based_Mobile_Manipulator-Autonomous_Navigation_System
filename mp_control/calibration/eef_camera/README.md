@@ -14,8 +14,8 @@ Run calibration on the leader while `/eef_camera/image_raw` is publishing:
 
 ```bash
 ros2 run camera_calibration cameracalibrator \
-  --size 10x8 \
-  --square 0.026 \
+  --size 9x11 \
+  --square 0.020 \
   --camera_name eef_usb_camera \
   --no-service-check \
   --ros-args \
