@@ -1950,6 +1950,8 @@ private:
   double eef_refinement_switch_distance_m_{0.12};
   double eef_refinement_start_depth_m_{0.47};
   double min_depth_handoff_margin_m_{0.02};
+  double min_depth_handoff_bbox_area_ratio_{0.30};
+  double min_depth_handoff_bbox_height_ratio_{0.75};
   double eef_refinement_start_object_x_m_{0.50};
   double arm_start_max_error_m_{0.40};
   double arm_start_max_object_x_m_{0.60};
