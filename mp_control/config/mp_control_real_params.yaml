@@ -44,7 +44,7 @@ mp_control_node:
     linear_gain: 0.9
     max_linear_speed: 0.025
     position_tolerance_m: 0.035
-    close_after_stable_cycles: 8
+    close_after_stable_cycles: 4
 
     depth_roi_radius_px: 5
     depth_unit_scale: 0.001
@@ -87,7 +87,7 @@ mp_control_node:
     object_pregrasp_min_lower_z_m: 0.12
     object_pregrasp_enable_lowering: false
     eef_center_tolerance_px: 18.0
-    eef_close_tolerance_px: 45.0
+    eef_close_tolerance_px: 55.0
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
