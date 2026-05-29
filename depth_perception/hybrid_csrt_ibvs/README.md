@@ -197,6 +197,41 @@ This package does not require YOLO every frame. The clean hybrid strategy is:
 
 Any detector can connect by publishing `[x, y, w, h]` to `/target/init_bbox`.
 
+## Real robot integration notes
+
+Current leader grasp integration keeps CSRT in the front-camera path and bypasses
+CSRT only in the end-effector camera path.
+
+Front RGB-D camera:
+
+1. `mp_control/tools/auto_init_bbox.py` publishes the YOLO-selected object box to
+   `/target/init_bbox`.
+2. `hybrid_csrt_ibvs` initializes from `/target/init_bbox` and publishes the
+   tracked result to `/target/tracked_bbox`.
+3. `mp_control` consumes `/target/tracked_bbox` as the primary object bbox for
+   base approach, depth handoff, and arm-start decisions.
+
+End-effector RGB camera:
+
+1. The EEF `hybrid_csrt_ibvs` node may still be launched and can publish
+   `/target/eef_tracked_bbox` for debugging.
+2. Real grasp control currently consumes `/target/eef_init_bbox` directly from
+   the EEF YOLO auto detector instead of `/target/eef_tracked_bbox`.
+3. This avoids the near-field case where a partial EEF CSRT box leaves a
+   persistent pixel error while MoveIt Servo is already close to a collision or
+   singularity.
+
+The active real-robot configuration is in:
+
+```text
+mp_control/config/mp_control_real_params.yaml
+mp_control/launch/real_pick_place.launch.py
+```
+
+To return EEF grasp refinement to CSRT, set `eef_bbox_topic` back to
+`/target/eef_tracked_bbox` in `mp_control_real_params.yaml` and tune the EEF
+tracker config in `config/eef_usb_camera.yaml`.
+
 ## Safety defaults
 
 - publishes zero velocity when tracking is lost
@@ -204,4 +239,3 @@ Any detector can connect by publishing `[x, y, w, h]` to `/target/init_bbox`.
 - clamps base velocity and angular velocity
 - stops forward/depth motion below `emergency_stop_depth_m`
 - uses small conservative gains for TurtleBot3 first tests
-
