@@ -804,10 +804,12 @@ private:
       return true;
     }
 
-    if (last_eef_init_bbox_stamp_.nanoseconds() == 0 ||
-        (stamp - last_eef_init_bbox_stamp_).seconds() >= eef_init_bbox_republish_period_s_) {
-      if (publishProjectedEefInitBbox(object_in_target, info)) {
-        last_eef_init_bbox_stamp_ = stamp;
+    if (auto_init_eef_tracker_from_object_) {
+      if (last_eef_init_bbox_stamp_.nanoseconds() == 0 ||
+          (stamp - last_eef_init_bbox_stamp_).seconds() >= eef_init_bbox_republish_period_s_) {
+        if (publishProjectedEefInitBbox(object_in_target, info)) {
+          last_eef_init_bbox_stamp_ = stamp;
+        }
       }
     }
 
