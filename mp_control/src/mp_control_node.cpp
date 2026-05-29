@@ -559,22 +559,16 @@ private:
         using_latched_depth_for_pregrasp = true;
         object_block_reason.clear();
       } else if (!maybe_color_object) {
-        if (depth_reference) {
-          maybe_object = depth_reference;
-          using_latched_depth_for_pregrasp = true;
-          object_block_reason.clear();
-        } else {
-          stable_cycles_ = 0;
-          publishBaseHold(false);
-          publishStop();
-          std::ostringstream status;
-          status << "after depth limit; waiting for color triangulation: "
-                 << color_reason
-                 << "; base continuing toward object_x="
-                 << color_triangulation_base_stop_object_x_m_;
-          publishStatus(status.str());
-          return;
-        }
+        stable_cycles_ = 0;
+        publishBaseHold(false);
+        publishStop();
+        std::ostringstream status;
+        status << "after depth limit; waiting for close-range color triangulation: "
+               << color_reason
+               << "; base continuing toward object_x="
+               << color_triangulation_base_stop_object_x_m_;
+        publishStatus(status.str());
+        return;
       } else {
         maybe_object = maybe_color_object;
         object_block_reason.clear();
