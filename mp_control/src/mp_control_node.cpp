@@ -534,7 +534,9 @@ private:
     bool command_published = false;
     if (useColorTriangulationAfterMinDepth()) {
       std::string color_reason;
-      auto depth_reference = maybe_object ? maybe_object : latestDepthObjectInTarget();
+      auto front_size_object = estimateObjectPointFromFrontBboxSize();
+      auto depth_reference = front_size_object ? front_size_object :
+        (maybe_object ? maybe_object : latestDepthObjectInTarget());
       if (depth_reference) {
         prepareEefColorTriangulation(*depth_reference, &color_reason);
       } else {
@@ -552,7 +554,11 @@ private:
         maybe_color_object.reset();
       }
 
-      if (!maybe_color_object) {
+      if (front_size_object && depth_reference) {
+        maybe_object = depth_reference;
+        using_latched_depth_for_pregrasp = true;
+        object_block_reason.clear();
+      } else if (!maybe_color_object) {
         if (depth_reference) {
           maybe_object = depth_reference;
           using_latched_depth_for_pregrasp = true;
