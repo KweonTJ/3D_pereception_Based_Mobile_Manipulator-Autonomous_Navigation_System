@@ -268,6 +268,8 @@ private:
       declare_parameter<double>("object_pregrasp_lower_standoff_m", 0.02);
     object_pregrasp_min_lower_z_m_ =
       declare_parameter<double>("object_pregrasp_min_lower_z_m", 0.12);
+    object_pregrasp_enable_lowering_ =
+      declare_parameter<bool>("object_pregrasp_enable_lowering", false);
     eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
     eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
@@ -1114,8 +1116,11 @@ private:
         std::abs(safe_target_z - eef_z) <= triangulation_extend_tolerance_m_) {
       object_pregrasp_horizontal_done_ = true;
     }
+    if (object_pregrasp_horizontal_done_ && !object_pregrasp_enable_lowering_) {
+      return true;
+    }
 
-    const double target_z = object_pregrasp_horizontal_done_ ?
+    const double target_z = object_pregrasp_horizontal_done_ && object_pregrasp_enable_lowering_ ?
       std::max(
         object_in_target.point.z + grasp_offset_z_ + object_pregrasp_lower_standoff_m_,
         object_pregrasp_min_lower_z_m_) :
@@ -2048,6 +2053,7 @@ private:
   double object_pregrasp_min_z_m_{0.50};
   double object_pregrasp_lower_standoff_m_{0.02};
   double object_pregrasp_min_lower_z_m_{0.12};
+  bool object_pregrasp_enable_lowering_{false};
   double eef_center_tolerance_px_{18.0};
   double eef_depth_tolerance_m_{0.018};
   double eef_refine_lateral_gain_{0.8};
