@@ -1004,13 +1004,13 @@ private:
 
     const double bbox_u = bbox.x + 0.5 * bbox.width;
     const double bbox_v = bbox.y + 0.5 * bbox.height;
-    const bool eef_depth_valid =
+    const bool projected_object_range_valid =
       std::isfinite(object_in_eef_camera.point.z) &&
-      object_in_eef_camera.point.z > eef_final_depth_m_;
-    const double projected_u = eef_depth_valid ?
+      object_in_eef_camera.point.z > 0.0;
+    const double projected_u = projected_object_range_valid ?
       info.fx * object_in_eef_camera.point.x / object_in_eef_camera.point.z + info.cx :
       std::numeric_limits<double>::quiet_NaN();
-    const double projected_v = eef_depth_valid ?
+    const double projected_v = projected_object_range_valid ?
       info.fy * object_in_eef_camera.point.y / object_in_eef_camera.point.z + info.cy :
       std::numeric_limits<double>::quiet_NaN();
     const bool projected_center_valid =
@@ -1021,24 +1021,20 @@ private:
     const double v = projected_center_valid ? projected_v : bbox_v;
     const double err_u_px = u - info.cx;
     const double err_v_px = v - info.cy;
-    const double z_m = eef_depth_valid ?
-      object_in_eef_camera.point.z :
-      std::max(eef_final_depth_m_, eef_refinement_switch_distance_m_);
+    const double z_m = projected_center_valid ?
+      clampValue(
+        object_in_eef_camera.point.z,
+        eef_final_depth_m_,
+        eef_refinement_start_depth_m_) :
+      eef_refinement_switch_distance_m_;
     const double lateral_m = err_u_px * z_m / info.fx;
     const double vertical_m = err_v_px * z_m / info.fy;
-    const double depth_error_m = eef_depth_valid ?
-      object_in_eef_camera.point.z - eef_final_depth_m_ :
-      0.0;
-    if (eef_depth_valid) {
-      rememberMeasuredObjectWidth(bbox.width * object_in_eef_camera.point.z / info.fx);
-    }
 
     const bool centered =
       std::abs(err_u_px) <= eef_center_tolerance_px_ &&
       std::abs(err_v_px) <= eef_center_tolerance_px_;
-    const bool at_depth = !eef_depth_valid || std::abs(depth_error_m) <= eef_depth_tolerance_m_;
 
-    if (centered && at_depth) {
+    if (centered) {
       stable_cycles_ += 1;
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
@@ -1070,18 +1066,14 @@ private:
     cmd.twist.linear.y = clampValue(
       eef_refine_lateral_gain_ * vertical_m,
       -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
-    cmd.twist.linear.z = eef_depth_valid ?
-      clampValue(
-        eef_refine_depth_gain_ * depth_error_m,
-        -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_) :
-      0.0;
+    cmd.twist.linear.z = 0.0;
     twist_pub_->publish(cmd);
 
     std::ostringstream status;
     status << "eef refine pixel_err=(" << err_u_px << ", " << err_v_px
-           << ") depth_err=" << depth_error_m
            << " feature_err=(" << (bbox_u - u) << ", " << (bbox_v - v) << ")"
-           << " depth_valid=" << (eef_depth_valid ? "true" : "false")
+           << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
+           << " range_cmd=disabled"
            << " cmd_frame=" << eef_camera_frame;
     publishStatus(status.str());
   }
