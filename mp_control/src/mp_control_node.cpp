@@ -727,6 +727,51 @@ private:
     return latest_depth_object_in_target_;
   }
 
+  std::optional<geometry_msgs::msg::PointStamped> estimateObjectPointFromFrontBboxSize()
+  {
+    Bbox bbox;
+    CameraInfo info;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_bbox_ || !latest_camera_info_) {
+        return std::nullopt;
+      }
+      bbox = *latest_bbox_;
+      info = *latest_camera_info_;
+    }
+
+    if ((now() - bbox.stamp).seconds() > max_target_age_s_ ||
+        !shouldHandoffByBboxSize(bbox, info)) {
+      return std::nullopt;
+    }
+
+    const auto range_m = estimateRangeFromBboxSize(bbox, info);
+    if (!range_m) {
+      return std::nullopt;
+    }
+
+    const double u = bbox.x + 0.5 * bbox.width;
+    const double v = bbox.y + 0.5 * bbox.height;
+    geometry_msgs::msg::PointStamped object_camera;
+    object_camera.header.stamp = builtin_interfaces::msg::Time();
+    object_camera.header.frame_id = camera_frame_override_.empty() ? info.frame_id : camera_frame_override_;
+    object_camera.point.z = *range_m;
+    object_camera.point.x = (u - info.cx) * (*range_m) / info.fx;
+    object_camera.point.y = (v - info.cy) * (*range_m) / info.fy;
+
+    try {
+      auto object_in_target = tf_buffer_.transform(object_camera, target_frame_);
+      rememberObjectDepth(*range_m);
+      rememberDepthObjectPoint(object_in_target);
+      return object_in_target;
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "front bbox size object TF transform failed: %s", ex.what());
+      return std::nullopt;
+    }
+  }
+
   bool prepareEefColorTriangulation(
     const geometry_msgs::msg::PointStamped & object_in_target,
     std::string * block_reason)
