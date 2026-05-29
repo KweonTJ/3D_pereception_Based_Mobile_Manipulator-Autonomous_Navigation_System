@@ -13,23 +13,38 @@ square size: 0.020 m
 target distance: about 0.47 m
 ```
 
-Run calibration on the leader while the front camera is publishing:
+Run calibration on the leader while the front camera is already publishing:
 
 ```bash
-ros2 launch astra_mini_calibration astra_mini_calibration.launch.py \
-  start_camera:=false \
-  image_topic:=/camera/color/image_raw \
-  camera_namespace:=/camera \
-  board_size:=9x11 \
-  square_size:=0.020 \
-  camera_name:=astra_mini_color \
-  output_prefix:=astra_mini_color
+PYTHONNOUSERSITE=1 ros2 run astra_mini_calibration cameracalibrator_with_save.py \
+  --size 9x11 \
+  --square 0.020 \
+  --camera_name astra_mini_color \
+  --no-service-check \
+  --ros-args \
+  -r image:=/camera/color/image_raw \
+  -r camera:=/camera
 ```
 
 When SAVE is pressed, the calibration JSON is written to:
 
 ```text
 ~/turtlebot3_ws/src/depth_perception/astra_mini_calibration/config/astra_mini_color.json
+```
+
+To override the save target without using a launch file:
+
+```bash
+ASTRA_MINI_CALIB_OUTPUT_DIR=/absolute/output/dir \
+ASTRA_MINI_CALIB_OUTPUT_PREFIX=astra_mini_color \
+PYTHONNOUSERSITE=1 ros2 run astra_mini_calibration cameracalibrator_with_save.py \
+  --size 9x11 \
+  --square 0.020 \
+  --camera_name astra_mini_color \
+  --no-service-check \
+  --ros-args \
+  -r image:=/camera/color/image_raw \
+  -r camera:=/camera
 ```
 
 After recalibration, launch the calibrated camera-info publisher with:
