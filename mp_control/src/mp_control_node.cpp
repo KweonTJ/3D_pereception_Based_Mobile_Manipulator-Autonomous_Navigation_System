@@ -245,6 +245,8 @@ private:
     eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
     eef_refinement_start_depth_m_ =
       declare_parameter<double>("eef_refinement_start_depth_m", min_valid_depth_m_);
+    min_depth_handoff_margin_m_ =
+      declare_parameter<double>("min_depth_handoff_margin_m", 0.02);
     eef_refinement_start_object_x_m_ =
       declare_parameter<double>("eef_refinement_start_object_x_m", 0.50);
     arm_start_max_error_m_ = declare_parameter<double>("arm_start_max_error_m", 0.40);
@@ -308,6 +310,7 @@ private:
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
     eef_refinement_start_depth_m_ = std::max(min_valid_depth_m_, eef_refinement_start_depth_m_);
+    min_depth_handoff_margin_m_ = std::max(0.0, min_depth_handoff_margin_m_);
     eef_refinement_start_object_x_m_ = std::max(0.01, eef_refinement_start_object_x_m_);
     arm_start_max_error_m_ = std::max(0.05, arm_start_max_error_m_);
     arm_start_max_object_x_m_ = std::max(0.05, arm_start_max_object_x_m_);
