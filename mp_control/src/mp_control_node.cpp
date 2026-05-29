@@ -1344,6 +1344,35 @@ private:
 
     const double u = bbox.x + 0.5 * bbox.width;
     const double v = bbox.y + 0.5 * bbox.height;
+    if (use_color_triangulation_after_min_depth_ && shouldHandoffByBboxSize(bbox, info)) {
+      const double handoff_depth = eef_refinement_start_depth_m_;
+      rememberObjectDepth(handoff_depth);
+
+      geometry_msgs::msg::PointStamped object_camera;
+      object_camera.header.stamp = depth->header.stamp;
+      object_camera.header.frame_id =
+        camera_frame_override_.empty() ? info.frame_id : camera_frame_override_;
+      object_camera.point.z = handoff_depth;
+      object_camera.point.x = (u - info.cx) * handoff_depth / info.fx;
+      object_camera.point.y = (v - info.cy) * handoff_depth / info.fy;
+
+      try {
+        rememberDepthObjectPoint(tf_buffer_.transform(object_camera, target_frame_));
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 1000,
+          "bbox-size handoff TF transform failed: %s", ex.what());
+      }
+
+      std::ostringstream reason;
+      reason << "minimum depth reached by bbox size"
+             << " area_ratio=" << bboxAreaRatio(bbox, info)
+             << " height_ratio=" << bboxHeightRatio(bbox, info)
+             << "; switching to color triangulation";
+      setBlockReason(block_reason, reason.str());
+      return std::nullopt;
+    }
+
     auto depth_m = robustDepthInBbox(*depth, info, bbox);
     if (!depth_m) {
       depth_m = medianDepthAt(*depth, info, u, v);
