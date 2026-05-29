@@ -66,6 +66,7 @@ mp_control_node:
     eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
     eef_refinement_start_depth_m: 0.47
+    min_depth_handoff_margin_m: 0.02
     # Front depth is trusted only until 0.47 m. Once that near limit is reached,
     # depth is ignored and front RGB + EEF RGB triangulation keeps the base
     # approaching until color_triangulation_base_stop_object_x_m.
