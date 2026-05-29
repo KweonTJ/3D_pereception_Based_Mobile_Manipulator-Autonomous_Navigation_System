@@ -1624,7 +1624,7 @@ private:
     latest_object_depth_m_ = depth_m;
     latest_object_depth_stamp_ = now();
     if (use_color_triangulation_after_min_depth_ &&
-        depth_m <= eef_refinement_start_depth_m_) {
+        depth_m <= eef_refinement_start_depth_m_ + min_depth_handoff_margin_m_) {
       min_depth_reached_ = true;
     }
   }
