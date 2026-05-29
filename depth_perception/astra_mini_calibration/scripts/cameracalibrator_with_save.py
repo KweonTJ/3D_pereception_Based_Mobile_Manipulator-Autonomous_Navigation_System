@@ -6,8 +6,18 @@ import re
 import time
 from pathlib import Path
 
+from ament_index_python.packages import get_package_share_directory
 from camera_calibration.calibrator import Calibrator
 from camera_calibration.nodes.cameracalibrator import main as cameracalibrator_main
+
+
+def _default_output_dir() -> Path:
+    try:
+        share_dir = Path(get_package_share_directory('astra_mini_calibration'))
+        workspace_root = share_dir.parents[3]
+        return workspace_root / 'src' / 'depth_perception' / 'astra_mini_calibration' / 'config'
+    except Exception:
+        return Path('/tmp')
 
 
 def _sanitize_prefix(prefix: str) -> str:
@@ -96,7 +106,7 @@ def _build_payload(calibrator) -> dict:
 
 
 def _patched_do_save(self) -> None:
-    output_dir = Path(os.environ.get('ASTRA_MINI_CALIB_OUTPUT_DIR', '/tmp'))
+    output_dir = Path(os.environ.get('ASTRA_MINI_CALIB_OUTPUT_DIR', str(_default_output_dir())))
     prefix = _sanitize_prefix(os.environ.get('ASTRA_MINI_CALIB_OUTPUT_PREFIX', 'astra_mini_color'))
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -113,7 +123,7 @@ def _patched_do_save(self) -> None:
 
 
 def main() -> None:
-    output_dir = Path(os.environ.get('ASTRA_MINI_CALIB_OUTPUT_DIR', '/tmp'))
+    output_dir = Path(os.environ.get('ASTRA_MINI_CALIB_OUTPUT_DIR', str(_default_output_dir())))
     prefix = _sanitize_prefix(os.environ.get('ASTRA_MINI_CALIB_OUTPUT_PREFIX', 'astra_mini_color'))
     print(f'Calibration save directory: {output_dir}')
     print(f'Calibration file prefix: {prefix}')
