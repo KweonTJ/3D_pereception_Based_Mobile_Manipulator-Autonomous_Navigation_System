@@ -23,6 +23,7 @@ def generate_launch_description():
     default_output_dir = os.path.join(
         workspace_root,
         'src',
+        'depth_perception',
         'astra_mini_calibration',
         'config',
     )
@@ -47,13 +48,13 @@ def generate_launch_description():
 
     board_size_arg = DeclareLaunchArgument(
         'board_size',
-        default_value='10x7',
+        default_value='9x11',
         description='Checkerboard interior corners in NxM format.',
     )
 
     square_size_arg = DeclareLaunchArgument(
         'square_size',
-        default_value='0.024',
+        default_value='0.020',
         description='Checkerboard square size in meters.',
     )
 

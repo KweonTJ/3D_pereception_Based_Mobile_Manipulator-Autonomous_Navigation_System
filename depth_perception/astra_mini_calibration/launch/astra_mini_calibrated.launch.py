@@ -23,6 +23,7 @@ def generate_launch_description():
     default_json_path = os.path.join(
         workspace_root,
         'src',
+        'depth_perception',
         'astra_mini_calibration',
         'config',
         'astra_mini_color.json',
