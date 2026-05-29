@@ -758,8 +758,11 @@ def generate_launch_description():
                 "file://",
                 PathJoinSubstitution([
                     EnvironmentVariable("HOME"),
-                    ".ros",
-                    "camera_info",
+                    "turtlebot3_ws",
+                    "src",
+                    "mp_control",
+                    "calibration",
+                    "eef_camera",
                     "eef_usb_camera.yaml",
                 ]),
             ],
