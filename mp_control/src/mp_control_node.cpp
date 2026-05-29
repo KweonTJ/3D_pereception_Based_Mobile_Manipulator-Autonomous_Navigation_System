@@ -530,6 +530,7 @@ private:
 
     std::string object_block_reason;
     auto maybe_object = estimateObjectPoint(&object_block_reason);
+    bool using_latched_depth_for_pregrasp = false;
     bool command_published = false;
     if (useColorTriangulationAfterMinDepth()) {
       std::string color_reason;
@@ -552,20 +553,30 @@ private:
       }
 
       if (!maybe_color_object) {
-        stable_cycles_ = 0;
-        publishBaseHold(false);
-        publishStop();
-        std::ostringstream status;
-        status << "after depth limit; waiting for color triangulation: "
-               << color_reason
-               << "; base continuing toward object_x="
-               << color_triangulation_base_stop_object_x_m_;
-        publishStatus(status.str());
-        return;
+        if (depth_reference) {
+          maybe_object = depth_reference;
+          using_latched_depth_for_pregrasp = true;
+          object_block_reason.clear();
+        } else {
+          stable_cycles_ = 0;
+          publishBaseHold(false);
+          publishStop();
+          std::ostringstream status;
+          status << "after depth limit; waiting for color triangulation: "
+                 << color_reason
+                 << "; base continuing toward object_x="
+                 << color_triangulation_base_stop_object_x_m_;
+          publishStatus(status.str());
+          return;
+        }
+      } else {
+        maybe_object = maybe_color_object;
+        object_block_reason.clear();
       }
 
-      const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
-      if (color_goal_x > color_triangulation_base_stop_object_x_m_) {
+      const double color_goal_x = maybe_object->point.x + grasp_offset_x_;
+      if (!using_latched_depth_for_pregrasp &&
+          color_goal_x > color_triangulation_base_stop_object_x_m_) {
         stable_cycles_ = 0;
         publishBaseHold(false);
         publishStop();
@@ -576,9 +587,6 @@ private:
         publishStatus(status.str());
         return;
       }
-
-      maybe_object = maybe_color_object;
-      object_block_reason.clear();
     }
 
     if (!maybe_object && use_depthless_triangulation_ &&
@@ -623,12 +631,13 @@ private:
     const double err_norm = vectorNorm(err_x, err_y, err_z);
 
     const bool object_x_ready_for_eef = use_color_triangulation_after_min_depth_ ?
-      goal_x <= color_triangulation_base_stop_object_x_m_ :
+      (using_latched_depth_for_pregrasp || goal_x <= color_triangulation_base_stop_object_x_m_) :
       goal_x <= eef_refinement_start_object_x_m_;
     const bool depth_ready_for_eef = use_color_triangulation_after_min_depth_ ?
       false :
       shouldStartEefRefinementByDepth();
     const bool eef_candidate =
+      using_latched_depth_for_pregrasp ||
       shouldHoldForEefRefinement() ||
       depth_ready_for_eef ||
       object_x_ready_for_eef ||
@@ -639,11 +648,11 @@ private:
       eef_candidate;
     if (use_eef_now) {
       publishBaseHold(true);
-      if (!prepareEefRefinement(object)) {
-        return;
-      }
       bool extension_cmd_published = false;
       if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
+        return;
+      }
+      if (!prepareEefRefinement(object)) {
         return;
       }
       stage_ = GraspStage::EEF_REFINE;
