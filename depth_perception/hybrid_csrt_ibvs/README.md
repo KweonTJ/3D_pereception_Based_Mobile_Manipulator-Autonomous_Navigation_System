@@ -161,8 +161,10 @@ Forward motion is gated when the target is far from the image center. This preve
 
 ## Recommended tuning order
 
-1. Keep `max_linear_x <= 0.10` and `max_angular_z <= 0.45` for first real-robot tests.
-2. Tune `desired_depth_m` first. For grasping/pickup experiments, start around `0.40–0.50 m`.
+1. Keep `max_linear_x <= 0.14` and `max_angular_z <= 0.35` for the current leader approach tests.
+2. Tune `desired_depth_m` first. In the current grasp stack it is `0.30 m`,
+   while `mp_control` ignores new depth samples below `0.47 m` and switches to
+   RGB triangulation.
 3. Tune `yaw_gain` until the target recenters smoothly without oscillation.
 4. Tune `linear_gain` only after yaw behavior is stable.
 5. If depth is noisy, increase `depth_roi_radius_px` from `6` to `8` or `10`.
@@ -206,9 +208,13 @@ Front RGB-D camera:
 
 1. `mp_control/tools/auto_init_bbox.py` publishes the YOLO-selected object box to
    `/target/init_bbox`.
-2. `hybrid_csrt_ibvs` initializes from `/target/init_bbox` and publishes the
+2. Front YOLO target locking is disabled in the real launch so the bbox can grow
+   naturally during close approach.
+3. `hybrid_csrt_ibvs` initializes from `/target/init_bbox` and publishes the
    tracked result to `/target/tracked_bbox`.
-3. `mp_control` consumes `/target/tracked_bbox` as the primary object bbox for
+4. With `accept_detector_bbox_while_tracking: true`, fresh detector bboxes can
+   override the active bbox while CSRT remains the short-dropout backup.
+5. `mp_control` consumes `/target/tracked_bbox` as the primary object bbox for
    base approach, depth handoff, and arm-start decisions.
 
 End-effector RGB camera:
@@ -220,6 +226,22 @@ End-effector RGB camera:
 3. This avoids the near-field case where a partial EEF CSRT box leaves a
    persistent pixel error while MoveIt Servo is already close to a collision or
    singularity.
+
+Current real approach defaults:
+
+```yaml
+desired_depth_m: 0.30
+min_valid_depth_m: 0.47
+linear_gain: 0.85
+approach_yaw_gate_norm: 0.35
+min_forward_approach_x: 0.06
+max_linear_x: 0.14
+max_angular_z: 0.35
+```
+
+The front tracker/base controller continues approaching to the 0.30 m target.
+`mp_control` stops trusting new front depth at 0.47 m and then narrows the
+remaining distance with front RGB + EEF RGB triangulation.
 
 The active real-robot configuration is in:
 

@@ -580,6 +580,51 @@ private:
       }
 
       if (!maybe_color_object) {
+        const bool front_size_close_ready =
+          front_size_object &&
+          hasFreshEefBbox() &&
+          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
+        if (front_size_close_ready) {
+          maybe_object = front_size_object;
+          using_latched_depth_for_pregrasp = true;
+          object_block_reason.clear();
+          std::ostringstream status;
+          status << "color triangulation unavailable; using close front bbox-size object for EEF pregrasp: "
+                 << color_reason;
+          publishStatus(status.str());
+        } else {
+          stable_cycles_ = 0;
+          publishBaseHold(false);
+          publishStop();
+          std::ostringstream status;
+          status << "after depth limit; waiting for close-range color triangulation: "
+                 << color_reason
+                 << "; base continuing toward object_x="
+                 << color_triangulation_base_stop_object_x_m_;
+          publishStatus(status.str());
+          return;
+        }
+      } else {
+        const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
+        const bool front_size_close_ready =
+          front_size_object &&
+          hasFreshEefBbox() &&
+          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
+        if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
+          maybe_object = front_size_object;
+          using_latched_depth_for_pregrasp = true;
+          object_block_reason.clear();
+          std::ostringstream status;
+          status << "color triangulation still far object_x=" << color_goal_x
+                 << "; using close front bbox-size object for EEF pregrasp";
+          publishStatus(status.str());
+        } else {
+          maybe_object = maybe_color_object;
+          object_block_reason.clear();
+        }
+      }
+
+      if (!maybe_object) {
         stable_cycles_ = 0;
         publishBaseHold(false);
         publishStop();
@@ -590,9 +635,6 @@ private:
                << color_triangulation_base_stop_object_x_m_;
         publishStatus(status.str());
         return;
-      } else {
-        maybe_object = maybe_color_object;
-        object_block_reason.clear();
       }
 
       const double color_goal_x = maybe_object->point.x + grasp_offset_x_;
@@ -841,6 +883,14 @@ private:
     if (eef_refinement_requested_) {
       return true;
     }
+    return latest_eef_bbox_ &&
+      (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
+  }
+
+  bool hasFreshEefBbox()
+  {
+    const auto stamp = now();
+    std::lock_guard<std::mutex> lock(data_mutex_);
     return latest_eef_bbox_ &&
       (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
   }

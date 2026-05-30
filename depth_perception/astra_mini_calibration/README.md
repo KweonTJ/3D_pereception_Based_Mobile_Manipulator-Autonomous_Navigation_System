@@ -47,7 +47,21 @@ PYTHONNOUSERSITE=1 ros2 run astra_mini_calibration cameracalibrator_with_save.py
   -r camera:=/camera
 ```
 
-After recalibration, launch the calibrated camera-info publisher with:
+After recalibration, publish the calibrated camera info with `ros2 run`:
+
+```bash
+ros2 run astra_mini_calibration camera_info_from_json.py \
+  --ros-args \
+  -p json_path:=$HOME/turtlebot3_ws/src/depth_perception/astra_mini_calibration/config/astra_mini_color.json \
+  -p camera_info_key:=camera_info \
+  -r image:=/camera/color/image_raw \
+  -r camera_info:=/camera/color/camera_info_calibrated
+```
+
+This path only republishes `CameraInfo`; it does not start the camera and does
+not require `image_proc`.
+
+The same publisher can also be launched through:
 
 ```bash
 ros2 launch astra_mini_calibration astra_mini_calibrated.launch.py \
