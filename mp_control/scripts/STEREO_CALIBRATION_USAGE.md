@@ -15,6 +15,18 @@ The files in `scripts/` are source-tree scripts. They are not installed as
 `ros2 run mp_control ...` executables, so invoke them with `python3 scripts/...`
 from `~/turtlebot3_ws/src/mp_control`.
 
+All four scripts can show a GUI:
+
+```text
+capture_front_eef_stereo_pairs.py: --manual or --display
+stereo_calibrate_front_eef.py:     --display
+validate_stereo_calib_offline.py:  --display
+stereo_npz_to_yaml.py:             --display
+```
+
+Use `PYTHONNOUSERSITE=1` with the ROS image-capture script if `cv_bridge`
+loads a user-installed NumPy instead of the ROS-compatible one.
+
 ## Files And Roles
 
 ### `capture_front_eef_stereo_pairs.py`
@@ -156,7 +168,7 @@ ros2 topic echo /eef_camera/camera_info --once
 Manual capture:
 
 ```bash
-python3 scripts/capture_front_eef_stereo_pairs.py \
+PYTHONNOUSERSITE=1 python3 scripts/capture_front_eef_stereo_pairs.py \
   --front-topic /camera/color/image_raw \
   --eef-topic /eef_camera/image_raw \
   --output-dir calibration/stereo/images \
@@ -173,10 +185,11 @@ q/Esc   quit
 Automatic capture:
 
 ```bash
-python3 scripts/capture_front_eef_stereo_pairs.py \
+PYTHONNOUSERSITE=1 python3 scripts/capture_front_eef_stereo_pairs.py \
   --front-topic /camera/color/image_raw \
   --eef-topic /eef_camera/image_raw \
   --output-dir calibration/stereo/images \
+  --display \
   --save-every-s 0.7 \
   --max-pairs 40
 ```
@@ -206,6 +219,7 @@ python3 scripts/stereo_calibrate_front_eef.py \
   --square-size 0.020 \
   --output calibration/stereo/front_eef_stereo_calib.npz \
   --overlay-dir calibration/stereo/calibration_overlays \
+  --display \
   --run-validation \
   --validation-output-dir calibration/stereo/validation
 ```
@@ -223,6 +237,7 @@ python3 scripts/stereo_calibrate_front_eef.py \
   --front-intrinsics-json ../depth_perception/astra_mini_calibration/config/astra_mini_color.json \
   --eef-intrinsics-yaml calibration/eef_camera/eef_usb_camera.yaml \
   --fix-intrinsics \
+  --display \
   --output calibration/stereo/front_eef_stereo_calib.npz
 ```
 
@@ -249,7 +264,8 @@ python3 scripts/validate_stereo_calib_offline.py \
   --board-cols 9 \
   --board-rows 11 \
   --square-size 0.020 \
-  --output-dir calibration/stereo/validation
+  --output-dir calibration/stereo/validation \
+  --display
 ```
 
 Check:
@@ -364,7 +380,8 @@ Only do this after validation looks acceptable.
 ```bash
 python3 scripts/stereo_npz_to_yaml.py \
   calibration/stereo/front_eef_stereo_calib.npz \
-  --output calibration/stereo/front_eef_stereo_calib.yaml
+  --output calibration/stereo/front_eef_stereo_calib.yaml \
+  --display
 ```
 
 The C++ node reads this YAML. The `.npz` remains the canonical calibration file.
