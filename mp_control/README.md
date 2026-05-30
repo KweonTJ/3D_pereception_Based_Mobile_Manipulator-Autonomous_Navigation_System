@@ -1,32 +1,32 @@
 # mp_control
 
-Real-robot grasp orchestration for the leader TurtleBot3 manipulation stack.
+리더 TurtleBot3 매니퓰레이터의 실제 로봇 파지 흐름을 제어하는 패키지다.
 
-This package connects the front RGB-D tracker, the end-effector RGB detector,
-MoveIt Servo, and the gripper action into one pick sequence.
+이 패키지는 전면 RGB-D 추적기, EEF RGB 카메라, MoveIt Servo, 그리퍼 액션을
+하나의 파지 시퀀스로 연결한다.
 
-## Current Real Grasp Flow
+## 현재 실제 로봇 파지 흐름
 
-The active real configuration is:
+실제 로봇에서 사용하는 주요 설정은 아래 두 파일이다.
 
 ```text
 mp_control/launch/real_pick_place.launch.py
 mp_control/config/mp_control_real_params.yaml
 ```
 
-Runtime flow:
+실행 흐름:
 
-1. Front YOLO publishes `/target/init_bbox`.
-2. `hybrid_csrt_ibvs` tracks the front-camera object and publishes `/target/tracked_bbox`.
-3. The base approaches using front RGB-D until the Astra depth near limit.
-4. EEF YOLO runs from launch start so its bbox is already ready before the depth handoff.
-5. After the depth near limit, front depth is ignored.
-6. Front RGB + EEF RGB triangulation narrows the robot-object distance.
-7. The base stops, the arm moves to joint pregrasp, EEF RGB refinement runs, then the gripper closes.
+1. 전면 YOLO가 `/target/init_bbox`를 발행한다.
+2. `hybrid_csrt_ibvs`가 전면 카메라 물체를 추적하고 `/target/tracked_bbox`를 발행한다.
+3. Astra 전면 depth가 유효한 구간에서는 RGB-D 기반으로 베이스가 물체에 접근한다.
+4. EEF YOLO는 런치 시작부터 켜서 depth handoff 전에 bbox가 준비되도록 한다.
+5. 전면 depth가 근접 한계에 도달하면 이후 depth 거리값은 새 거리 추정에 쓰지 않는다.
+6. 전면 RGB와 EEF RGB bbox로 컬러 삼각 측량을 수행해 물체와 로봇 사이 거리를 좁힌다.
+7. 베이스를 정지시키고, 조인트 pregrasp 자세로 팔을 이동한 뒤 EEF RGB 보정 후 그리퍼를 닫는다.
 
-## Important Real Parameters
+## 주요 실제 로봇 파라미터
 
-Current depth and distance settings:
+현재 depth, 거리, pregrasp 관련 핵심 값은 아래와 같다.
 
 ```yaml
 min_valid_depth_m: 0.47
@@ -56,41 +56,25 @@ position_tolerance_m: 0.035
 close_after_stable_cycles: 4
 ```
 
-Meaning:
+의미:
 
-- `0.60 m`: EEF YOLO is enabled early, while front depth is still valid.
-- `0.47 m`: front depth is no longer trusted for new object range estimates.
-- `0.08 / 0.40`: if the front bbox already fills at least 8% of the image or
-  40% of image height, the system switches out of depth wait and starts the
-  close-range RGB/EEF handoff path.
-- `0.30 m`: RGB triangulation target distance before the arm enters the grasp phase.
-- `use_fallback_bbox_for_control`: `mp_control` subscribes to the front YOLO
-  `/target/init_bbox` as a fallback when `/target/tracked_bbox` becomes stale,
-  so the close-range pregrasp handoff does not wait forever on CSRT output.
-- `start_servo_on_start`: disabled inside `mp_control` for real joint pregrasp.
-  The real launch still starts MoveIt Servo through `hybrid_grasp.launch.py`,
-  but Servo publishes to `/arm_controller/joint_trajectory_raw`; the joint
-  trajectory transformer mirrors only joint3 deltas and republishes to
-  `/arm_controller/joint_trajectory`.
-- `use_joint_pregrasp`: real hardware sends `/arm_controller/joint_trajectory`
-  before EEF refinement, avoiding MoveIt Servo collision scaling during arm
-  extension.
-- `pregrasp_joint_tolerance_rad`: EEF refinement and gripper close are blocked
-  until `/joint_states` is actually within this tolerance of the pregrasp
-  target. If the arm controller misses the one-shot command, `mp_control`
-  republishes the same trajectory every `pregrasp_republish_period_s`.
-- `pregrasp_reverse_joint3_delta`: enabled on the real robot. The configured
-  ready pose remains `joint3=-0.85 rad` in the software grasp table, but the
-  actual hardware command mirrors joint3 around the current joint3 state. A
-  hold-current command therefore stays at the current joint angle, while only
-  the requested joint3 movement direction is reversed.
-- `0.08 m`: EEF pregrasp standoff from the triangulated object point.
+- `0.60 m`: 전면 depth가 아직 유효할 때 EEF YOLO를 미리 켠다.
+- `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
+- `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
+- `0.30 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다.
+- `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
+- `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
+- `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 `/arm_controller/joint_trajectory`로 직접 보낸다.
+- `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
+- `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
+- `pregrasp_reverse_joint3_delta`: 실제 로봇에서는 켜져 있다. 소프트웨어 grasp 표의 ready 목표는 `joint3=-0.85 rad`로 유지하지만, 실제 명령은 현재 joint3 기준 이동량만 반대로 보낸다.
+- `0.08 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다.
 
-## Real Joint3 Trajectory Conversion
+## 실제 로봇 joint3 trajectory 변환
 
-The leader hardware joint3 motor direction is opposite to the software grasp
-trajectory direction. Do not fix this in the hardware driver. The real launch
-uses a trajectory conversion layer instead:
+리더 실제 로봇의 joint3 모터 회전 방향은 소프트웨어 trajectory 방향과 반대다. 이 문제는 하드웨어 드라이버에서 수정하지 않고 trajectory 변환 계층으로 처리한다.
+
+실제 런치의 경로:
 
 ```text
 MoveIt Servo
@@ -100,19 +84,15 @@ MoveIt Servo
   -> arm_controller
 ```
 
-The transformer subscribes to `/joint_states` and mirrors only the joint3
-trajectory delta around the current joint3 position:
+변환 노드는 `/joint_states`를 구독하고 joint3 이동량만 현재 joint3 위치 기준으로 반전한다.
 
 ```text
 joint3_out = current_joint3 - (joint3_in - current_joint3)
 ```
 
-For multi-point trajectories, point 0 is used as the reference when it contains
-a joint3 position. This preserves cancel/hold trajectories: if Servo commands
-the current joint3 position during launch shutdown, the output remains the same
-position instead of jumping to the opposite absolute angle.
+여러 point가 들어오는 trajectory에서는 첫 번째 point에 joint3 위치가 있으면 그 값을 기준점으로 쓴다. 그래서 Servo가 런치 종료나 cancel 과정에서 현재 위치 hold 명령을 보내면, 출력도 현재 위치 그대로 유지된다. 단순히 절대각을 `-joint3`으로 바꾸지 않기 때문에 취소 시 반대 절대각으로 튀지 않는다.
 
-Runtime checks:
+확인 명령:
 
 ```bash
 ros2 topic info -v /arm_controller/joint_trajectory_raw
@@ -121,55 +101,29 @@ ros2 topic echo /arm_controller/joint_trajectory_raw --once
 ros2 topic echo /arm_controller/joint_trajectory --once
 ```
 
-On the real launch, `/servo_node` should publish the raw topic and
-`joint_trajectory_transformer` should publish the controller topic. `mp_control`
-still sends its one-shot joint pregrasp directly to the controller because its
-own `pregrasp_reverse_joint3_delta` logic uses the current joint state for the
-same delta mirror and for convergence checking.
+실제 런치에서는 `/servo_node`가 raw 토픽을 발행하고, `joint_trajectory_transformer`가 실제 arm controller 토픽을 발행해야 한다. `mp_control`의 1회 pregrasp 명령은 기존처럼 controller 토픽으로 직접 나가지만, 내부의 `pregrasp_reverse_joint3_delta` 로직이 같은 현재 위치 기준 delta 반전을 수행한다.
 
-## EEF Camera Path
+## EEF 카메라 경로
 
-The EEF camera has no depth stream. It is used as an RGB-only near-field camera.
-The real launch starts EEF YOLO immediately and publishes `/target/eef_init_bbox`
-continuously; `mp_control` only consumes it during the near-field grasp phase.
+EEF 카메라는 depth가 없는 RGB 전용 근접 보정 카메라다. 실제 런치는 EEF YOLO를 즉시 시작하고 `/target/eef_init_bbox`를 계속 발행한다. `mp_control`은 근접 파지 단계에서만 이 bbox를 사용한다.
 
-Current control topic:
+현재 제어 입력 토픽:
 
 ```yaml
 eef_bbox_topic: /target/eef_init_bbox
 ```
 
-That means real grasp control consumes the EEF YOLO bbox directly. The EEF
-`hybrid_csrt_ibvs` node may still be launched for debugging, but `/target/eef_tracked_bbox`
-is not the active grasp-control input.
+즉 실제 파지 제어는 EEF YOLO bbox를 직접 사용한다. EEF용 `hybrid_csrt_ibvs`는 디버그용으로 띄울 수 있지만 `/target/eef_tracked_bbox`는 현재 실제 파지 제어 입력이 아니다.
 
-EEF refinement uses pixel alignment plus stay-roll/current-pitch-yaw hold:
+EEF 보정은 픽셀 정렬과 stay-roll/current-pitch-yaw 유지를 같이 쓴다.
 
 ```yaml
 eef_close_tolerance_px: 70.0
 ```
 
-The tolerance is scaled from the configured EEF camera resolution, so the 320x240
-EEF camera and 640x480 front camera are not treated as equivalent pixel grids.
-The real EEF camera can show a tightly fitted box with the object center around
-60 px below the optical center; `70 px` treats that as close-ready. Once it is
-ready, `mp_control` keeps the EE roll captured from the initial stay pose, holds
-pitch/yaw from the refinement entry pose, drives the EE forward for
-`eef_forward_distance_m`, then closes the gripper.
+이 tolerance는 설정된 EEF 카메라 해상도를 기준으로 스케일된다. 따라서 320x240 EEF 카메라와 640x480 전면 카메라의 픽셀 오차를 같은 기준으로 보지 않는다. 현재 실제 EEF 카메라에서는 bbox가 물체에 딱 맞으면 물체 중심이 optical center보다 약 60 px 아래로 보일 수 있으므로, `70 px`를 close-ready 기준으로 사용한다.
 
-The EEF camera must not update gripper width. Width-aware gripper commands use
-only the latest object width measured from the front depth image; if no valid
-front-depth width exists, the configured fallback width is used. EEF RGB is only
-for final position correction when the end effector is slightly misaligned.
-The final gripper command uses `object_width + gripper_grasp_clearance_m`, so
-the commanded gap stays slightly wider than the measured object instead of
-trying to compress through it. If `gripper_grasp_clearance_m` is set to `0.0`,
-the legacy `gripper_grasp_compression_m` path is used.
-
-After EEF bbox alignment, the real grasp path uses the initial stay-pose EE roll
-as the roll reference, captures current pitch/yaw as the refinement reference,
-commands a short forward motion in `base_link`, then closes the gripper. This
-keeps the hand from rolling into the support while it advances into the object:
+EEF bbox 정렬이 완료되면 `mp_control`은 초기 stay 자세에서 캡처한 EE roll을 유지하고, refinement 진입 시점의 pitch/yaw를 유지한다. 그 상태에서 `base_link` 기준으로 짧게 전진한 뒤 그리퍼를 닫는다.
 
 ```yaml
 use_eef_rpy_refinement: true
@@ -183,23 +137,25 @@ eef_forward_distance_m: 0.05
 eef_forward_speed_mps: 0.012
 ```
 
-During this phase `/mp_control/status` reports `rpy_err=(roll, pitch, yaw)`,
-`roll_ref=stay_roll`, `rpy_ready`, and fixed-pose forward advance progress.
+이 단계에서 `/mp_control/status`에는 `rpy_err=(roll, pitch, yaw)`, `roll_ref=stay_roll`, `rpy_ready`, forward advance 진행 상태가 표시된다.
 
-## Front-EEF RGB Triangulation
+EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전면 depth에서 얻은 물체 폭만 사용한다. 유효한 전면 depth 폭이 없으면 fallback 폭을 쓴다. EEF RGB는 EE가 약간 틀어진 경우 최종 위치 보정에만 사용한다.
 
-After the 0.47 m depth handoff, `mp_control` triangulates the object using:
+최종 그리퍼 명령은 `object_width + gripper_grasp_clearance_m`를 사용한다. 그래서 측정된 물체 폭보다 약간 크게 벌린 상태로 닫기 명령을 보내며, `gripper_grasp_clearance_m: 0.0`이면 기존 `gripper_grasp_compression_m` 방식으로 돌아간다.
+
+## 전면-EEF RGB 삼각 측량
+
+0.47 m depth handoff 이후 `mp_control`은 아래 정보를 사용해 물체를 삼각 측량한다.
 
 ```text
-/target/tracked_bbox      front RGB bbox
+/target/tracked_bbox      전면 RGB bbox
 /target/eef_init_bbox     EEF RGB YOLO bbox
 /camera/color/camera_info_calibrated
 /eef_camera/camera_info
 /tf
 ```
 
-The measured EEF camera position relative to the front camera is applied only in
-the triangulation step:
+EEF 카메라와 전면 카메라의 측정 위치 차이는 삼각 측량에만 적용한다.
 
 ```yaml
 use_eef_front_camera_extrinsic_override: true
@@ -208,25 +164,23 @@ eef_front_camera_offset_y_m: 0.0
 eef_front_camera_offset_z_m: 0.15
 ```
 
-This means the EEF camera is 5 cm behind and 15 cm above the front camera in
-`base_link` axes. This does not change the MoveIt/arm TF used for Servo.
+이는 `base_link` 축 기준으로 EEF 카메라가 전면 카메라보다 x축 -5 cm, z축 +15 cm 위치에 있다는 뜻이다. 이 값은 MoveIt/arm TF 자체를 바꾸지 않는다.
 
-## Calibration Files
+## 캘리브레이션 파일
 
-Front Astra color calibration:
+전면 Astra color 캘리브레이션:
 
 ```text
 ../depth_perception/astra_mini_calibration/config/astra_mini_color.json
 ```
 
-EEF USB camera calibration:
+EEF USB 카메라 캘리브레이션:
 
 ```text
 calibration/eef_camera/eef_usb_camera.yaml
 ```
 
-The current EEF calibration is for the 320x240 EEF camera at about 50 cm. The
-active runtime topics are:
+현재 EEF 캘리브레이션은 320x240 EEF 카메라를 약 50 cm 거리에서 캘리브레이션한 값이다. 실제 런타임 토픽은 아래와 같다.
 
 ```text
 /eef_camera/image_raw
@@ -234,30 +188,32 @@ active runtime topics are:
 /eef_camera/set_camera_info
 ```
 
-For the calibration command and service remapping, use:
+카메라 캘리브레이션 명령과 service remapping은 아래 문서를 사용한다.
 
 ```text
 calibration/eef_camera/README.md
 ```
 
-Front-EEF stereo calibration capture and validation scripts are documented in:
+전면-EEF stereo 캘리브레이션 캡처와 검증 스크립트는 아래 문서에 정리되어 있다.
 
 ```text
 scripts/STEREO_CALIBRATION_USAGE.md
 ```
 
-Run them from `~/turtlebot3_ws/src/mp_control` with `python3 scripts/...`.
-They use `/camera/color/image_raw` and `/eef_camera/image_raw` for capture, then
-load intrinsics from `../depth_perception/.../astra_mini_color.json` and
-`calibration/eef_camera/eef_usb_camera.yaml`.
-Each script has a GUI path: use `--manual` or `--display` for capture, and
-`--display` for calibration, validation, and YAML summary.
+실행 기준 디렉토리:
 
-The stereo script outputs are optional diagnostics. The real grasp runtime keeps
-using the existing front JSON and EEF YAML calibration files above through
-`/camera/color/camera_info_calibrated` and `/eef_camera/camera_info`.
+```bash
+cd ~/turtlebot3_ws/src/mp_control
+python3 scripts/...
+```
 
-## Useful Runtime Checks
+스크립트는 캡처 시 `/camera/color/image_raw`, `/eef_camera/image_raw`를 사용한다. Intrinsics는 `../depth_perception/.../astra_mini_color.json`과 `calibration/eef_camera/eef_usb_camera.yaml`에서 읽는다.
+
+각 스크립트는 GUI 경로가 있다. 캡처는 `--manual` 또는 `--display`, calibration/validation/YAML summary는 `--display` 옵션을 사용한다.
+
+Stereo 스크립트 출력은 진단용이다. 실제 파지 런타임은 기존 front JSON과 EEF YAML을 `/camera/color/camera_info_calibrated`, `/eef_camera/camera_info`를 통해 계속 사용한다.
+
+## 실행 중 확인 명령
 
 ```bash
 ros2 topic echo /mp_control/status --once
@@ -267,14 +223,21 @@ ros2 topic echo /eef_camera/camera_info --once
 ros2 topic echo /servo_node/status --once
 ```
 
-When RGB triangulation is active, `/mp_control/status` should include:
+RGB 삼각 측량이 활성화되면 `/mp_control/status`에 아래 값이 포함되어야 한다.
 
 ```text
 offset_override=true
 eef_front_offset=(-0.05, 0, 0.15)
 ```
 
-## Build
+joint3 trajectory 변환 경로 확인:
+
+```bash
+ros2 topic info -v /arm_controller/joint_trajectory_raw
+ros2 topic info -v /arm_controller/joint_trajectory
+```
+
+## 빌드
 
 ```bash
 cd ~/turtlebot3_ws

@@ -3,18 +3,18 @@
 
 <img src="https://raw.githubusercontent.com/ROBOTIS-GIT/emanual/master/assets/images/platform/turtlebot3/manipulation/hardware_setup.png" width="500">
 
-## Local Real-Leader Joint3 Command Path
+## 로컬 실제 리더 joint3 명령 경로
 
-The real leader robot does not use the MoveIt Servo YAML
-`command_out_topic` directly. `servo.launch.py` accepts a launch argument named
-`command_out_topic`; `mp_control/launch/real_pick_place.launch.py` sets it to
-`/arm_controller/joint_trajectory_raw` and then starts
-`mp_control/tools/joint_trajectory_transformer.py`.
+실제 리더 로봇은 MoveIt Servo YAML의 `command_out_topic`을 그대로 쓰지 않는다.
+`servo.launch.py`는 `command_out_topic` launch argument를 받고,
+`mp_control/launch/real_pick_place.launch.py`는 이 값을
+`/arm_controller/joint_trajectory_raw`로 설정한 뒤
+`mp_control/tools/joint_trajectory_transformer.py`를 시작한다.
 
-That transformer republishes to `/arm_controller/joint_trajectory` after
-mirroring only joint3 movement around the current joint3 position. This keeps
-Servo cancel/hold commands at the current joint angle while reversing the unsafe
-joint3 movement direction for the physical manipulator.
+이 변환 노드는 현재 joint3 위치를 기준으로 joint3 이동량만 반전한 뒤
+`/arm_controller/joint_trajectory`로 다시 발행한다. 그래서 Servo의
+cancel/hold 명령은 현재 joint 각도를 유지하면서, 실제 매니퓰레이터에서 위험한
+joint3 이동 방향만 반대로 바꾼다.
 
 - Active Branches: noetic, humble, jazzy, main(rolling)
 - Legacy Branches: *-devel
