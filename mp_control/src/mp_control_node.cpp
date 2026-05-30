@@ -200,9 +200,12 @@ private:
     eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
     eef_auto_init_enable_topic_ =
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
-    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
-    twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
-    start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
+	    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
+	    twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
+	    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
+	    joint_trajectory_topic_ =
+	      declare_parameter<std::string>("joint_trajectory_topic", "/arm_controller/joint_trajectory");
+	    start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
     status_topic_ = declare_parameter<std::string>("status_topic", "/mp_control/status");
     cargo_event_topic_ = declare_parameter<std::string>("cargo_event_topic", "/cargo/events");
@@ -238,9 +241,10 @@ private:
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
     use_depthless_triangulation_ =
       declare_parameter<bool>("use_depthless_triangulation", false);
-    use_color_triangulation_after_min_depth_ =
-      declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
-    command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
+	    use_color_triangulation_after_min_depth_ =
+	      declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
+	    use_joint_pregrasp_ = declare_parameter<bool>("use_joint_pregrasp", true);
+	    command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
     max_linear_speed_ = declare_parameter<double>("max_linear_speed", 0.025);
@@ -281,9 +285,26 @@ private:
       declare_parameter<double>("object_pregrasp_lower_standoff_m", 0.02);
     object_pregrasp_min_lower_z_m_ =
       declare_parameter<double>("object_pregrasp_min_lower_z_m", 0.12);
-    object_pregrasp_enable_lowering_ =
-      declare_parameter<bool>("object_pregrasp_enable_lowering", false);
-    eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
+	    object_pregrasp_enable_lowering_ =
+	      declare_parameter<bool>("object_pregrasp_enable_lowering", false);
+	    joint_pregrasp_ready_positions_ =
+	      declare_parameter<std::vector<double>>(
+	      "pregrasp_ready_joint_positions", std::vector<double>{0.0, 0.65, -0.85, -1.20});
+	    joint_pregrasp_reverse_joint3_delta_ =
+	      declare_parameter<bool>("pregrasp_reverse_joint3_delta", true);
+	    joint_pregrasp_hold_current_duration_s_ =
+	      declare_parameter<double>("pregrasp_hold_current_duration_s", 0.15);
+	    joint_pregrasp_move_duration_s_ =
+	      declare_parameter<double>("pregrasp_move_duration_s", 1.2);
+	    joint_pregrasp_settle_s_ =
+	      declare_parameter<double>("pregrasp_settle_s", 0.5);
+	    joint_pregrasp_min_positions_ =
+	      declare_parameter<std::vector<double>>(
+	      "pregrasp_joint_min_positions", std::vector<double>{-3.14, -1.79, -0.94, -1.79});
+	    joint_pregrasp_max_positions_ =
+	      declare_parameter<std::vector<double>>(
+	      "pregrasp_joint_max_positions", std::vector<double>{3.14, 1.57, 1.38, 2.04});
+	    eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
     eef_close_tolerance_px_ = declare_parameter<double>("eef_close_tolerance_px", eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
     eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
@@ -356,9 +377,24 @@ private:
     eef_final_depth_m_ = std::max(0.0, eef_final_depth_m_);
     object_pregrasp_standoff_m_ = std::max(0.0, object_pregrasp_standoff_m_);
     object_pregrasp_min_z_m_ = std::max(0.0, object_pregrasp_min_z_m_);
-    object_pregrasp_lower_standoff_m_ = std::max(0.0, object_pregrasp_lower_standoff_m_);
-    object_pregrasp_min_lower_z_m_ = std::max(0.0, object_pregrasp_min_lower_z_m_);
-    eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
+	    object_pregrasp_lower_standoff_m_ = std::max(0.0, object_pregrasp_lower_standoff_m_);
+	    object_pregrasp_min_lower_z_m_ = std::max(0.0, object_pregrasp_min_lower_z_m_);
+	    joint_pregrasp_ready_positions_ =
+	      normalizedJointVector(joint_pregrasp_ready_positions_, {0.0, 0.65, -0.85, -1.20});
+	    joint_pregrasp_min_positions_ =
+	      normalizedJointVector(joint_pregrasp_min_positions_, {-3.14, -1.79, -0.94, -1.79});
+	    joint_pregrasp_max_positions_ =
+	      normalizedJointVector(joint_pregrasp_max_positions_, {3.14, 1.57, 1.38, 2.04});
+	    for (std::size_t i = 0; i < arm_joint_names_.size(); ++i) {
+	      if (joint_pregrasp_min_positions_[i] > joint_pregrasp_max_positions_[i]) {
+	        std::swap(joint_pregrasp_min_positions_[i], joint_pregrasp_max_positions_[i]);
+	      }
+	    }
+	    joint_pregrasp_hold_current_duration_s_ =
+	      std::max(0.0, joint_pregrasp_hold_current_duration_s_);
+	    joint_pregrasp_move_duration_s_ = std::max(0.2, joint_pregrasp_move_duration_s_);
+	    joint_pregrasp_settle_s_ = std::max(0.0, joint_pregrasp_settle_s_);
+	    eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_close_tolerance_px_ = std::max(eef_center_tolerance_px_, eef_close_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
