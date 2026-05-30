@@ -2082,6 +2082,7 @@ private:
   double grasp_offset_z_{0.0};
   double eef_refinement_switch_distance_m_{0.12};
   double eef_refinement_start_depth_m_{0.47};
+  double eef_yolo_pre_enable_depth_m_{0.47};
   double min_depth_handoff_margin_m_{0.02};
   double min_depth_handoff_bbox_area_ratio_{0.30};
   double min_depth_handoff_bbox_height_ratio_{0.75};
