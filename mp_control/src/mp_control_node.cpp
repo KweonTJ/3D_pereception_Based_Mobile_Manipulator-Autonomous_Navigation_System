@@ -1150,11 +1150,14 @@ private:
     return true;
   }
 
-  void updateEefRefinement(const geometry_msgs::msg::PointStamped & object_in_target)
+  void updateEefRefinement(
+    const geometry_msgs::msg::PointStamped & object_in_target,
+    const geometry_msgs::msg::TransformStamped & eef_tf)
   {
     if (!prepareEefRefinement(object_in_target)) {
       return;
     }
+    captureEefRpyReference(eef_tf);
 
     Bbox bbox;
     CameraInfo info;
@@ -1238,8 +1241,46 @@ private:
     const bool close_ready =
       std::abs(err_u_px) <= close_tolerance_px &&
       std::abs(err_v_px) <= close_tolerance_px;
+    const RpyError rpy_error = computeEefRpyError(eef_tf);
+    const bool pose_ready = close_ready && rpy_error.ready;
 
-    if (close_ready) {
+    if (eef_forward_advance_active_) {
+      const double advanced_x = std::max(
+        0.0, eef_tf.transform.translation.x - eef_forward_start_x_m_);
+      if (advanced_x < eef_forward_distance_m_) {
+        publishEefForwardAdvanceCommand(rpy_error);
+        std::ostringstream status;
+        status << "eef aligned; advancing forward before grasp: advanced_x="
+               << advanced_x << "/" << eef_forward_distance_m_
+               << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
+               << ", " << rpy_error.yaw << ")"
+               << " cmd_frame=" << target_frame_;
+        publishStatus(status.str());
+        return;
+      }
+    }
+
+    if (pose_ready) {
+      if (eef_forward_after_align_ &&
+          eef_forward_distance_m_ > 0.0 &&
+          eef_forward_speed_mps_ > 0.0 &&
+          !eef_forward_advance_active_) {
+        eef_forward_advance_active_ = true;
+        eef_forward_start_stamp_ = now();
+        eef_forward_start_x_m_ = eef_tf.transform.translation.x;
+        stable_cycles_ = 0;
+        publishEefForwardAdvanceCommand(rpy_error);
+        std::ostringstream status;
+        status << "eef pixel+rpy aligned; starting fixed-pose forward advance before grasp"
+               << " distance=" << eef_forward_distance_m_
+               << " speed=" << eef_forward_speed_mps_
+               << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
+               << ", " << rpy_error.yaw << ")"
+               << " cmd_frame=" << target_frame_;
+        publishStatus(status.str(), true);
+        return;
+      }
+
       stable_cycles_ += 1;
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
@@ -1254,11 +1295,14 @@ private:
           std::lock_guard<std::mutex> lock(data_mutex_);
           eef_refinement_requested_ = false;
         }
-        publishStatus("eef camera refined grasp reached; width-aware gripper command sent", true);
+        publishStatus("eef camera refined grasp reached after fixed-pose forward advance; width-aware gripper command sent", true);
       } else {
         std::ostringstream hold_status;
         hold_status << "eef camera close-ready; holding before closing"
                     << " pixel_err=(" << err_u_px << ", " << err_v_px << ")"
+                    << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
+                    << ", " << rpy_error.yaw << ")"
+                    << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
                     << " strict_centered=" << (centered ? "true" : "false");
         publishStatus(hold_status.str());
       }
@@ -1266,16 +1310,34 @@ private:
     }
 
     stable_cycles_ = 0;
+    eef_forward_advance_active_ = false;
     geometry_msgs::msg::TwistStamped cmd;
     cmd.header.stamp = now();
-    cmd.header.frame_id = eef_camera_frame;
-    cmd.twist.linear.x = clampValue(
+    cmd.header.frame_id = target_frame_;
+    tf2::Transform camera_to_target;
+    try {
+      geometry_msgs::msg::TransformStamped camera_tf_msg =
+        tf_buffer_.lookupTransform(target_frame_, eef_camera_frame, tf2::TimePointZero);
+      tf2::fromMsg(camera_tf_msg.transform, camera_to_target);
+    } catch (const tf2::TransformException & ex) {
+      publishStop();
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "end-effector camera command TF unavailable: %s", ex.what());
+      return;
+    }
+    const tf2::Vector3 linear_camera(
       eef_refine_lateral_gain_ * lateral_m,
-      -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
-    cmd.twist.linear.y = clampValue(
       eef_refine_lateral_gain_ * vertical_m,
-      -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
-    cmd.twist.linear.z = 0.0;
+      0.0);
+    const tf2::Vector3 linear_target = camera_to_target.getBasis() * linear_camera;
+    cmd.twist.linear.x = clampValue(
+      linear_target.x(), -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
+    cmd.twist.linear.y = clampValue(
+      linear_target.y(), -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
+    cmd.twist.linear.z = clampValue(
+      linear_target.z(), -eef_refine_max_linear_speed_, eef_refine_max_linear_speed_);
+    applyEefRpyCorrection(rpy_error, cmd);
     twist_pub_->publish(cmd);
 
     std::ostringstream status;
@@ -1284,8 +1346,11 @@ private:
            << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
            << " range_cmd=disabled"
            << " close_tol_px=" << close_tolerance_px
+           << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
+           << ", " << rpy_error.yaw << ")"
+           << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
            << " eef_resolution=" << info.width << "x" << info.height
-           << " cmd_frame=" << eef_camera_frame;
+           << " cmd_frame=" << target_frame_;
     publishStatus(status.str());
   }
 
