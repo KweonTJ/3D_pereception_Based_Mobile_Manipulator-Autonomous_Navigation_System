@@ -331,6 +331,7 @@ private:
     eef_refine_depth_gain_ = declare_parameter<double>("eef_refine_depth_gain", 0.5);
     eef_refine_max_linear_speed_ = declare_parameter<double>("eef_refine_max_linear_speed", 0.012);
     use_eef_rpy_refinement_ = declare_parameter<bool>("use_eef_rpy_refinement", true);
+    eef_hold_current_rpy_ = declare_parameter<bool>("eef_hold_current_rpy", true);
     eef_target_roll_rad_ = declare_parameter<double>("eef_target_roll_rad", 0.0);
     eef_target_pitch_rad_ = declare_parameter<double>("eef_target_pitch_rad", 0.0);
     eef_target_yaw_rad_ = declare_parameter<double>("eef_target_yaw_rad", 0.0);
@@ -338,6 +339,9 @@ private:
     eef_rpy_gain_ = declare_parameter<double>("eef_rpy_gain", 0.8);
     eef_refine_max_angular_speed_ =
       declare_parameter<double>("eef_refine_max_angular_speed", 0.25);
+    eef_forward_after_align_ = declare_parameter<bool>("eef_forward_after_align", true);
+    eef_forward_distance_m_ = declare_parameter<double>("eef_forward_distance_m", 0.05);
+    eef_forward_speed_mps_ = declare_parameter<double>("eef_forward_speed_mps", 0.012);
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
@@ -431,6 +435,8 @@ private:
     eef_rpy_tolerance_rad_ = std::max(0.001, eef_rpy_tolerance_rad_);
     eef_rpy_gain_ = std::max(0.0, eef_rpy_gain_);
     eef_refine_max_angular_speed_ = std::max(0.0, eef_refine_max_angular_speed_);
+    eef_forward_distance_m_ = std::max(0.0, eef_forward_distance_m_);
+    eef_forward_speed_mps_ = std::max(0.0, eef_forward_speed_mps_);
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
