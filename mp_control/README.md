@@ -201,6 +201,10 @@ load intrinsics from `../depth_perception/.../astra_mini_color.json` and
 Each script has a GUI path: use `--manual` or `--display` for capture, and
 `--display` for calibration, validation, and YAML summary.
 
+The stereo script outputs are optional diagnostics. The real grasp runtime keeps
+using the existing front JSON and EEF YAML calibration files above through
+`/camera/color/camera_info_calibrated` and `/eef_camera/camera_info`.
+
 ## Useful Runtime Checks
 
 ```bash
