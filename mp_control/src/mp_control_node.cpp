@@ -2469,6 +2469,8 @@ private:
 	  double joint_pregrasp_hold_current_duration_s_{0.15};
 	  double joint_pregrasp_move_duration_s_{1.2};
 	  double joint_pregrasp_settle_s_{0.5};
+	  double joint_pregrasp_tolerance_rad_{0.04};
+	  double joint_pregrasp_republish_period_s_{1.0};
 	  std::vector<double> joint_pregrasp_min_positions_{-3.14, -1.79, -0.94, -1.79};
 	  std::vector<double> joint_pregrasp_max_positions_{3.14, 1.57, 1.38, 2.04};
 	  double eef_center_tolerance_px_{18.0};
