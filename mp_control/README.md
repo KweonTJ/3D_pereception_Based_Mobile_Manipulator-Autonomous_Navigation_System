@@ -198,6 +198,8 @@ Run them from `~/turtlebot3_ws/src/mp_control` with `python3 scripts/...`.
 They use `/camera/color/image_raw` and `/eef_camera/image_raw` for capture, then
 load intrinsics from `../depth_perception/.../astra_mini_color.json` and
 `calibration/eef_camera/eef_usb_camera.yaml`.
+Each script has a GUI path: use `--manual` or `--display` for capture, and
+`--display` for calibration, validation, and YAML summary.
 
 ## Useful Runtime Checks
 
