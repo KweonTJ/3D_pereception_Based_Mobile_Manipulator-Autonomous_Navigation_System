@@ -76,6 +76,8 @@ mp_control_node:
     gripper_fallback_object_width_m: 0.06
     gripper_finger_home_half_gap_m: 0.021
     gripper_pre_grasp_clearance_m: 0.012
+    gripper_grasp_clearance_m: 0.004
+    # Used only when gripper_grasp_clearance_m is 0.0.
     gripper_grasp_compression_m: 0.002
     gripper_min_position: -0.010
     gripper_max_position: 0.019
