@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -20,10 +21,13 @@
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Vector3.h>
@@ -87,6 +91,9 @@ public:
     eef_camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
       eef_camera_info_topic_, sensor_qos,
       [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onEefCameraInfo(msg); });
+    joint_state_sub_ = create_subscription<sensor_msgs::msg::JointState>(
+      joint_state_topic_, default_qos,
+      [this](const sensor_msgs::msg::JointState::ConstSharedPtr msg) { onJointState(msg); });
     start_sub_ = create_subscription<std_msgs::msg::Bool>(
       start_topic_, default_qos,
       [this](const std_msgs::msg::Bool::ConstSharedPtr msg) {
@@ -103,6 +110,9 @@ public:
       });
 
     twist_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(twist_topic_, default_qos);
+    joint_trajectory_pub_ =
+      create_publisher<trajectory_msgs::msg::JointTrajectory>(
+      joint_trajectory_topic_, default_qos);
     status_pub_ = create_publisher<std_msgs::msg::String>(status_topic_, status_qos);
     cargo_event_pub_ = create_publisher<std_msgs::msg::String>(cargo_event_topic_, default_qos);
     cargo_current_id_pub_ =
@@ -127,9 +137,10 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "mp_control started: bbox=%s depth=%s camera_info=%s eef_bbox=%s eef_camera_info=%s twist=%s target_frame=%s eef_frame=%s auto_start_on_bbox=%s eef_refinement=%s",
+      "mp_control started: bbox=%s depth=%s camera_info=%s eef_bbox=%s eef_camera_info=%s twist=%s joint_trajectory=%s target_frame=%s eef_frame=%s auto_start_on_bbox=%s eef_refinement=%s",
       bbox_topic_.c_str(), depth_topic_.c_str(), camera_info_topic_.c_str(),
       eef_bbox_topic_.c_str(), eef_camera_info_topic_.c_str(), twist_topic_.c_str(),
+      joint_trajectory_topic_.c_str(),
       target_frame_.c_str(), end_effector_frame_.c_str(),
       auto_start_on_bbox_ ? "true" : "false",
       use_eef_refinement_ ? "true" : "false");
