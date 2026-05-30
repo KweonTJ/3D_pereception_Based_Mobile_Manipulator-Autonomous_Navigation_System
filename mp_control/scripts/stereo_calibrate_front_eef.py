@@ -320,6 +320,26 @@ def main():
             if overlay_dir:
                 save_overlay(overlay_dir / f"front_{index:03d}_corners.png", front_image, pattern_size, front_corners, front_found)
                 save_overlay(overlay_dir / f"eef_{index:03d}_corners.png", eef_image, pattern_size, eef_corners, eef_found)
+            if args.display:
+                front_overlay = draw_corner_overlay(
+                    front_image,
+                    pattern_size,
+                    front_corners,
+                    front_found,
+                    f"front pair {index:03d}",
+                )
+                eef_overlay = draw_corner_overlay(
+                    eef_image,
+                    pattern_size,
+                    eef_corners,
+                    eef_found,
+                    f"eef pair {index:03d}",
+                )
+                cv2.imshow("front/eef stereo calibration corners", stack_overlays(front_overlay, eef_overlay))
+                key = cv2.waitKey(max(0, args.display_wait_ms)) & 0xFF
+                if key in (ord("q"), 27):
+                    cv2.destroyWindow("front/eef stereo calibration corners")
+                    args.display = False
             if not front_found or not eef_found or front_corners is None or eef_corners is None:
                 failed_pairs.append(f"{index}: checkerboard detection failed front={front_found} eef={eef_found}")
                 continue
@@ -341,6 +361,9 @@ def main():
             eef_points.append(epts)
 
         used_indices.append(index)
+
+    if args.display:
+        cv2.destroyAllWindows()
 
     if len(object_points) < 3:
         print("Failed pairs:")
