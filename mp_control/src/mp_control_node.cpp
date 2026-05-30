@@ -30,6 +30,7 @@
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_ros/buffer.h>
@@ -48,6 +49,11 @@ T clampValue(T value, T min_value, T max_value)
 double vectorNorm(double x, double y, double z)
 {
   return std::sqrt(x * x + y * y + z * z);
+}
+
+double normalizeAngle(double angle)
+{
+  return std::atan2(std::sin(angle), std::cos(angle));
 }
 }  // namespace
 
@@ -190,6 +196,15 @@ private:
     tf2::Vector3 direction;
   };
 
+  struct RpyError
+  {
+    double roll{0.0};
+    double pitch{0.0};
+    double yaw{0.0};
+    double norm{0.0};
+    bool ready{true};
+  };
+
   void readParameters()
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
@@ -315,6 +330,14 @@ private:
     eef_refine_lateral_gain_ = declare_parameter<double>("eef_refine_lateral_gain", 0.8);
     eef_refine_depth_gain_ = declare_parameter<double>("eef_refine_depth_gain", 0.5);
     eef_refine_max_linear_speed_ = declare_parameter<double>("eef_refine_max_linear_speed", 0.012);
+    use_eef_rpy_refinement_ = declare_parameter<bool>("use_eef_rpy_refinement", true);
+    eef_target_roll_rad_ = declare_parameter<double>("eef_target_roll_rad", 0.0);
+    eef_target_pitch_rad_ = declare_parameter<double>("eef_target_pitch_rad", 0.0);
+    eef_target_yaw_rad_ = declare_parameter<double>("eef_target_yaw_rad", 0.0);
+    eef_rpy_tolerance_rad_ = declare_parameter<double>("eef_rpy_tolerance_rad", 0.12);
+    eef_rpy_gain_ = declare_parameter<double>("eef_rpy_gain", 0.8);
+    eef_refine_max_angular_speed_ =
+      declare_parameter<double>("eef_refine_max_angular_speed", 0.25);
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
@@ -405,6 +428,9 @@ private:
     eef_close_tolerance_px_ = std::max(eef_center_tolerance_px_, eef_close_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
     eef_refine_max_linear_speed_ = std::max(0.0, eef_refine_max_linear_speed_);
+    eef_rpy_tolerance_rad_ = std::max(0.001, eef_rpy_tolerance_rad_);
+    eef_rpy_gain_ = std::max(0.0, eef_rpy_gain_);
+    eef_refine_max_angular_speed_ = std::max(0.0, eef_refine_max_angular_speed_);
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
