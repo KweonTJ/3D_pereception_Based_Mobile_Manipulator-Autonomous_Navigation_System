@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include <builtin_interfaces/msg/duration.hpp>
 #include <control_msgs/action/gripper_command.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -1261,6 +1262,156 @@ private:
     }
 
     return triangulateObjectPoint(block_reason);
+  }
+
+  std::vector<double> normalizedJointVector(
+    const std::vector<double> & values,
+    const std::array<double, 4> & fallback) const
+  {
+    if (values.size() != arm_joint_names_.size()) {
+      return std::vector<double>(fallback.begin(), fallback.end());
+    }
+    return values;
+  }
+
+  builtin_interfaces::msg::Duration durationFromSeconds(double seconds) const
+  {
+    builtin_interfaces::msg::Duration duration;
+    const auto safe_seconds = std::max(0.0, seconds);
+    const auto whole_seconds = static_cast<std::int32_t>(std::floor(safe_seconds));
+    duration.sec = whole_seconds;
+    duration.nanosec =
+      static_cast<std::uint32_t>(std::round((safe_seconds - whole_seconds) * 1e9));
+    if (duration.nanosec >= 1000000000U) {
+      duration.sec += 1;
+      duration.nanosec -= 1000000000U;
+    }
+    return duration;
+  }
+
+  std::string formatJointArray(const std::array<double, 4> & values) const
+  {
+    std::ostringstream out;
+    out << "[";
+    for (std::size_t i = 0; i < values.size(); ++i) {
+      if (i > 0) {
+        out << ", ";
+      }
+      out << values[i];
+    }
+    out << "]";
+    return out.str();
+  }
+
+  std::optional<std::array<double, 4>> latestArmJointPositions()
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    if (!latest_arm_joint_positions_ ||
+        latest_joint_state_stamp_.nanoseconds() == 0 ||
+        (now() - latest_joint_state_stamp_).seconds() > max_target_age_s_) {
+      return std::nullopt;
+    }
+    return latest_arm_joint_positions_;
+  }
+
+  std::array<double, 4> clampJointPregraspTarget(const std::array<double, 4> & positions) const
+  {
+    std::array<double, 4> clamped = positions;
+    for (std::size_t i = 0; i < clamped.size(); ++i) {
+      clamped[i] = clampValue(
+        clamped[i], joint_pregrasp_min_positions_[i], joint_pregrasp_max_positions_[i]);
+    }
+    return clamped;
+  }
+
+  std::array<double, 4> jointPregraspTargetFromCurrent(
+    const std::array<double, 4> & current) const
+  {
+    std::array<double, 4> target{};
+    for (std::size_t i = 0; i < target.size(); ++i) {
+      target[i] = joint_pregrasp_ready_positions_[i];
+    }
+    if (joint_pregrasp_reverse_joint3_delta_) {
+      target[2] = current[2] - (target[2] - current[2]);
+    }
+    return clampJointPregraspTarget(target);
+  }
+
+  void appendJointTrajectoryPoint(
+    trajectory_msgs::msg::JointTrajectory & msg,
+    const std::array<double, 4> & positions,
+    double time_from_start_s) const
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions.assign(positions.begin(), positions.end());
+    point.time_from_start = durationFromSeconds(time_from_start_s);
+    msg.points.push_back(point);
+  }
+
+  void publishJointPregraspTrajectory(
+    const std::array<double, 4> & current,
+    const std::array<double, 4> & target)
+  {
+    trajectory_msgs::msg::JointTrajectory msg;
+    msg.header.stamp = now();
+    msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
+
+    double trajectory_time_s = 0.0;
+    if (joint_pregrasp_hold_current_duration_s_ > 0.0) {
+      trajectory_time_s += joint_pregrasp_hold_current_duration_s_;
+      appendJointTrajectoryPoint(msg, clampJointPregraspTarget(current), trajectory_time_s);
+    }
+    trajectory_time_s += joint_pregrasp_move_duration_s_;
+    appendJointTrajectoryPoint(msg, target, trajectory_time_s);
+
+    joint_trajectory_pub_->publish(msg);
+  }
+
+  bool updateJointPregrasp()
+  {
+    if (joint_pregrasp_done_) {
+      return true;
+    }
+
+    const auto stamp = now();
+    if (joint_pregrasp_sent_) {
+      const double elapsed_s = (stamp - joint_pregrasp_start_stamp_).seconds();
+      const double wait_s =
+        joint_pregrasp_hold_current_duration_s_ +
+        joint_pregrasp_move_duration_s_ +
+        joint_pregrasp_settle_s_;
+      if (elapsed_s >= wait_s) {
+        joint_pregrasp_done_ = true;
+        publishStatus("joint pregrasp complete; switching to EEF refinement", true);
+        return true;
+      }
+
+      std::ostringstream status;
+      status << "waiting for joint pregrasp trajectory: elapsed="
+             << elapsed_s << "/" << wait_s;
+      publishStatus(status.str());
+      return false;
+    }
+
+    auto current = latestArmJointPositions();
+    if (!current) {
+      publishStatus("waiting for arm joint_states before joint pregrasp");
+      return false;
+    }
+
+    const auto target = jointPregraspTargetFromCurrent(*current);
+    publishJointPregraspTrajectory(*current, target);
+    joint_pregrasp_sent_ = true;
+    joint_pregrasp_start_stamp_ = stamp;
+    object_pregrasp_horizontal_done_ = true;
+
+    std::ostringstream status;
+    status << "moving arm to joint pregrasp: current=" << formatJointArray(*current)
+           << " target=" << formatJointArray(target)
+           << " joint3_reverse_delta="
+           << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false");
+    publishStatus(status.str(), true);
+    return false;
   }
 
   bool moveArmToObjectPregraspPose(
