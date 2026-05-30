@@ -1817,6 +1817,18 @@ private:
     }
   }
 
+  void maybePreEnableEefYolo(double depth_m)
+  {
+    if (!use_eef_refinement_ ||
+        !use_color_triangulation_after_min_depth_ ||
+        !std::isfinite(depth_m) ||
+        depth_m > eef_yolo_pre_enable_depth_m_) {
+      return;
+    }
+
+    publishEefAutoInitEnable(true);
+  }
+
   void rememberDepthObjectPoint(const geometry_msgs::msg::PointStamped & object_in_target)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
