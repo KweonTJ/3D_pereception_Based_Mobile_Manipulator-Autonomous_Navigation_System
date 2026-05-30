@@ -3,6 +3,18 @@
 This guide explains the generated calibration files and the exact commands for
 using them.
 
+Run these commands from the source workspace:
+
+```bash
+cd ~/turtlebot3_ws/src
+source /opt/ros/humble/setup.bash
+source ~/turtlebot3_ws/install/setup.bash
+```
+
+The files in this directory are source-tree scripts. They are not installed as
+`ros2 run mp_control ...` executables, so invoke them with `python3
+mp_control/scripts/...`.
+
 ## Files And Roles
 
 ### `capture_front_eef_stereo_pairs.py`
@@ -96,6 +108,33 @@ square size: 0.020 m
 `--board-cols` and `--board-rows` mean inner corner count. They do not mean the
 number of black/white squares.
 
+## Current Runtime Topics
+
+Use the current real-robot topic names below. Front RGB is 640x480 and EEF USB
+camera is 320x240, so do not compare pixel sizes directly between the two image
+planes.
+
+```text
+front image topic:              /camera/color/image_raw
+front calibrated camera_info:    /camera/color/camera_info_calibrated
+eef image topic:                /eef_camera/image_raw
+eef camera_info topic:          /eef_camera/camera_info
+eef set-info service:           /eef_camera/set_camera_info
+front bbox used at runtime:      /target/tracked_bbox
+eef YOLO bbox used at runtime:   /target/eef_init_bbox
+```
+
+The pair-capture script subscribes only to the two image topics. The calibration
+step reads intrinsics from:
+
+```text
+depth_perception/astra_mini_calibration/config/astra_mini_color.json
+mp_control/calibration/eef_camera/eef_usb_camera.yaml
+```
+
+Runtime `mp_control` then combines the front calibrated `camera_info`, EEF
+`camera_info`, `/target/tracked_bbox`, `/target/eef_init_bbox`, and `/tf`.
+
 ## Step 1: Capture Image Pairs
 
 Start only the camera drivers needed to publish:
@@ -105,10 +144,19 @@ Start only the camera drivers needed to publish:
 /eef_camera/image_raw
 ```
 
+Check the active topics before capture:
+
+```bash
+ros2 topic hz /camera/color/image_raw
+ros2 topic hz /eef_camera/image_raw
+ros2 topic echo /camera/color/camera_info_calibrated --once
+ros2 topic echo /eef_camera/camera_info --once
+```
+
 Manual capture:
 
 ```bash
-ros2 run mp_control capture_front_eef_stereo_pairs.py \
+python3 mp_control/scripts/capture_front_eef_stereo_pairs.py \
   --front-topic /camera/color/image_raw \
   --eef-topic /eef_camera/image_raw \
   --output-dir mp_control/calibration/stereo/images \
@@ -125,7 +173,7 @@ q/Esc   quit
 Automatic capture:
 
 ```bash
-ros2 run mp_control capture_front_eef_stereo_pairs.py \
+python3 mp_control/scripts/capture_front_eef_stereo_pairs.py \
   --front-topic /camera/color/image_raw \
   --eef-topic /eef_camera/image_raw \
   --output-dir mp_control/calibration/stereo/images \
