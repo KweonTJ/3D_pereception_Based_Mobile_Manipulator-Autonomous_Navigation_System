@@ -83,11 +83,15 @@ is not the active grasp-control input.
 EEF refinement uses pixel alignment only:
 
 ```yaml
-eef_close_tolerance_px: 55.0
+eef_close_tolerance_px: 70.0
 ```
 
 The tolerance is scaled from the configured EEF camera resolution, so the 320x240
 EEF camera and 640x480 front camera are not treated as equivalent pixel grids.
+The real EEF camera can show a tightly fitted box with the object center around
+60 px below the optical center; `70 px` treats that as close-ready and closes
+the gripper instead of repeatedly commanding a Servo correction that collision
+scaling cannot execute.
 
 ## Front-EEF RGB Triangulation
 
