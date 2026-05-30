@@ -614,6 +614,7 @@ private:
     joint_pregrasp_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    resetEefRefinementMotionState();
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -650,6 +651,7 @@ private:
     joint_pregrasp_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    resetEefRefinementMotionState();
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -799,7 +801,7 @@ private:
     const auto & object = *maybe_object;
 
     if (stage_ == GraspStage::EEF_REFINE) {
-      updateEefRefinement(object);
+      updateEefRefinement(object, eef_tf);
       return;
     }
 
@@ -851,11 +853,12 @@ private:
 	      }
 	      if (!prepareEefRefinement(object)) {
 	        return;
-	      }
+      }
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
+      captureEefRpyReference(eef_tf);
       publishStatus("base stopped, depth+EEF ready; arm extended toward object and switching to refinement", true);
-      updateEefRefinement(object);
+      updateEefRefinement(object, eef_tf);
       return;
     }
 
