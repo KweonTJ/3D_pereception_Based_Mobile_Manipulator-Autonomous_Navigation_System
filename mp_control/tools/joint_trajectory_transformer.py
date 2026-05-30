@@ -55,7 +55,7 @@ class JointTrajectoryTransformer(Node):
             if not self.warned_missing_reference:
                 self.get_logger().warn(
                     "dropping trajectory until joint3 reference is available "
-                    "from trajectory point 0 or /joint_states"
+                    "from /joint_states"
                 )
                 self.warned_missing_reference = True
             return
@@ -91,17 +91,10 @@ class JointTrajectoryTransformer(Node):
 
     def _reference_positions(self, msg):
         references = {}
-        for index, joint_name in enumerate(msg.joint_names):
+        for joint_name in msg.joint_names:
             if joint_name not in self.reverse_joint_names:
                 continue
-            point_reference = None
-            if msg.points and len(msg.points[0].positions) > index:
-                point_reference = msg.points[0].positions[index]
-            references[joint_name] = (
-                point_reference
-                if point_reference is not None
-                else self.latest_joint_positions.get(joint_name)
-            )
+            references[joint_name] = self.latest_joint_positions.get(joint_name)
 
         if any(position is None for position in references.values()):
             return None
