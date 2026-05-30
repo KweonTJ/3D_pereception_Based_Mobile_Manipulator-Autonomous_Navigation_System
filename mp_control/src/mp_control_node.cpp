@@ -1314,6 +1314,12 @@ private:
     if (!eef_ray) {
       return std::nullopt;
     }
+    if (use_eef_front_camera_extrinsic_override_) {
+      eef_ray->origin = front_ray->origin + tf2::Vector3(
+        eef_front_camera_offset_x_m_,
+        eef_front_camera_offset_y_m_,
+        eef_front_camera_offset_z_m_);
+    }
 
     const tf2::Vector3 w0 = front_ray->origin - eef_ray->origin;
     const double a = front_ray->direction.dot(front_ray->direction);
@@ -1366,7 +1372,10 @@ private:
       std::ostringstream status;
       status << "stereo triangulation object=(" << point.point.x << ", "
              << point.point.y << ", " << point.point.z
-             << ") ray_gap=" << ray_gap;
+             << ") ray_gap=" << ray_gap
+             << " eef_front_offset=(" << eef_front_camera_offset_x_m_ << ", "
+             << eef_front_camera_offset_y_m_ << ", " << eef_front_camera_offset_z_m_ << ")"
+             << " offset_override=" << (use_eef_front_camera_extrinsic_override_ ? "true" : "false");
       publishStatus(status.str());
     }
     return point;
