@@ -299,6 +299,10 @@ private:
 	      declare_parameter<double>("pregrasp_move_duration_s", 1.2);
 	    joint_pregrasp_settle_s_ =
 	      declare_parameter<double>("pregrasp_settle_s", 0.5);
+	    joint_pregrasp_tolerance_rad_ =
+	      declare_parameter<double>("pregrasp_joint_tolerance_rad", 0.04);
+	    joint_pregrasp_republish_period_s_ =
+	      declare_parameter<double>("pregrasp_republish_period_s", 1.0);
 	    joint_pregrasp_min_positions_ =
 	      declare_parameter<std::vector<double>>(
 	      "pregrasp_joint_min_positions", std::vector<double>{-3.14, -1.79, -0.94, -1.79});
@@ -395,6 +399,8 @@ private:
 	      std::max(0.0, joint_pregrasp_hold_current_duration_s_);
 	    joint_pregrasp_move_duration_s_ = std::max(0.2, joint_pregrasp_move_duration_s_);
 	    joint_pregrasp_settle_s_ = std::max(0.0, joint_pregrasp_settle_s_);
+	    joint_pregrasp_tolerance_rad_ = std::max(0.001, joint_pregrasp_tolerance_rad_);
+	    joint_pregrasp_republish_period_s_ = std::max(0.2, joint_pregrasp_republish_period_s_);
 	    eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_close_tolerance_px_ = std::max(eef_center_tolerance_px_, eef_close_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
@@ -573,7 +579,9 @@ private:
     object_pregrasp_horizontal_done_ = false;
     joint_pregrasp_sent_ = false;
     joint_pregrasp_done_ = false;
+    joint_pregrasp_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -607,7 +615,9 @@ private:
     object_pregrasp_horizontal_done_ = false;
     joint_pregrasp_sent_ = false;
     joint_pregrasp_done_ = false;
+    joint_pregrasp_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -1373,6 +1383,17 @@ private:
     joint_trajectory_pub_->publish(msg);
   }
 
+  double maxJointError(
+    const std::array<double, 4> & current,
+    const std::array<double, 4> & target) const
+  {
+    double max_error = 0.0;
+    for (std::size_t i = 0; i < current.size(); ++i) {
+      max_error = std::max(max_error, std::abs(current[i] - target[i]));
+    }
+    return max_error;
+  }
+
   bool updateJointPregrasp()
   {
     if (joint_pregrasp_done_) {
@@ -1386,15 +1407,37 @@ private:
         joint_pregrasp_hold_current_duration_s_ +
         joint_pregrasp_move_duration_s_ +
         joint_pregrasp_settle_s_;
-      if (elapsed_s >= wait_s) {
+      const auto current = latestArmJointPositions();
+      const bool can_check_reached = current && joint_pregrasp_target_;
+      const double max_error = can_check_reached ?
+        maxJointError(*current, *joint_pregrasp_target_) : -1.0;
+      if (elapsed_s >= wait_s && can_check_reached &&
+          max_error <= joint_pregrasp_tolerance_rad_) {
         joint_pregrasp_done_ = true;
-        publishStatus("joint pregrasp complete; switching to EEF refinement", true);
+        std::ostringstream status;
+        status << "joint pregrasp complete; max_joint_err=" << max_error
+               << " <= " << joint_pregrasp_tolerance_rad_
+               << "; switching to EEF refinement";
+        publishStatus(status.str(), true);
         return true;
+      }
+
+      if (elapsed_s >= wait_s && can_check_reached &&
+          (stamp - joint_pregrasp_last_publish_stamp_).seconds() >=
+          joint_pregrasp_republish_period_s_) {
+        publishJointPregraspTrajectory(*current, *joint_pregrasp_target_);
+        joint_pregrasp_last_publish_stamp_ = stamp;
       }
 
       std::ostringstream status;
       status << "waiting for joint pregrasp trajectory: elapsed="
              << elapsed_s << "/" << wait_s;
+      if (can_check_reached) {
+        status << " max_joint_err=" << max_error
+               << " tolerance=" << joint_pregrasp_tolerance_rad_;
+      } else {
+        status << " waiting_for_joint_state_or_target";
+      }
       publishStatus(status.str());
       return false;
     }
@@ -1408,7 +1451,9 @@ private:
     const auto target = jointPregraspTargetFromCurrent(*current);
     publishJointPregraspTrajectory(*current, target);
     joint_pregrasp_sent_ = true;
+    joint_pregrasp_target_ = target;
     joint_pregrasp_start_stamp_ = stamp;
+    joint_pregrasp_last_publish_stamp_ = stamp;
     object_pregrasp_horizontal_done_ = true;
 
     std::ostringstream status;
@@ -2514,11 +2559,13 @@ private:
 	  bool joint_pregrasp_done_{false};
 	  bool min_depth_reached_{false};
   bool servo_start_requested_{false};
+  std::optional<std::array<double, 4>> joint_pregrasp_target_;
 	  GraspStage stage_{GraspStage::DEPTH_APPROACH};
 	  int stable_cycles_{0};
 	  rclcpp::Time last_status_stamp_;
 	  rclcpp::Time last_eef_init_bbox_stamp_;
 	  rclcpp::Time joint_pregrasp_start_stamp_;
+  rclcpp::Time joint_pregrasp_last_publish_stamp_;
 	};
 
 }  // namespace mp_control

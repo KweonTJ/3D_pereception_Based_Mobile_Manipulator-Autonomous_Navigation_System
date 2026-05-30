@@ -41,6 +41,8 @@ start_servo_on_start: false
 use_joint_pregrasp: true
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
 pregrasp_reverse_joint3_delta: true
+pregrasp_joint_tolerance_rad: 0.04
+pregrasp_republish_period_s: 1.0
 object_pregrasp_standoff_m: 0.08
 position_tolerance_m: 0.035
 close_after_stable_cycles: 4
@@ -65,6 +67,10 @@ Meaning:
 - `use_joint_pregrasp`: real hardware sends `/arm_controller/joint_trajectory`
   before EEF refinement, avoiding MoveIt Servo collision scaling during arm
   extension.
+- `pregrasp_joint_tolerance_rad`: EEF refinement and gripper close are blocked
+  until `/joint_states` is actually within this tolerance of the pregrasp
+  target. If the arm controller misses the one-shot command, `mp_control`
+  republishes the same trajectory every `pregrasp_republish_period_s`.
 - `pregrasp_reverse_joint3_delta`: keeps the configured ready target as the
   reference but moves joint3 in the opposite direction from the current real
   hardware pose.
