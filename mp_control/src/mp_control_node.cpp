@@ -1494,6 +1494,91 @@ private:
     return max_error;
   }
 
+  std::array<double, 3> rpyFromTransform(
+    const geometry_msgs::msg::TransformStamped & transform_msg) const
+  {
+    tf2::Quaternion q;
+    tf2::fromMsg(transform_msg.transform.rotation, q);
+    double roll = 0.0;
+    double pitch = 0.0;
+    double yaw = 0.0;
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    return {roll, pitch, yaw};
+  }
+
+  void resetEefRefinementMotionState()
+  {
+    eef_rpy_reference_.reset();
+    eef_forward_advance_active_ = false;
+    eef_forward_start_x_m_ = 0.0;
+    eef_forward_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  }
+
+  void captureEefRpyReference(const geometry_msgs::msg::TransformStamped & eef_tf)
+  {
+    if (!use_eef_rpy_refinement_ || !eef_hold_current_rpy_ || eef_rpy_reference_) {
+      return;
+    }
+    eef_rpy_reference_ = rpyFromTransform(eef_tf);
+  }
+
+  RpyError computeEefRpyError(const geometry_msgs::msg::TransformStamped & eef_tf) const
+  {
+    RpyError error;
+    if (!use_eef_rpy_refinement_) {
+      return error;
+    }
+
+    const auto current = rpyFromTransform(eef_tf);
+    std::array<double, 3> target{
+      eef_target_roll_rad_,
+      eef_target_pitch_rad_,
+      eef_target_yaw_rad_};
+    if (eef_hold_current_rpy_) {
+      target = eef_rpy_reference_.value_or(current);
+    }
+
+    error.roll = normalizeAngle(target[0] - current[0]);
+    error.pitch = normalizeAngle(target[1] - current[1]);
+    error.yaw = normalizeAngle(target[2] - current[2]);
+    error.norm = vectorNorm(error.roll, error.pitch, error.yaw);
+    error.ready =
+      std::abs(error.roll) <= eef_rpy_tolerance_rad_ &&
+      std::abs(error.pitch) <= eef_rpy_tolerance_rad_ &&
+      std::abs(error.yaw) <= eef_rpy_tolerance_rad_;
+    return error;
+  }
+
+  void applyEefRpyCorrection(
+    const RpyError & rpy_error,
+    geometry_msgs::msg::TwistStamped & cmd) const
+  {
+    if (!use_eef_rpy_refinement_) {
+      return;
+    }
+    cmd.twist.angular.x = clampValue(
+      eef_rpy_gain_ * rpy_error.roll,
+      -eef_refine_max_angular_speed_, eef_refine_max_angular_speed_);
+    cmd.twist.angular.y = clampValue(
+      eef_rpy_gain_ * rpy_error.pitch,
+      -eef_refine_max_angular_speed_, eef_refine_max_angular_speed_);
+    cmd.twist.angular.z = clampValue(
+      eef_rpy_gain_ * rpy_error.yaw,
+      -eef_refine_max_angular_speed_, eef_refine_max_angular_speed_);
+  }
+
+  void publishEefForwardAdvanceCommand(const RpyError & rpy_error)
+  {
+    geometry_msgs::msg::TwistStamped cmd;
+    cmd.header.stamp = now();
+    cmd.header.frame_id = target_frame_;
+    cmd.twist.linear.x = eef_forward_speed_mps_;
+    cmd.twist.linear.y = 0.0;
+    cmd.twist.linear.z = 0.0;
+    applyEefRpyCorrection(rpy_error, cmd);
+    twist_pub_->publish(cmd);
+  }
+
   bool updateJointPregrasp()
   {
     if (joint_pregrasp_done_) {
