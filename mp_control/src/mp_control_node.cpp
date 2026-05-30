@@ -309,6 +309,8 @@ private:
 	    joint_pregrasp_ready_positions_ =
 	      declare_parameter<std::vector<double>>(
 	      "pregrasp_ready_joint_positions", std::vector<double>{0.0, 0.65, -0.85, -1.20});
+	    joint_pregrasp_preserve_gripper_roll_ =
+	      declare_parameter<bool>("pregrasp_preserve_gripper_roll", true);
 	    joint_pregrasp_reverse_joint3_delta_ =
 	      declare_parameter<bool>("pregrasp_reverse_joint3_delta", true);
 	    joint_pregrasp_hold_current_duration_s_ =
@@ -1485,6 +1487,11 @@ private:
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
     }
+    if (joint_pregrasp_preserve_gripper_roll_) {
+      // Preserve the stay/current wrist roll proxy while joint2, joint3, and joint4 move together.
+      const double current_roll_proxy = current[1] + current[2] + current[3];
+      target[3] = current_roll_proxy - target[1] - target[2];
+    }
     if (joint_pregrasp_reverse_joint3_delta_) {
       target[2] = current[2] - (target[2] - current[2]);
     }
@@ -1706,6 +1713,8 @@ private:
     std::ostringstream status;
     status << "moving arm to joint pregrasp: current=" << formatJointArray(*current)
            << " target=" << formatJointArray(target)
+           << " preserve_gripper_roll="
+           << (joint_pregrasp_preserve_gripper_roll_ ? "true" : "false")
            << " joint3_reverse_delta="
            << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false");
     publishStatus(status.str(), true);
@@ -2724,6 +2733,7 @@ private:
 	  bool object_pregrasp_enable_lowering_{false};
 	  std::array<std::string, 4> arm_joint_names_{{"joint1", "joint2", "joint3", "joint4"}};
 	  std::vector<double> joint_pregrasp_ready_positions_{0.0, 0.65, -0.85, -1.20};
+	  bool joint_pregrasp_preserve_gripper_roll_{true};
 	  bool joint_pregrasp_reverse_joint3_delta_{true};
 	  double joint_pregrasp_hold_current_duration_s_{0.15};
 	  double joint_pregrasp_move_duration_s_{1.2};

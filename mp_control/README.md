@@ -84,13 +84,13 @@ MoveIt Servo
   -> arm_controller
 ```
 
-변환 노드는 `/joint_states`를 구독하고 joint3 이동량만 현재 joint3 위치 기준으로 반전한다.
+변환 노드는 `/joint_states`를 구독하고 joint3 이동량만 현재 joint3 위치 기준으로 반전한다. trajectory 첫 번째 point를 기준점으로 쓰지 않는다. 첫 point를 기준으로 잡으면 pregrasp/Servo 목표점이 그대로 기준점이 되어 joint3 반전이 사라지기 때문이다.
 
 ```text
 joint3_out = current_joint3 - (joint3_in - current_joint3)
 ```
 
-여러 point가 들어오는 trajectory에서는 첫 번째 point에 joint3 위치가 있으면 그 값을 기준점으로 쓴다. 그래서 Servo가 런치 종료나 cancel 과정에서 현재 위치 hold 명령을 보내면, 출력도 현재 위치 그대로 유지된다. 단순히 절대각을 `-joint3`으로 바꾸지 않기 때문에 취소 시 반대 절대각으로 튀지 않는다.
+Servo가 런치 종료나 cancel 과정에서 현재 위치 hold 명령을 보내면, 입력 목표와 `/joint_states` 기준점이 같아서 출력도 현재 위치 그대로 유지된다. 단순히 절대각을 `-joint3`으로 바꾸지 않기 때문에 취소 시 반대 절대각으로 튀지 않는다.
 
 확인 명령:
 
