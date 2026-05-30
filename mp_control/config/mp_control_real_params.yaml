@@ -102,6 +102,9 @@ mp_control_node:
     pregrasp_reverse_joint3_delta: true
     pregrasp_hold_current_duration_s: 0.15
     pregrasp_move_duration_s: 1.2
+    # Split pregrasp into synchronized waypoints so joint2, joint3, and joint4
+    # advance together instead of relying on hardware-side single-point motion.
+    pregrasp_sync_steps: 12
     pregrasp_settle_s: 0.5
     pregrasp_joint_tolerance_rad: 0.04
     pregrasp_republish_period_s: 1.0
