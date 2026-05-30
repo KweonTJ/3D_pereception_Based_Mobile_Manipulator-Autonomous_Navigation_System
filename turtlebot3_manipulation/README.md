@@ -3,6 +3,19 @@
 
 <img src="https://raw.githubusercontent.com/ROBOTIS-GIT/emanual/master/assets/images/platform/turtlebot3/manipulation/hardware_setup.png" width="500">
 
+## Local Real-Leader Joint3 Command Path
+
+The real leader robot does not use the MoveIt Servo YAML
+`command_out_topic` directly. `servo.launch.py` accepts a launch argument named
+`command_out_topic`; `mp_control/launch/real_pick_place.launch.py` sets it to
+`/arm_controller/joint_trajectory_raw` and then starts
+`mp_control/tools/joint_trajectory_transformer.py`.
+
+That transformer republishes to `/arm_controller/joint_trajectory` after
+mirroring only joint3 movement around the current joint3 position. This keeps
+Servo cancel/hold commands at the current joint angle while reversing the unsafe
+joint3 movement direction for the physical manipulator.
+
 - Active Branches: noetic, humble, jazzy, main(rolling)
 - Legacy Branches: *-devel
 

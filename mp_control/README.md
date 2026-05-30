@@ -39,8 +39,9 @@ arm_start_max_object_x_m: 0.30
 use_fallback_bbox_for_control: true
 start_servo_on_start: false
 use_joint_pregrasp: true
+joint_trajectory_topic: /arm_controller/joint_trajectory
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
-pregrasp_reverse_joint3_delta: false
+pregrasp_reverse_joint3_delta: true
 pregrasp_joint_tolerance_rad: 0.04
 pregrasp_republish_period_s: 1.0
 object_pregrasp_standoff_m: 0.08
@@ -66,11 +67,11 @@ Meaning:
 - `use_fallback_bbox_for_control`: `mp_control` subscribes to the front YOLO
   `/target/init_bbox` as a fallback when `/target/tracked_bbox` becomes stale,
   so the close-range pregrasp handoff does not wait forever on CSRT output.
-- `start_servo_on_start`: disabled for real joint pregrasp. `servo_node` also
-  publishes `/arm_controller/joint_trajectory`, so starting it before pregrasp
-  can overwrite the one-shot joint trajectory with a hold/current command.
-  `mp_control` starts MoveIt Servo after joint pregrasp completes, just before
-  EEF visual refinement.
+- `start_servo_on_start`: disabled inside `mp_control` for real joint pregrasp.
+  The real launch still starts MoveIt Servo through `hybrid_grasp.launch.py`,
+  but Servo publishes to `/arm_controller/joint_trajectory_raw`; the joint
+  trajectory transformer mirrors only joint3 deltas and republishes to
+  `/arm_controller/joint_trajectory`.
 - `use_joint_pregrasp`: real hardware sends `/arm_controller/joint_trajectory`
   before EEF refinement, avoiding MoveIt Servo collision scaling during arm
   extension.
@@ -78,11 +79,53 @@ Meaning:
   until `/joint_states` is actually within this tolerance of the pregrasp
   target. If the arm controller misses the one-shot command, `mp_control`
   republishes the same trajectory every `pregrasp_republish_period_s`.
-- `pregrasp_reverse_joint3_delta`: disabled on the real robot. Joint3 uses the
-  configured `-0.85 rad` ready target directly; enabling this option mirrors the
-  target around the current joint3 state and can send joint3 in the opposite
-  direction, which risks support collision on the current hardware posture.
+- `pregrasp_reverse_joint3_delta`: enabled on the real robot. The configured
+  ready pose remains `joint3=-0.85 rad` in the software grasp table, but the
+  actual hardware command mirrors joint3 around the current joint3 state. A
+  hold-current command therefore stays at the current joint angle, while only
+  the requested joint3 movement direction is reversed.
 - `0.08 m`: EEF pregrasp standoff from the triangulated object point.
+
+## Real Joint3 Trajectory Conversion
+
+The leader hardware joint3 motor direction is opposite to the software grasp
+trajectory direction. Do not fix this in the hardware driver. The real launch
+uses a trajectory conversion layer instead:
+
+```text
+MoveIt Servo
+  -> /arm_controller/joint_trajectory_raw
+  -> joint_trajectory_transformer.py
+  -> /arm_controller/joint_trajectory
+  -> arm_controller
+```
+
+The transformer subscribes to `/joint_states` and mirrors only the joint3
+trajectory delta around the current joint3 position:
+
+```text
+joint3_out = current_joint3 - (joint3_in - current_joint3)
+```
+
+For multi-point trajectories, point 0 is used as the reference when it contains
+a joint3 position. This preserves cancel/hold trajectories: if Servo commands
+the current joint3 position during launch shutdown, the output remains the same
+position instead of jumping to the opposite absolute angle.
+
+Runtime checks:
+
+```bash
+ros2 topic info -v /arm_controller/joint_trajectory_raw
+ros2 topic info -v /arm_controller/joint_trajectory
+ros2 topic echo /arm_controller/joint_trajectory_raw --once
+ros2 topic echo /arm_controller/joint_trajectory --once
+```
+
+On the real launch, `/servo_node` should publish the raw topic and
+`joint_trajectory_transformer` should publish the controller topic. `mp_control`
+still sends its one-shot joint pregrasp directly to the controller because its
+own `pregrasp_reverse_joint3_delta` logic uses the current joint state for the
+same delta mirror and for convergence checking.
 
 ## EEF Camera Path
 
