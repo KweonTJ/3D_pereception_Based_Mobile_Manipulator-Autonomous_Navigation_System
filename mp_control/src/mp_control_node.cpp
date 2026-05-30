@@ -289,6 +289,14 @@ private:
     triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
     triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
     triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
+    use_eef_front_camera_extrinsic_override_ =
+      declare_parameter<bool>("use_eef_front_camera_extrinsic_override", false);
+    eef_front_camera_offset_x_m_ =
+      declare_parameter<double>("eef_front_camera_offset_x_m", 0.0);
+    eef_front_camera_offset_y_m_ =
+      declare_parameter<double>("eef_front_camera_offset_y_m", 0.0);
+    eef_front_camera_offset_z_m_ =
+      declare_parameter<double>("eef_front_camera_offset_z_m", 0.0);
     color_triangulation_base_stop_object_x_m_ =
       declare_parameter<double>("color_triangulation_base_stop_object_x_m", 0.30);
     color_triangulation_min_object_x_m_ =
@@ -349,6 +357,15 @@ private:
     triangulation_min_range_m_ = std::max(0.01, triangulation_min_range_m_);
     triangulation_max_range_m_ = std::max(triangulation_min_range_m_, triangulation_max_range_m_);
     triangulation_max_ray_gap_m_ = std::max(0.005, triangulation_max_ray_gap_m_);
+    if (!std::isfinite(eef_front_camera_offset_x_m_)) {
+      eef_front_camera_offset_x_m_ = 0.0;
+    }
+    if (!std::isfinite(eef_front_camera_offset_y_m_)) {
+      eef_front_camera_offset_y_m_ = 0.0;
+    }
+    if (!std::isfinite(eef_front_camera_offset_z_m_)) {
+      eef_front_camera_offset_z_m_ = 0.0;
+    }
     color_triangulation_base_stop_object_x_m_ =
       std::max(0.01, color_triangulation_base_stop_object_x_m_);
     color_triangulation_min_object_x_m_ =
