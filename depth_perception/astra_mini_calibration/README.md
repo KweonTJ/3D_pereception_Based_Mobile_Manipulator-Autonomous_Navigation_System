@@ -1,4 +1,10 @@
-# Astra Mini Color Calibration
+# Astra Mini And EEF Camera Calibration Scripts
+
+This package provides run-based calibration helpers in `scripts/`. Use them when
+you want to calibrate from the current ROS topics without starting an extra
+launch file.
+
+## Front Astra Color Camera
 
 The front RGB-D camera uses `/camera/color/image_raw` after the depth reading is
 latched near the minimum reliable range. Recalibrate the color camera around
@@ -69,4 +75,52 @@ ros2 launch astra_mini_calibration astra_mini_calibrated.launch.py \
   image_topic:=/camera/color/image_raw \
   calibrated_camera_info_topic:=/camera/color/camera_info_calibrated \
   rectify_image:=false
+```
+
+## EEF USB Camera
+
+The same `cameracalibrator_with_save.py` script can be used for the EEF USB
+camera. Current EEF interfaces are:
+
+```text
+image topic:       /eef_camera/image_raw
+camera info topic: /eef_camera/camera_info
+set-info service:  /eef_camera/set_camera_info
+camera name:       eef_usb_camera
+resolution:        320x240
+```
+
+Run this while `/eef_camera/image_raw` is publishing:
+
+```bash
+ASTRA_MINI_CALIB_OUTPUT_DIR=$HOME/turtlebot3_ws/src/mp_control/calibration/eef_camera \
+ASTRA_MINI_CALIB_OUTPUT_PREFIX=eef_usb_camera \
+PYTHONNOUSERSITE=1 ros2 run astra_mini_calibration cameracalibrator_with_save.py \
+  --size 9x11 \
+  --square 0.020 \
+  --camera_name eef_usb_camera \
+  --no-service-check \
+  --ros-args \
+  -r image:=/eef_camera/image_raw \
+  -r camera:=/eef_camera
+```
+
+Use the UI buttons this way:
+
+```text
+COMMIT  writes through /eef_camera/set_camera_info to the active v4l2 camera_info_url
+SAVE    writes JSON to mp_control/calibration/eef_camera/eef_usb_camera.json
+```
+
+The runtime EEF camera calibration file used by the robot is still:
+
+```text
+mp_control/calibration/eef_camera/eef_usb_camera.yaml
+```
+
+After committing, verify the active EEF calibration:
+
+```bash
+ros2 topic echo /eef_camera/camera_info --once
+ros2 topic hz /eef_camera/image_raw
 ```
