@@ -531,6 +531,33 @@ private:
     latest_eef_camera_info_ = info;
   }
 
+  void onJointState(const sensor_msgs::msg::JointState::ConstSharedPtr msg)
+  {
+    if (msg->name.empty() || msg->position.size() < msg->name.size()) {
+      return;
+    }
+
+    std::array<double, 4> positions{};
+    std::array<bool, 4> found{false, false, false, false};
+    for (std::size_t i = 0; i < msg->name.size(); ++i) {
+      for (std::size_t joint_index = 0; joint_index < arm_joint_names_.size(); ++joint_index) {
+        if (msg->name[i] == arm_joint_names_[joint_index]) {
+          positions[joint_index] = msg->position[i];
+          found[joint_index] = true;
+          break;
+        }
+      }
+    }
+
+    if (!std::all_of(found.begin(), found.end(), [](bool value) {return value;})) {
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_arm_joint_positions_ = positions;
+    latest_joint_state_stamp_ = now();
+  }
+
   void startSequence()
   {
     active_ = true;
@@ -543,6 +570,9 @@ private:
       latest_eef_bbox_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
+    joint_pregrasp_sent_ = false;
+    joint_pregrasp_done_ = false;
+    joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -573,6 +603,9 @@ private:
       latest_eef_bbox_.reset();
     }
     object_pregrasp_horizontal_done_ = false;
+    joint_pregrasp_sent_ = false;
+    joint_pregrasp_done_ = false;
+    joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
