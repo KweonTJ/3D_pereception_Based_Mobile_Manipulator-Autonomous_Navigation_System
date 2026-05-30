@@ -26,7 +26,7 @@ def parse_args(argv):
     )
     parser.add_argument("--front-topic", default="/camera/color/image_raw")
     parser.add_argument("--eef-topic", default="/eef_camera/image_raw")
-    parser.add_argument("--output-dir", default="mp_control/calibration/stereo/images")
+    parser.add_argument("--output-dir", default="calibration/stereo/images")
     parser.add_argument("--queue-size", type=int, default=20)
     parser.add_argument("--slop", type=float, default=0.08, help="Approximate sync tolerance in seconds")
     parser.add_argument("--manual", action="store_true", help="Show preview and save only when 's' is pressed")
