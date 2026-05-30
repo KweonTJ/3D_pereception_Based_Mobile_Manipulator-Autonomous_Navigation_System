@@ -787,15 +787,22 @@ private:
       use_eef_refinement_ &&
       (!use_color_triangulation_after_min_depth_ || object_x_ready_for_eef) &&
       eef_candidate;
-    if (use_eef_now) {
-      publishBaseHold(true);
-      bool extension_cmd_published = false;
-      if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
-        return;
-      }
-      if (!prepareEefRefinement(object)) {
-        return;
-      }
+	    if (use_eef_now) {
+	      publishBaseHold(true);
+	      const bool joint_pregrasp_ready =
+	        !use_joint_pregrasp_ || updateJointPregrasp();
+	      if (!joint_pregrasp_ready) {
+	        return;
+	      }
+	      if (!use_joint_pregrasp_) {
+	        bool extension_cmd_published = false;
+	        if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
+	          return;
+	        }
+	      }
+	      if (!prepareEefRefinement(object)) {
+	        return;
+	      }
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
       publishStatus("base stopped, depth+EEF ready; arm extended toward object and switching to refinement", true);
