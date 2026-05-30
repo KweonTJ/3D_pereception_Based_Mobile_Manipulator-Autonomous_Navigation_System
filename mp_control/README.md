@@ -40,7 +40,7 @@ use_fallback_bbox_for_control: true
 start_servo_on_start: false
 use_joint_pregrasp: true
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
-pregrasp_reverse_joint3_delta: true
+pregrasp_reverse_joint3_delta: false
 pregrasp_joint_tolerance_rad: 0.04
 pregrasp_republish_period_s: 1.0
 object_pregrasp_standoff_m: 0.08
@@ -76,9 +76,10 @@ Meaning:
   until `/joint_states` is actually within this tolerance of the pregrasp
   target. If the arm controller misses the one-shot command, `mp_control`
   republishes the same trajectory every `pregrasp_republish_period_s`.
-- `pregrasp_reverse_joint3_delta`: keeps the configured ready target as the
-  reference but moves joint3 in the opposite direction from the current real
-  hardware pose.
+- `pregrasp_reverse_joint3_delta`: disabled on the real robot. Joint3 uses the
+  configured `-0.85 rad` ready target directly; enabling this option mirrors the
+  target around the current joint3 state and can send joint3 in the opposite
+  direction, which risks support collision on the current hardware posture.
 - `0.08 m`: EEF pregrasp standoff from the triangulated object point.
 
 ## EEF Camera Path
