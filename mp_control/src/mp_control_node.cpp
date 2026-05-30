@@ -2664,6 +2664,17 @@ private:
   double eef_refine_lateral_gain_{0.8};
   double eef_refine_depth_gain_{0.5};
   double eef_refine_max_linear_speed_{0.012};
+  bool use_eef_rpy_refinement_{true};
+  bool eef_hold_current_rpy_{true};
+  double eef_target_roll_rad_{0.0};
+  double eef_target_pitch_rad_{0.0};
+  double eef_target_yaw_rad_{0.0};
+  double eef_rpy_tolerance_rad_{0.12};
+  double eef_rpy_gain_{0.8};
+  double eef_refine_max_angular_speed_{0.25};
+  bool eef_forward_after_align_{true};
+  double eef_forward_distance_m_{0.05};
+  double eef_forward_speed_mps_{0.012};
   double triangulation_extend_x_m_{0.25};
   double triangulation_extend_y_m_{0.0};
   double triangulation_extend_z_m_{0.12};
@@ -2744,15 +2755,19 @@ private:
 	  bool object_pregrasp_horizontal_done_{false};
 	  bool joint_pregrasp_sent_{false};
 	  bool joint_pregrasp_done_{false};
+  bool eef_forward_advance_active_{false};
 	  bool min_depth_reached_{false};
   bool servo_start_requested_{false};
   std::optional<std::array<double, 4>> joint_pregrasp_target_;
+  std::optional<std::array<double, 3>> eef_rpy_reference_;
 	  GraspStage stage_{GraspStage::DEPTH_APPROACH};
 	  int stable_cycles_{0};
 	  rclcpp::Time last_status_stamp_;
 	  rclcpp::Time last_eef_init_bbox_stamp_;
 	  rclcpp::Time joint_pregrasp_start_stamp_;
   rclcpp::Time joint_pregrasp_last_publish_stamp_;
+  rclcpp::Time eef_forward_start_stamp_;
+  double eef_forward_start_x_m_{0.0};
 	};
 
 }  // namespace mp_control
