@@ -204,6 +204,7 @@ private:
     double yaw{0.0};
     double norm{0.0};
     bool ready{true};
+    bool using_stay_roll{false};
   };
 
   void readParameters()
@@ -333,6 +334,7 @@ private:
     eef_refine_max_linear_speed_ = declare_parameter<double>("eef_refine_max_linear_speed", 0.012);
     use_eef_rpy_refinement_ = declare_parameter<bool>("use_eef_rpy_refinement", true);
     eef_hold_current_rpy_ = declare_parameter<bool>("eef_hold_current_rpy", true);
+    eef_hold_stay_roll_ = declare_parameter<bool>("eef_hold_stay_roll", false);
     eef_target_roll_rad_ = declare_parameter<double>("eef_target_roll_rad", 0.0);
     eef_target_pitch_rad_ = declare_parameter<double>("eef_target_pitch_rad", 0.0);
     eef_target_yaw_rad_ = declare_parameter<double>("eef_target_yaw_rad", 0.0);
@@ -680,6 +682,7 @@ private:
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "end-effector TF unavailable: %s", ex.what());
       return;
     }
+    captureEefStayRollReference(eef_tf);
 
     std::string object_block_reason;
     auto maybe_object = estimateObjectPoint(&object_block_reason);
@@ -1255,6 +1258,7 @@ private:
                << advanced_x << "/" << eef_forward_distance_m_
                << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
                << ", " << rpy_error.yaw << ")"
+               << " roll_ref=" << rpyReferenceMode(rpy_error)
                << " cmd_frame=" << target_frame_;
         publishStatus(status.str());
         return;
@@ -1280,7 +1284,8 @@ private:
         status << "eef forward advance complete; holding before closing"
                << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
                << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
-               << ", " << rpy_error.yaw << ")";
+               << ", " << rpy_error.yaw << ")"
+               << " roll_ref=" << rpyReferenceMode(rpy_error);
         publishStatus(status.str());
       }
       return;
@@ -1302,6 +1307,7 @@ private:
                << " speed=" << eef_forward_speed_mps_
                << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
                << ", " << rpy_error.yaw << ")"
+               << " roll_ref=" << rpyReferenceMode(rpy_error)
                << " cmd_frame=" << target_frame_;
         publishStatus(status.str(), true);
         return;
@@ -1328,6 +1334,7 @@ private:
                     << " pixel_err=(" << err_u_px << ", " << err_v_px << ")"
                     << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
                     << ", " << rpy_error.yaw << ")"
+                    << " roll_ref=" << rpyReferenceMode(rpy_error)
                     << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
                     << " strict_centered=" << (centered ? "true" : "false");
         publishStatus(hold_status.str());
@@ -1374,6 +1381,7 @@ private:
            << " close_tol_px=" << close_tolerance_px
            << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
            << ", " << rpy_error.yaw << ")"
+           << " roll_ref=" << rpyReferenceMode(rpy_error)
            << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
            << " eef_resolution=" << info.width << "x" << info.height
            << " cmd_frame=" << target_frame_;
@@ -1535,9 +1543,18 @@ private:
   void resetEefRefinementMotionState()
   {
     eef_rpy_reference_.reset();
+    eef_stay_roll_reference_.reset();
     eef_forward_advance_active_ = false;
     eef_forward_start_x_m_ = 0.0;
     eef_forward_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  }
+
+  void captureEefStayRollReference(const geometry_msgs::msg::TransformStamped & eef_tf)
+  {
+    if (!use_eef_rpy_refinement_ || !eef_hold_stay_roll_ || eef_stay_roll_reference_) {
+      return;
+    }
+    eef_stay_roll_reference_ = rpyFromTransform(eef_tf)[0];
   }
 
   void captureEefRpyReference(const geometry_msgs::msg::TransformStamped & eef_tf)
@@ -1563,6 +1580,10 @@ private:
     if (eef_hold_current_rpy_) {
       target = eef_rpy_reference_.value_or(current);
     }
+    if (eef_hold_stay_roll_) {
+      target[0] = eef_stay_roll_reference_.value_or(current[0]);
+      error.using_stay_roll = eef_stay_roll_reference_.has_value();
+    }
 
     error.roll = normalizeAngle(target[0] - current[0]);
     error.pitch = normalizeAngle(target[1] - current[1]);
@@ -1573,6 +1594,17 @@ private:
       std::abs(error.pitch) <= eef_rpy_tolerance_rad_ &&
       std::abs(error.yaw) <= eef_rpy_tolerance_rad_;
     return error;
+  }
+
+  std::string rpyReferenceMode(const RpyError & rpy_error) const
+  {
+    if (!use_eef_rpy_refinement_) {
+      return "disabled";
+    }
+    if (rpy_error.using_stay_roll) {
+      return "stay_roll";
+    }
+    return eef_hold_current_rpy_ ? "current_rpy" : "configured_rpy";
   }
 
   void applyEefRpyCorrection(
@@ -2692,6 +2724,7 @@ private:
   double eef_refine_max_linear_speed_{0.012};
   bool use_eef_rpy_refinement_{true};
   bool eef_hold_current_rpy_{true};
+  bool eef_hold_stay_roll_{false};
   double eef_target_roll_rad_{0.0};
   double eef_target_pitch_rad_{0.0};
   double eef_target_yaw_rad_{0.0};
@@ -2786,6 +2819,7 @@ private:
   bool servo_start_requested_{false};
   std::optional<std::array<double, 4>> joint_pregrasp_target_;
   std::optional<std::array<double, 3>> eef_rpy_reference_;
+  std::optional<double> eef_stay_roll_reference_;
 	  GraspStage stage_{GraspStage::DEPTH_APPROACH};
 	  int stable_cycles_{0};
 	  rclcpp::Time last_status_stamp_;
