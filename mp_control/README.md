@@ -173,7 +173,20 @@ EEF USB camera calibration:
 mp_control/calibration/eef_camera/eef_usb_camera.yaml
 ```
 
-The current EEF calibration is for the 320x240 EEF camera at about 50 cm.
+The current EEF calibration is for the 320x240 EEF camera at about 50 cm. The
+active runtime topics are:
+
+```text
+/eef_camera/image_raw
+/eef_camera/camera_info
+/eef_camera/set_camera_info
+```
+
+For the calibration command and service remapping, use:
+
+```text
+mp_control/calibration/eef_camera/README.md
+```
 
 ## Useful Runtime Checks
 
