@@ -317,6 +317,8 @@ private:
 	      declare_parameter<double>("pregrasp_hold_current_duration_s", 0.15);
 	    joint_pregrasp_move_duration_s_ =
 	      declare_parameter<double>("pregrasp_move_duration_s", 1.2);
+	    joint_pregrasp_sync_steps_ =
+	      declare_parameter<int>("pregrasp_sync_steps", 12);
 	    joint_pregrasp_settle_s_ =
 	      declare_parameter<double>("pregrasp_settle_s", 0.5);
 	    joint_pregrasp_tolerance_rad_ =
@@ -433,6 +435,7 @@ private:
 	    joint_pregrasp_hold_current_duration_s_ =
 	      std::max(0.0, joint_pregrasp_hold_current_duration_s_);
 	    joint_pregrasp_move_duration_s_ = std::max(0.2, joint_pregrasp_move_duration_s_);
+	    joint_pregrasp_sync_steps_ = std::max(1, joint_pregrasp_sync_steps_);
 	    joint_pregrasp_settle_s_ = std::max(0.0, joint_pregrasp_settle_s_);
 	    joint_pregrasp_tolerance_rad_ = std::max(0.001, joint_pregrasp_tolerance_rad_);
 	    joint_pregrasp_republish_period_s_ = std::max(0.2, joint_pregrasp_republish_period_s_);
@@ -1522,8 +1525,18 @@ private:
       trajectory_time_s += joint_pregrasp_hold_current_duration_s_;
       appendJointTrajectoryPoint(msg, clampJointPregraspTarget(current), trajectory_time_s);
     }
-    trajectory_time_s += joint_pregrasp_move_duration_s_;
-    appendJointTrajectoryPoint(msg, target, trajectory_time_s);
+
+    const int sync_steps = std::max(1, joint_pregrasp_sync_steps_);
+    for (int step = 1; step <= sync_steps; ++step) {
+      const double ratio = static_cast<double>(step) / static_cast<double>(sync_steps);
+      std::array<double, 4> waypoint{};
+      for (std::size_t i = 0; i < waypoint.size(); ++i) {
+        waypoint[i] = current[i] + (target[i] - current[i]) * ratio;
+      }
+      appendJointTrajectoryPoint(
+        msg, clampJointPregraspTarget(waypoint),
+        trajectory_time_s + joint_pregrasp_move_duration_s_ * ratio);
+    }
 
     joint_trajectory_pub_->publish(msg);
   }
@@ -1715,6 +1728,7 @@ private:
            << " target=" << formatJointArray(target)
            << " preserve_gripper_roll="
            << (joint_pregrasp_preserve_gripper_roll_ ? "true" : "false")
+           << " sync_steps=" << joint_pregrasp_sync_steps_
            << " joint3_reverse_delta="
            << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false");
     publishStatus(status.str(), true);
@@ -2737,6 +2751,7 @@ private:
 	  bool joint_pregrasp_reverse_joint3_delta_{true};
 	  double joint_pregrasp_hold_current_duration_s_{0.15};
 	  double joint_pregrasp_move_duration_s_{1.2};
+	  int joint_pregrasp_sync_steps_{12};
 	  double joint_pregrasp_settle_s_{0.5};
 	  double joint_pregrasp_tolerance_rad_{0.04};
 	  double joint_pregrasp_republish_period_s_{1.0};
