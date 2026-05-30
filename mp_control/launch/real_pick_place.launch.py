@@ -242,7 +242,7 @@ def generate_launch_description():
             "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
             "yolo_class_name": auto_init_yolo_class_name,
             "yolo_max_detections": ParameterValue(auto_init_yolo_max_detections, value_type=int),
-            "yolo_lock_target": True,
+            "yolo_lock_target": False,
             "yolo_min_accept_confidence": 0.30,
             "yolo_locked_min_accept_confidence": 0.35,
             "yolo_max_center_jump_ratio": 0.08,
