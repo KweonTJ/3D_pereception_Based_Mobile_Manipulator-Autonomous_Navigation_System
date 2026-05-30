@@ -188,6 +188,7 @@ private:
   {
     double position{0.0};
     double object_width_m{0.0};
+    double target_gap_m{0.0};
     bool measured{false};
   };
 
@@ -380,6 +381,8 @@ private:
       declare_parameter<double>("gripper_pre_grasp_clearance_m", 0.012);
     gripper_grasp_compression_m_ =
       declare_parameter<double>("gripper_grasp_compression_m", 0.002);
+    gripper_grasp_clearance_m_ =
+      declare_parameter<double>("gripper_grasp_clearance_m", 0.0);
     gripper_min_position_ = declare_parameter<double>("gripper_min_position", -0.010);
     gripper_max_position_ = declare_parameter<double>("gripper_max_position", 0.019);
     gripper_min_measured_object_width_m_ =
@@ -2460,12 +2463,21 @@ private:
       measured_width.value_or(gripper_fallback_object_width_m_);
     const double target_gap_m = open ?
       object_width_m + gripper_pre_grasp_clearance_m_ :
-      std::max(0.0, object_width_m - gripper_grasp_compression_m_);
+      finalGraspGapForObjectWidth(object_width_m);
 
     return GripperTarget{
       gripperPositionForGap(target_gap_m),
       object_width_m,
+      target_gap_m,
       measured_width.has_value()};
+  }
+
+  double finalGraspGapForObjectWidth(double object_width_m) const
+  {
+    if (gripper_grasp_clearance_m_ > 0.0) {
+      return object_width_m + gripper_grasp_clearance_m_;
+    }
+    return std::max(0.0, object_width_m - gripper_grasp_compression_m_);
   }
 
   void sendGripperOpenForObject()
@@ -2474,9 +2486,10 @@ private:
     if (gripper_width_control_enabled_) {
       RCLCPP_INFO(
         get_logger(),
-        "gripper open target: object_width=%.3f m (%s), position=%.4f m",
+        "gripper open target: object_width=%.3f m (%s), gap=%.3f m, position=%.4f m",
         target.object_width_m,
         target.measured ? "measured" : "fallback",
+        target.target_gap_m,
         target.position);
     }
     sendGripper(target.position);
@@ -2488,9 +2501,10 @@ private:
     if (gripper_width_control_enabled_) {
       RCLCPP_INFO(
         get_logger(),
-        "gripper grasp target: object_width=%.3f m (%s), position=%.4f m",
+        "gripper grasp target: object_width=%.3f m (%s), gap=%.3f m, position=%.4f m",
         target.object_width_m,
         target.measured ? "measured" : "fallback",
+        target.target_gap_m,
         target.position);
     }
     sendGripper(target.position);
@@ -2761,6 +2775,7 @@ private:
   double gripper_finger_home_half_gap_m_{0.021};
   double gripper_pre_grasp_clearance_m_{0.012};
   double gripper_grasp_compression_m_{0.002};
+  double gripper_grasp_clearance_m_{0.0};
   double gripper_min_position_{-0.010};
   double gripper_max_position_{0.019};
   double gripper_min_measured_object_width_m_{0.01};
