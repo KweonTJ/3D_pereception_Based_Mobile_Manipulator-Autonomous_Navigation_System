@@ -1625,6 +1625,8 @@ def run_image_validation(calib: CalibData, args: argparse.Namespace) -> int:
     print(f"\nreport written to: {output_dir / 'report.txt'}")
     print(f"per-pair CSV written to: {output_dir / 'per_pair_errors.csv'}")
     print(f"corner overlays written to: {overlay_dir}")
+    if args.display:
+        show_saved_pair_overlays(pair_results, overlay_dir, args.display_wait_ms)
     return 1 if verdict == "FAIL" else 0
 
 
