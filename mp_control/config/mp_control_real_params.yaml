@@ -103,6 +103,12 @@ mp_control_node:
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
+    # Measured EEF camera optical center relative to the front camera in base_link axes.
+    # The EEF camera is 5 cm behind and 15 cm above the front camera.
+    use_eef_front_camera_extrinsic_override: true
+    eef_front_camera_offset_x_m: -0.05
+    eef_front_camera_offset_y_m: 0.0
+    eef_front_camera_offset_z_m: 0.15
     color_triangulation_base_stop_object_x_m: 0.30
     color_triangulation_min_object_x_m: 0.05
 
