@@ -3,17 +3,17 @@
 This guide explains the generated calibration files and the exact commands for
 using them.
 
-Run these commands from the source workspace:
+Run these commands from the `mp_control` package directory:
 
 ```bash
-cd ~/turtlebot3_ws/src
+cd ~/turtlebot3_ws/src/mp_control
 source /opt/ros/humble/setup.bash
 source ~/turtlebot3_ws/install/setup.bash
 ```
 
-The files in this directory are source-tree scripts. They are not installed as
-`ros2 run mp_control ...` executables, so invoke them with `python3
-mp_control/scripts/...`.
+The files in `scripts/` are source-tree scripts. They are not installed as
+`ros2 run mp_control ...` executables, so invoke them with `python3 scripts/...`
+from `~/turtlebot3_ws/src/mp_control`.
 
 ## Files And Roles
 
@@ -33,9 +33,9 @@ navigation, or pick/place sequence. It only needs the two camera image topics.
 Output:
 
 ```text
-mp_control/calibration/stereo/images/front/front_000.png
-mp_control/calibration/stereo/images/eef/eef_000.png
-mp_control/calibration/stereo/images/pairs.csv
+calibration/stereo/images/front/front_000.png
+calibration/stereo/images/eef/eef_000.png
+calibration/stereo/images/pairs.csv
 ```
 
 ### `stereo_calibrate_front_eef.py`
@@ -54,7 +54,7 @@ The `.npz` is the source of truth.
 Output:
 
 ```text
-mp_control/calibration/stereo/front_eef_stereo_calib.npz
+calibration/stereo/front_eef_stereo_calib.npz
 ```
 
 ### `validate_stereo_calib_offline.py`
@@ -74,10 +74,10 @@ It can also run against videos or directly connected OpenCV camera indices.
 Output:
 
 ```text
-mp_control/calibration/stereo/validation/report.txt
-mp_control/calibration/stereo/validation/report.csv
-mp_control/calibration/stereo/validation/per_pair_errors.csv
-mp_control/calibration/stereo/validation/overlays/
+calibration/stereo/validation/report.txt
+calibration/stereo/validation/report.csv
+calibration/stereo/validation/per_pair_errors.csv
+calibration/stereo/validation/overlays/
 ```
 
 ### `stereo_npz_to_yaml.py`
@@ -91,7 +91,7 @@ Convert the canonical .npz into an OpenCV YAML file for C++ runtime loading
 Output:
 
 ```text
-mp_control/calibration/stereo/front_eef_stereo_calib.yaml
+calibration/stereo/front_eef_stereo_calib.yaml
 ```
 
 The YAML is derived from the `.npz`. Do not edit the YAML by hand.
@@ -128,8 +128,8 @@ The pair-capture script subscribes only to the two image topics. The calibration
 step reads intrinsics from:
 
 ```text
-depth_perception/astra_mini_calibration/config/astra_mini_color.json
-mp_control/calibration/eef_camera/eef_usb_camera.yaml
+../depth_perception/astra_mini_calibration/config/astra_mini_color.json
+calibration/eef_camera/eef_usb_camera.yaml
 ```
 
 Runtime `mp_control` then combines the front calibrated `camera_info`, EEF
@@ -156,10 +156,10 @@ ros2 topic echo /eef_camera/camera_info --once
 Manual capture:
 
 ```bash
-python3 mp_control/scripts/capture_front_eef_stereo_pairs.py \
+python3 scripts/capture_front_eef_stereo_pairs.py \
   --front-topic /camera/color/image_raw \
   --eef-topic /eef_camera/image_raw \
-  --output-dir mp_control/calibration/stereo/images \
+  --output-dir calibration/stereo/images \
   --manual
 ```
 
@@ -173,10 +173,10 @@ q/Esc   quit
 Automatic capture:
 
 ```bash
-python3 mp_control/scripts/capture_front_eef_stereo_pairs.py \
+python3 scripts/capture_front_eef_stereo_pairs.py \
   --front-topic /camera/color/image_raw \
   --eef-topic /eef_camera/image_raw \
-  --output-dir mp_control/calibration/stereo/images \
+  --output-dir calibration/stereo/images \
   --save-every-s 0.7 \
   --max-pairs 40
 ```
@@ -198,32 +198,32 @@ pose.
 Full stereo calibration:
 
 ```bash
-python3 mp_control/scripts/stereo_calibrate_front_eef.py \
-  --front-dir mp_control/calibration/stereo/images/front \
-  --eef-dir mp_control/calibration/stereo/images/eef \
+python3 scripts/stereo_calibrate_front_eef.py \
+  --front-dir calibration/stereo/images/front \
+  --eef-dir calibration/stereo/images/eef \
   --board-cols 9 \
   --board-rows 11 \
   --square-size 0.020 \
-  --output mp_control/calibration/stereo/front_eef_stereo_calib.npz \
-  --overlay-dir mp_control/calibration/stereo/calibration_overlays \
+  --output calibration/stereo/front_eef_stereo_calib.npz \
+  --overlay-dir calibration/stereo/calibration_overlays \
   --run-validation \
-  --validation-output-dir mp_control/calibration/stereo/validation
+  --validation-output-dir calibration/stereo/validation
 ```
 
 Use existing front/eef intrinsics as fixed values and solve only stereo
 extrinsics:
 
 ```bash
-python3 mp_control/scripts/stereo_calibrate_front_eef.py \
-  --front-dir mp_control/calibration/stereo/images/front \
-  --eef-dir mp_control/calibration/stereo/images/eef \
+python3 scripts/stereo_calibrate_front_eef.py \
+  --front-dir calibration/stereo/images/front \
+  --eef-dir calibration/stereo/images/eef \
   --board-cols 9 \
   --board-rows 11 \
   --square-size 0.020 \
-  --front-intrinsics-json depth_perception/astra_mini_calibration/config/astra_mini_color.json \
-  --eef-intrinsics-yaml mp_control/calibration/eef_camera/eef_usb_camera.yaml \
+  --front-intrinsics-json ../depth_perception/astra_mini_calibration/config/astra_mini_color.json \
+  --eef-intrinsics-yaml calibration/eef_camera/eef_usb_camera.yaml \
   --fix-intrinsics \
-  --output mp_control/calibration/stereo/front_eef_stereo_calib.npz
+  --output calibration/stereo/front_eef_stereo_calib.npz
 ```
 
 Important output values printed by this step:
@@ -242,14 +242,14 @@ failed pair list
 Run validation against the saved image pairs:
 
 ```bash
-python3 mp_control/scripts/validate_stereo_calib_offline.py \
-  mp_control/calibration/stereo/front_eef_stereo_calib.npz \
-  --front-dir mp_control/calibration/stereo/images/front \
-  --eef-dir mp_control/calibration/stereo/images/eef \
+python3 scripts/validate_stereo_calib_offline.py \
+  calibration/stereo/front_eef_stereo_calib.npz \
+  --front-dir calibration/stereo/images/front \
+  --eef-dir calibration/stereo/images/eef \
   --board-cols 9 \
   --board-rows 11 \
   --square-size 0.020 \
-  --output-dir mp_control/calibration/stereo/validation
+  --output-dir calibration/stereo/validation
 ```
 
 Check:
@@ -284,8 +284,8 @@ This checks math consistency of `K`, `D`, `R`, `T`. It does not prove real-world
 calibration quality.
 
 ```bash
-python3 mp_control/scripts/validate_stereo_calib_offline.py \
-  mp_control/calibration/stereo/front_eef_stereo_calib.npz \
+python3 scripts/validate_stereo_calib_offline.py \
+  calibration/stereo/front_eef_stereo_calib.npz \
   --synthetic-test-only
 ```
 
@@ -298,8 +298,8 @@ unusual camera geometry.
 Use this to see what a specific front/eef bbox center pair triangulates to.
 
 ```bash
-python3 mp_control/scripts/validate_stereo_calib_offline.py \
-  mp_control/calibration/stereo/front_eef_stereo_calib.npz \
+python3 scripts/validate_stereo_calib_offline.py \
+  calibration/stereo/front_eef_stereo_calib.npz \
   --manual-points \
   --front-u 320 --front-v 240 \
   --eef-u 160 --eef-v 120
@@ -321,29 +321,29 @@ depth validity
 Saved videos:
 
 ```bash
-python3 mp_control/scripts/validate_stereo_calib_offline.py \
-  mp_control/calibration/stereo/front_eef_stereo_calib.npz \
+python3 scripts/validate_stereo_calib_offline.py \
+  calibration/stereo/front_eef_stereo_calib.npz \
   --stream-validation \
-  --front-source mp_control/calibration/stereo/videos/front.mp4 \
-  --eef-source mp_control/calibration/stereo/videos/eef.mp4 \
+  --front-source calibration/stereo/videos/front.mp4 \
+  --eef-source calibration/stereo/videos/eef.mp4 \
   --board-cols 9 \
   --board-rows 11 \
   --square-size 0.020 \
-  --output-dir mp_control/calibration/stereo/validation_stream
+  --output-dir calibration/stereo/validation_stream
 ```
 
 Camera indices:
 
 ```bash
-python3 mp_control/scripts/validate_stereo_calib_offline.py \
-  mp_control/calibration/stereo/front_eef_stereo_calib.npz \
+python3 scripts/validate_stereo_calib_offline.py \
+  calibration/stereo/front_eef_stereo_calib.npz \
   --stream-validation \
   --front-source 0 \
   --eef-source 2 \
   --board-cols 9 \
   --board-rows 11 \
   --square-size 0.020 \
-  --output-dir mp_control/calibration/stereo/validation_stream \
+  --output-dir calibration/stereo/validation_stream \
   --display
 ```
 
@@ -362,9 +362,9 @@ Useful options:
 Only do this after validation looks acceptable.
 
 ```bash
-python3 mp_control/scripts/stereo_npz_to_yaml.py \
-  mp_control/calibration/stereo/front_eef_stereo_calib.npz \
-  --output mp_control/calibration/stereo/front_eef_stereo_calib.yaml
+python3 scripts/stereo_npz_to_yaml.py \
+  calibration/stereo/front_eef_stereo_calib.npz \
+  --output calibration/stereo/front_eef_stereo_calib.yaml
 ```
 
 The C++ node reads this YAML. The `.npz` remains the canonical calibration file.
@@ -375,8 +375,8 @@ In `mp_control/config/mp_control_real_params.yaml`:
 
 ```yaml
 use_stereo_npz_calibration: true
-stereo_calibration_file: "/absolute/path/to/mp_control/calibration/stereo/front_eef_stereo_calib.npz"
-stereo_calibration_yaml_file: "/absolute/path/to/mp_control/calibration/stereo/front_eef_stereo_calib.yaml"
+stereo_calibration_file: "/absolute/path/to/turtlebot3_ws/src/mp_control/calibration/stereo/front_eef_stereo_calib.npz"
+stereo_calibration_yaml_file: "/absolute/path/to/turtlebot3_ws/src/mp_control/calibration/stereo/front_eef_stereo_calib.yaml"
 stereo_camera1_frame: "camera_color_optical_frame"
 stereo_camera2_frame: "eef_usb_camera_optical_frame"
 use_distortion_undistort_points: true
