@@ -50,6 +50,7 @@ eef_hold_stay_roll: true
 eef_forward_after_align: true
 eef_forward_distance_m: 0.05
 eef_forward_speed_mps: 0.012
+gripper_grasp_clearance_m: 0.004
 position_tolerance_m: 0.035
 close_after_stable_cycles: 4
 ```
@@ -117,6 +118,10 @@ The EEF camera must not update gripper width. Width-aware gripper commands use
 only the latest object width measured from the front depth image; if no valid
 front-depth width exists, the configured fallback width is used. EEF RGB is only
 for final position correction when the end effector is slightly misaligned.
+The final gripper command uses `object_width + gripper_grasp_clearance_m`, so
+the commanded gap stays slightly wider than the measured object instead of
+trying to compress through it. If `gripper_grasp_clearance_m` is set to `0.0`,
+the legacy `gripper_grasp_compression_m` path is used.
 
 After EEF bbox alignment, the real grasp path uses the initial stay-pose EE roll
 as the roll reference, captures current pitch/yaw as the refinement reference,

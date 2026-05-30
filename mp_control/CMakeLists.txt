@@ -49,6 +49,7 @@ install(TARGETS mp_control_node
 
 install(PROGRAMS
   tools/auto_init_bbox.py
+  tools/joint_trajectory_transformer.py
   tools/sim_pick_place_demo.py
   DESTINATION lib/${PROJECT_NAME}
 )
