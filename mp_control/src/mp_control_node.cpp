@@ -715,12 +715,6 @@ private:
     return use_color_triangulation_after_min_depth_ && min_depth_reached_;
   }
 
-  void clearEefVisualTarget()
-  {
-    std::lock_guard<std::mutex> lock(data_mutex_);
-    latest_eef_bbox_.reset();
-  }
-
   std::optional<geometry_msgs::msg::PointStamped> latestDepthObjectInTarget()
   {
     const auto stamp = now();
@@ -1749,37 +1743,6 @@ private:
     const double width_scale = static_cast<double>(std::max<std::uint32_t>(1U, info.width)) / baseline_width;
     const double height_scale = static_cast<double>(std::max<std::uint32_t>(1U, info.height)) / baseline_height;
     return std::max(1.0, tolerance_px * std::min(width_scale, height_scale));
-  }
-
-  std::string frontBboxHandoffStatus()
-  {
-    Bbox bbox;
-    CameraInfo info;
-    {
-      std::lock_guard<std::mutex> lock(data_mutex_);
-      if (!latest_bbox_) {
-        return "no front bbox on " + bboxInputDescription();
-      }
-      if (!latest_camera_info_) {
-        return "no front camera info on " + camera_info_topic_;
-      }
-      bbox = *latest_bbox_;
-      info = *latest_camera_info_;
-    }
-
-    const double age_s = (now() - bbox.stamp).seconds();
-    if (age_s > max_target_age_s_) {
-      std::ostringstream status;
-      status << "front bbox stale age=" << age_s << "s max=" << max_target_age_s_ << "s";
-      return status.str();
-    }
-
-    const double area_ratio = bboxAreaRatio(bbox, info);
-    const double height_ratio = bboxHeightRatio(bbox, info);
-    std::ostringstream status;
-    status << "area_ratio=" << area_ratio << "/" << min_depth_handoff_bbox_area_ratio_
-           << " height_ratio=" << height_ratio << "/" << min_depth_handoff_bbox_height_ratio_;
-    return status.str();
   }
 
   std::optional<double> depthPixelMeters(const sensor_msgs::msg::Image & depth, int row, int col) const
