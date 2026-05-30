@@ -33,7 +33,14 @@ def parse_args():
     parser.add_argument("--camera2-frame", default="eef_usb_camera_optical_frame")
     parser.add_argument("--notes", default="")
     parser.add_argument("--run-validation", action="store_true")
-    parser.add_argument("--validation-output-dir", default="mp_control/calibration/stereo/validation")
+    parser.add_argument("--validation-output-dir", default="calibration/stereo/validation")
+    parser.add_argument("--display", action="store_true", help="Show detected front/eef corner overlays")
+    parser.add_argument(
+        "--display-wait-ms",
+        type=int,
+        default=1,
+        help="OpenCV wait time for each displayed pair; 0 waits for a key",
+    )
 
     parser.add_argument("--charuco-squares-x", type=int, default=10)
     parser.add_argument("--charuco-squares-y", type=int, default=12)
@@ -199,13 +206,47 @@ def load_ros_camera_yaml(path: str):
     return K, D, (int(payload["image_width"]), int(payload["image_height"]))
 
 
-def save_overlay(path: Path, image: np.ndarray, pattern_size: Tuple[int, int], corners: Optional[np.ndarray], found: bool):
-    path.parent.mkdir(parents=True, exist_ok=True)
+def draw_corner_overlay(
+    image: np.ndarray,
+    pattern_size: Tuple[int, int],
+    corners: Optional[np.ndarray],
+    found: bool,
+    label: str,
+) -> np.ndarray:
     overlay = image.copy()
     if corners is not None:
         cv2.drawChessboardCorners(overlay, pattern_size, corners, found)
     else:
         cv2.putText(overlay, "not detected", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+    status = "detected" if found else "not detected"
+    cv2.rectangle(overlay, (0, 0), (min(overlay.shape[1], 520), 34), (0, 0, 0), -1)
+    cv2.putText(
+        overlay,
+        f"{label}: {status}",
+        (10, 24),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (0, 255, 0) if found else (0, 0, 255),
+        2,
+        cv2.LINE_AA,
+    )
+    return overlay
+
+
+def stack_overlays(left: np.ndarray, right: np.ndarray) -> np.ndarray:
+    target_height = min(left.shape[0], right.shape[0], 720)
+    if left.shape[0] != target_height:
+        left_width = int(round(left.shape[1] * target_height / left.shape[0]))
+        left = cv2.resize(left, (left_width, target_height))
+    if right.shape[0] != target_height:
+        right_width = int(round(right.shape[1] * target_height / right.shape[0]))
+        right = cv2.resize(right, (right_width, target_height))
+    return np.hstack((left, right))
+
+
+def save_overlay(path: Path, image: np.ndarray, pattern_size: Tuple[int, int], corners: Optional[np.ndarray], found: bool):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    overlay = draw_corner_overlay(image, pattern_size, corners, found, path.stem)
     cv2.imwrite(str(path), overlay)
 
 
