@@ -14,9 +14,10 @@ def parse_args():
     parser.add_argument("--calib", dest="calib_opt", help="Input stereo calibration .npz")
     parser.add_argument(
         "--output",
-        default="mp_control/calibration/stereo/front_eef_stereo_calib.yaml",
+        default="calibration/stereo/front_eef_stereo_calib.yaml",
         help="Output OpenCV YAML path",
     )
+    parser.add_argument("--display", action="store_true", help="Show a GUI summary after writing YAML")
     return parser.parse_args()
 
 
@@ -32,6 +33,28 @@ def scalar(npz, key, default=""):
     return str(item)
 
 
+def draw_text_window(title: str, lines):
+    width = 980
+    line_height = 28
+    height = max(260, 32 + line_height * len(lines))
+    image = np.zeros((height, width, 3), dtype=np.uint8)
+    cv2.putText(image, title, (18, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (0, 255, 0), 2, cv2.LINE_AA)
+    for index, line in enumerate(lines):
+        cv2.putText(
+            image,
+            str(line),
+            (18, 72 + line_height * index),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.65,
+            (235, 235, 235),
+            2,
+            cv2.LINE_AA,
+        )
+    cv2.imshow(title, image)
+    cv2.waitKey(0)
+    cv2.destroyWindow(title)
+
+
 def main():
     args = parse_args()
     calib_path = Path(args.calib_opt or args.calib or "")
@@ -43,6 +66,7 @@ def main():
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
 
+    display_lines = []
     with np.load(str(calib_path), allow_pickle=False) as npz:
         required = [
             "K_front",
@@ -75,6 +99,19 @@ def main():
         fs.write("camera1_name", scalar(npz, "camera1_name", "front_astra_rgb"))
         fs.write("camera2_name", scalar(npz, "camera2_name", "eef_usb_camera"))
         fs.release()
+        baseline = float(np.linalg.norm(np.asarray(npz["T_front_to_eef"], dtype=np.float64).reshape(3)))
+        rms = float(np.asarray(npz.get("rms_error", [0.0])).reshape(-1)[0])
+        display_lines = [
+            f"input npz: {calib_path}",
+            f"output yaml: {output}",
+            f"front image size: {np.asarray(npz['image_size_front']).reshape(-1).tolist()}",
+            f"eef image size: {np.asarray(npz['image_size_eef']).reshape(-1).tolist()}",
+            f"baseline norm: {baseline:.6f} m",
+            f"rms error: {rms:.6f}",
+            f"camera1 frame: {scalar(npz, 'camera1_frame', 'camera_color_optical_frame')}",
+            f"camera2 frame: {scalar(npz, 'camera2_frame', 'eef_usb_camera_optical_frame')}",
+            "press any key to close",
+        ]
 
     text = output.read_text(encoding="utf-8")
     lines = text.splitlines()
@@ -83,6 +120,8 @@ def main():
     lines.insert(insert_at + 1, "# Regenerate it with stereo_npz_to_yaml.py instead of editing it by hand.")
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote runtime YAML: {output}")
+    if args.display:
+        draw_text_window("front/eef stereo yaml summary", display_lines)
 
 
 if __name__ == "__main__":
