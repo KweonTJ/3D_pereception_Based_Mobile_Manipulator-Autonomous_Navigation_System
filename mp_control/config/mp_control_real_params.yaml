@@ -69,8 +69,10 @@ mp_control_node:
     # Start EEF YOLO before Astra depth is ignored so a fresh bbox is ready at 0.47 m.
     eef_yolo_pre_enable_depth_m: 0.60
     min_depth_handoff_margin_m: 0.02
-    min_depth_handoff_bbox_area_ratio: 0.30
-    min_depth_handoff_bbox_height_ratio: 0.75
+    # If the Astra depth is already unreliable but the front YOLO box fills the
+    # image this much, treat it as close-range handoff instead of waiting.
+    min_depth_handoff_bbox_area_ratio: 0.08
+    min_depth_handoff_bbox_height_ratio: 0.40
     # Front depth is trusted only until 0.47 m. Once that near limit is reached,
     # depth is ignored and front RGB + EEF RGB triangulation keeps the base
     # approaching until color_triangulation_base_stop_object_x_m.

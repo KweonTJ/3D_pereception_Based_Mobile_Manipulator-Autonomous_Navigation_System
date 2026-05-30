@@ -32,6 +32,8 @@ Current depth and distance settings:
 min_valid_depth_m: 0.47
 eef_refinement_start_depth_m: 0.47
 eef_yolo_pre_enable_depth_m: 0.60
+min_depth_handoff_bbox_area_ratio: 0.08
+min_depth_handoff_bbox_height_ratio: 0.40
 color_triangulation_base_stop_object_x_m: 0.30
 arm_start_max_object_x_m: 0.30
 object_pregrasp_standoff_m: 0.08
@@ -43,6 +45,9 @@ Meaning:
 
 - `0.60 m`: EEF YOLO is enabled early, while front depth is still valid.
 - `0.47 m`: front depth is no longer trusted for new object range estimates.
+- `0.08 / 0.40`: if the front bbox already fills at least 8% of the image or
+  40% of image height, the system switches out of depth wait and starts the
+  close-range RGB/EEF handoff path.
 - `0.30 m`: RGB triangulation target distance before the arm enters the grasp phase.
 - `0.08 m`: EEF pregrasp standoff from the triangulated object point.
 
