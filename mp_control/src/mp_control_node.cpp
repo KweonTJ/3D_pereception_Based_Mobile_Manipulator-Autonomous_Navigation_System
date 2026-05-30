@@ -1051,12 +1051,14 @@ private:
     const double lateral_m = err_u_px * z_m / info.fx;
     const double vertical_m = err_v_px * z_m / info.fy;
 
+    const double center_tolerance_px = scaledEefTolerancePx(eef_center_tolerance_px_, info);
+    const double close_tolerance_px = scaledEefTolerancePx(eef_close_tolerance_px_, info);
     const bool centered =
-      std::abs(err_u_px) <= eef_center_tolerance_px_ &&
-      std::abs(err_v_px) <= eef_center_tolerance_px_;
+      std::abs(err_u_px) <= center_tolerance_px &&
+      std::abs(err_v_px) <= center_tolerance_px;
     const bool close_ready =
-      std::abs(err_u_px) <= eef_close_tolerance_px_ &&
-      std::abs(err_v_px) <= eef_close_tolerance_px_;
+      std::abs(err_u_px) <= close_tolerance_px &&
+      std::abs(err_v_px) <= close_tolerance_px;
 
     if (close_ready) {
       stable_cycles_ += 1;
@@ -1102,7 +1104,8 @@ private:
            << " feature_err=(" << (bbox_u - u) << ", " << (bbox_v - v) << ")"
            << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
            << " range_cmd=disabled"
-           << " close_tol_px=" << eef_close_tolerance_px_
+           << " close_tol_px=" << close_tolerance_px
+           << " eef_resolution=" << info.width << "x" << info.height
            << " cmd_frame=" << eef_camera_frame;
     publishStatus(status.str());
   }
@@ -1752,6 +1755,15 @@ private:
       area_ratio >= min_depth_handoff_bbox_area_ratio_) ||
       (min_depth_handoff_bbox_height_ratio_ > 0.0 &&
       height_ratio >= min_depth_handoff_bbox_height_ratio_);
+  }
+
+  double scaledEefTolerancePx(double tolerance_px, const CameraInfo & info) const
+  {
+    const double baseline_width = static_cast<double>(std::max(1, eef_camera_fallback_width_px_));
+    const double baseline_height = static_cast<double>(std::max(1, eef_camera_fallback_height_px_));
+    const double width_scale = static_cast<double>(std::max<std::uint32_t>(1U, info.width)) / baseline_width;
+    const double height_scale = static_cast<double>(std::max<std::uint32_t>(1U, info.height)) / baseline_height;
+    return std::max(1.0, tolerance_px * std::min(width_scale, height_scale));
   }
 
   std::string frontBboxHandoffStatus()
