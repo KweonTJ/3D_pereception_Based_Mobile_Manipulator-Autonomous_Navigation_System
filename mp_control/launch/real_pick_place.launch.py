@@ -523,12 +523,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_width_px",
-            default_value="20.0",
+            default_value="12.0",
             description="Minimum detected bbox width in pixels.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_height_px",
-            default_value="20.0",
+            default_value="12.0",
             description="Minimum detected bbox height in pixels.",
         ),
         DeclareLaunchArgument(
@@ -667,7 +667,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_imgsz",
-            default_value="640",
+            default_value="960",
             description="YOLO inference image size.",
         ),
         DeclareLaunchArgument(
@@ -677,7 +677,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_max_detections",
-            default_value="5",
+            default_value="10",
             description="Maximum YOLO detections to inspect per frame.",
         ),
         DeclareLaunchArgument(
@@ -717,12 +717,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_min_bbox_width_px",
-            default_value="12.0",
+            default_value="8.0",
             description="Minimum EEF detected bbox width in pixels.",
         ),
         DeclareLaunchArgument(
             "auto_eef_init_min_bbox_height_px",
-            default_value="12.0",
+            default_value="8.0",
             description="Minimum EEF detected bbox height in pixels.",
         ),
         DeclareLaunchArgument(
