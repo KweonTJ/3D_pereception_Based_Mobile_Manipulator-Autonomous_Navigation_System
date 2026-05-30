@@ -36,6 +36,7 @@ min_depth_handoff_bbox_area_ratio: 0.08
 min_depth_handoff_bbox_height_ratio: 0.40
 color_triangulation_base_stop_object_x_m: 0.30
 arm_start_max_object_x_m: 0.30
+use_fallback_bbox_for_control: true
 use_joint_pregrasp: true
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
 pregrasp_reverse_joint3_delta: true
@@ -52,6 +53,9 @@ Meaning:
   40% of image height, the system switches out of depth wait and starts the
   close-range RGB/EEF handoff path.
 - `0.30 m`: RGB triangulation target distance before the arm enters the grasp phase.
+- `use_fallback_bbox_for_control`: `mp_control` subscribes to the front YOLO
+  `/target/init_bbox` as a fallback when `/target/tracked_bbox` becomes stale,
+  so the close-range pregrasp handoff does not wait forever on CSRT output.
 - `use_joint_pregrasp`: real hardware sends `/arm_controller/joint_trajectory`
   before EEF refinement, avoiding MoveIt Servo collision scaling during arm
   extension.

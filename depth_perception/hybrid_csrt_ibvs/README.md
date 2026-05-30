@@ -231,6 +231,7 @@ Current real approach defaults:
 
 ```yaml
 desired_depth_m: 0.30
+desired_area_ratio: 0.12
 min_valid_depth_m: 0.47
 linear_gain: 0.85
 approach_yaw_gate_norm: 0.35
@@ -240,6 +241,10 @@ max_angular_z: 0.35
 ```
 
 The front tracker/base controller continues approaching to the 0.30 m target.
+When depth falls back to bbox area, the real config uses `desired_area_ratio:
+0.12` so the base still commands forward motion after the object first crosses
+the Astra near-depth limit; the previous `0.08` target could settle with
+`vx=0.000` while the grasp stack was still waiting for close-range handoff.
 `mp_control` stops trusting new front depth at 0.47 m and then narrows the
 remaining distance with front RGB + EEF RGB triangulation.
 
