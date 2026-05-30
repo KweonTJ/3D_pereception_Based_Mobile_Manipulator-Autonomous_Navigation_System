@@ -539,24 +539,13 @@ private:
     if (useColorTriangulationAfterMinDepth()) {
       std::string color_reason;
       auto front_size_object = estimateObjectPointFromFrontBboxSize();
-      if (!front_size_object) {
-        stable_cycles_ = 0;
-        publishEefAutoInitEnable(false);
-        clearEefVisualTarget();
-        publishBaseHold(false);
-        publishStop();
-        publishStatus(
-          "after depth limit; waiting for near-size front bbox before EEF YOLO: " +
-          frontBboxHandoffStatus());
-        return;
-      }
-
-      auto depth_reference = front_size_object;
+      auto depth_reference = front_size_object ? front_size_object :
+        (maybe_object ? maybe_object : latestDepthObjectInTarget());
       if (depth_reference) {
         prepareEefColorTriangulation(*depth_reference, &color_reason);
       } else {
         publishEefAutoInitEnable(true);
-        color_reason = "latched depth object for color triangulation";
+        color_reason = "depth limit reached; end-effector YOLO enabled";
       }
 
       auto maybe_color_object = triangulateObjectPoint(&color_reason, false);
@@ -569,11 +558,7 @@ private:
         maybe_color_object.reset();
       }
 
-      if (front_size_object && depth_reference) {
-        maybe_object = depth_reference;
-        using_latched_depth_for_pregrasp = true;
-        object_block_reason.clear();
-      } else if (!maybe_color_object) {
+      if (!maybe_color_object) {
         stable_cycles_ = 0;
         publishBaseHold(false);
         publishStop();
