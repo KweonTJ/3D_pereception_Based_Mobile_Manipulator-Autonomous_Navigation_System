@@ -662,12 +662,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_confidence",
-            default_value="0.05",
+            default_value="0.01",
             description="YOLO inference threshold; accepted boxes are still filtered by the lock/accept confidence gates.",
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_imgsz",
-            default_value="960",
+            default_value="1280",
             description="YOLO inference image size.",
         ),
         DeclareLaunchArgument(
