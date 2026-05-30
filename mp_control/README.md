@@ -46,6 +46,7 @@ pregrasp_republish_period_s: 1.0
 object_pregrasp_standoff_m: 0.08
 use_eef_rpy_refinement: true
 eef_hold_current_rpy: true
+eef_hold_stay_roll: true
 eef_forward_after_align: true
 eef_forward_distance_m: 0.05
 eef_forward_speed_mps: 0.012
@@ -98,7 +99,7 @@ That means real grasp control consumes the EEF YOLO bbox directly. The EEF
 `hybrid_csrt_ibvs` node may still be launched for debugging, but `/target/eef_tracked_bbox`
 is not the active grasp-control input.
 
-EEF refinement uses pixel alignment plus current-RPY hold:
+EEF refinement uses pixel alignment plus stay-roll/current-pitch-yaw hold:
 
 ```yaml
 eef_close_tolerance_px: 70.0
@@ -108,22 +109,24 @@ The tolerance is scaled from the configured EEF camera resolution, so the 320x24
 EEF camera and 640x480 front camera are not treated as equivalent pixel grids.
 The real EEF camera can show a tightly fitted box with the object center around
 60 px below the optical center; `70 px` treats that as close-ready. Once it is
-ready, `mp_control` keeps the captured EE roll/pitch/yaw, drives the EE forward
-for `eef_forward_distance_m`, then closes the gripper.
+ready, `mp_control` keeps the EE roll captured from the initial stay pose, holds
+pitch/yaw from the refinement entry pose, drives the EE forward for
+`eef_forward_distance_m`, then closes the gripper.
 
 The EEF camera must not update gripper width. Width-aware gripper commands use
 only the latest object width measured from the front depth image; if no valid
 front-depth width exists, the configured fallback width is used. EEF RGB is only
 for final position correction when the end effector is slightly misaligned.
 
-After EEF bbox alignment, the real grasp path captures the current EE
-roll/pitch/yaw as the hold reference, commands a short forward motion in
-`base_link`, then closes the gripper. This keeps the hand from reorienting while
-it advances into the object:
+After EEF bbox alignment, the real grasp path uses the initial stay-pose EE roll
+as the roll reference, captures current pitch/yaw as the refinement reference,
+commands a short forward motion in `base_link`, then closes the gripper. This
+keeps the hand from rolling into the support while it advances into the object:
 
 ```yaml
 use_eef_rpy_refinement: true
 eef_hold_current_rpy: true
+eef_hold_stay_roll: true
 eef_rpy_tolerance_rad: 0.12
 eef_rpy_gain: 0.8
 eef_refine_max_angular_speed: 0.25
@@ -133,7 +136,7 @@ eef_forward_speed_mps: 0.012
 ```
 
 During this phase `/mp_control/status` reports `rpy_err=(roll, pitch, yaw)`,
-`rpy_ready`, and fixed-pose forward advance progress.
+`roll_ref=stay_roll`, `rpy_ready`, and fixed-pose forward advance progress.
 
 ## Front-EEF RGB Triangulation
 
