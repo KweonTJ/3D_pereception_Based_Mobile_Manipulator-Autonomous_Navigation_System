@@ -245,6 +245,8 @@ private:
     eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
     eef_refinement_start_depth_m_ =
       declare_parameter<double>("eef_refinement_start_depth_m", min_valid_depth_m_);
+    eef_yolo_pre_enable_depth_m_ =
+      declare_parameter<double>("eef_yolo_pre_enable_depth_m", eef_refinement_start_depth_m_);
     min_depth_handoff_margin_m_ =
       declare_parameter<double>("min_depth_handoff_margin_m", 0.02);
     min_depth_handoff_bbox_area_ratio_ =
@@ -317,6 +319,8 @@ private:
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
     eef_refinement_start_depth_m_ = std::max(min_valid_depth_m_, eef_refinement_start_depth_m_);
+    eef_yolo_pre_enable_depth_m_ =
+      std::max(eef_refinement_start_depth_m_, eef_yolo_pre_enable_depth_m_);
     min_depth_handoff_margin_m_ = std::max(0.0, min_depth_handoff_margin_m_);
     min_depth_handoff_bbox_area_ratio_ =
       clampValue(min_depth_handoff_bbox_area_ratio_, 0.0, 1.0);
