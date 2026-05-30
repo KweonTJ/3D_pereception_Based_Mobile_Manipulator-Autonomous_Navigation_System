@@ -32,7 +32,7 @@ mp_control_node:
     # Use YOLO init bbox as a close-range fallback when CSRT tracked bbox stalls.
     # This keeps the handoff/pregrasp logic alive after the front depth limit.
     use_fallback_bbox_for_control: true
-    start_servo_on_start: true
+    start_servo_on_start: false
     open_gripper_on_start: true
     close_gripper_on_arrival: true
     use_eef_refinement: true

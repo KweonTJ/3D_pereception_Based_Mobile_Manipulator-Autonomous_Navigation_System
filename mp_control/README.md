@@ -37,6 +37,7 @@ min_depth_handoff_bbox_height_ratio: 0.40
 color_triangulation_base_stop_object_x_m: 0.30
 arm_start_max_object_x_m: 0.30
 use_fallback_bbox_for_control: true
+start_servo_on_start: false
 use_joint_pregrasp: true
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
 pregrasp_reverse_joint3_delta: true
@@ -56,6 +57,11 @@ Meaning:
 - `use_fallback_bbox_for_control`: `mp_control` subscribes to the front YOLO
   `/target/init_bbox` as a fallback when `/target/tracked_bbox` becomes stale,
   so the close-range pregrasp handoff does not wait forever on CSRT output.
+- `start_servo_on_start`: disabled for real joint pregrasp. `servo_node` also
+  publishes `/arm_controller/joint_trajectory`, so starting it before pregrasp
+  can overwrite the one-shot joint trajectory with a hold/current command.
+  `mp_control` starts MoveIt Servo after joint pregrasp completes, just before
+  EEF visual refinement.
 - `use_joint_pregrasp`: real hardware sends `/arm_controller/joint_trajectory`
   before EEF refinement, avoiding MoveIt Servo collision scaling during arm
   extension.

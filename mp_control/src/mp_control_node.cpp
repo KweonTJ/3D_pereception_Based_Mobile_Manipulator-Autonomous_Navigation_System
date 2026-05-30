@@ -577,6 +577,7 @@ private:
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    servo_start_requested_ = false;
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -610,6 +611,7 @@ private:
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    servo_start_requested_ = false;
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     stable_cycles_ = 0;
@@ -793,6 +795,10 @@ private:
 	      const bool joint_pregrasp_ready =
 	        !use_joint_pregrasp_ || updateJointPregrasp();
 	      if (!joint_pregrasp_ready) {
+	        return;
+	      }
+	      if (!startMoveItServo()) {
+	        publishStatus("waiting for MoveIt Servo start before EEF refinement");
 	        return;
 	      }
 	      if (!use_joint_pregrasp_) {
@@ -2225,15 +2231,19 @@ private:
     gripper_client_->async_send_goal(goal, options);
   }
 
-  void startMoveItServo()
+  bool startMoveItServo()
   {
+    if (servo_start_requested_) {
+      return true;
+    }
     if (!servo_start_client_->wait_for_service(std::chrono::milliseconds(500))) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "MoveIt Servo start service unavailable: /servo_node/start_servo");
-      return;
+      return false;
     }
 
+    servo_start_requested_ = true;
     servo_start_client_->async_send_request(
       std::make_shared<Trigger::Request>(),
       [this](rclcpp::Client<Trigger>::SharedFuture future) {
@@ -2244,6 +2254,7 @@ private:
             response->message.c_str());
         }
       });
+    return true;
   }
 
   void publishStop()
@@ -2502,6 +2513,7 @@ private:
 	  bool joint_pregrasp_sent_{false};
 	  bool joint_pregrasp_done_{false};
 	  bool min_depth_reached_{false};
+  bool servo_start_requested_{false};
 	  GraspStage stage_{GraspStage::DEPTH_APPROACH};
 	  int stable_cycles_{0};
 	  rclcpp::Time last_status_stamp_;
