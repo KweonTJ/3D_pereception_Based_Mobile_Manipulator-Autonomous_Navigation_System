@@ -116,6 +116,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("gazebo_pose_update_period_s", 0.10)
         self.declare_parameter("gazebo_pose_wait_timeout_s", 8.0)
         self.declare_parameter("pregrasp_ready_joint_positions", [0.0, 0.65, -0.85, -1.20])
+        self.declare_parameter("pregrasp_preserve_gripper_roll", True)
         self.declare_parameter("pregrasp_hold_current_duration_s", 0.15)
         self.declare_parameter("pregrasp_move_duration_s", 1.2)
         self.declare_parameter("pregrasp_settle_s", 0.5)
@@ -168,6 +169,8 @@ class SimPickPlaceDemo(Node):
         self.stay_arm_positions = [0.104311, 0.027612, -0.001534, -1.638291]
         self.pregrasp_ready_joint_positions = self._float_list_parameter(
             "pregrasp_ready_joint_positions", [0.0, 0.65, -0.85, -1.20], 4)
+        self.pregrasp_preserve_gripper_roll = bool(
+            self.get_parameter("pregrasp_preserve_gripper_roll").value)
         self.pregrasp_hold_current_duration_s = max(
             0.0, float(self.get_parameter("pregrasp_hold_current_duration_s").value))
         self.pregrasp_move_duration_s = max(
@@ -301,6 +304,9 @@ class SimPickPlaceDemo(Node):
             current = list(self.stay_arm_positions)
 
         target = [float(v) for v in self.pregrasp_ready_joint_positions]
+        if self.pregrasp_preserve_gripper_roll:
+            current_roll_proxy = current[1] + current[2] + current[3]
+            target[3] = current_roll_proxy - target[1] - target[2]
         if self.pregrasp_reverse_joint3_delta:
             target[2] = current[2] - (target[2] - current[2])
         return self._clamp_joint_positions(target)
