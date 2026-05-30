@@ -56,6 +56,14 @@ mp_control_node:
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
     eef_refine_max_linear_speed: 0.012
+    use_eef_rpy_refinement: true
+    eef_hold_current_rpy: true
+    eef_rpy_tolerance_rad: 0.12
+    eef_rpy_gain: 0.8
+    eef_refine_max_angular_speed: 0.25
+    eef_forward_after_align: true
+    eef_forward_distance_m: 0.05
+    eef_forward_speed_mps: 0.012
 
     gripper_open_position: 0.019
     gripper_close_position: -0.010
