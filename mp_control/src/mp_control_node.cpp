@@ -2141,6 +2141,10 @@ private:
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
   double triangulation_max_ray_gap_m_{0.08};
+  bool use_eef_front_camera_extrinsic_override_{false};
+  double eef_front_camera_offset_x_m_{0.0};
+  double eef_front_camera_offset_y_m_{0.0};
+  double eef_front_camera_offset_z_m_{0.0};
   double color_triangulation_base_stop_object_x_m_{0.30};
   double color_triangulation_min_object_x_m_{0.05};
   int eef_camera_fallback_width_px_{640};
