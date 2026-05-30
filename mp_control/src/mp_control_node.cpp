@@ -383,7 +383,6 @@ private:
       declare_parameter<double>("gripper_grasp_compression_m", 0.002);
     gripper_grasp_clearance_m_ =
       declare_parameter<double>("gripper_grasp_clearance_m", 0.0);
-    gripper_grasp_clearance_m_ = std::max(0.0, gripper_grasp_clearance_m_);
     gripper_min_position_ = declare_parameter<double>("gripper_min_position", -0.010);
     gripper_max_position_ = declare_parameter<double>("gripper_max_position", 0.019);
     gripper_min_measured_object_width_m_ =
@@ -482,6 +481,7 @@ private:
     gripper_finger_home_half_gap_m_ = std::max(0.0, gripper_finger_home_half_gap_m_);
     gripper_pre_grasp_clearance_m_ = std::max(0.0, gripper_pre_grasp_clearance_m_);
     gripper_grasp_compression_m_ = std::max(0.0, gripper_grasp_compression_m_);
+    gripper_grasp_clearance_m_ = std::max(0.0, gripper_grasp_clearance_m_);
   }
 
   void onBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
