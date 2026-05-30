@@ -66,6 +66,8 @@ mp_control_node:
     eef_camera_fallback_fy: 554.0
     eef_refinement_switch_distance_m: 0.12
     eef_refinement_start_depth_m: 0.47
+    # Start EEF YOLO before Astra depth is ignored so a fresh bbox is ready at 0.47 m.
+    eef_yolo_pre_enable_depth_m: 0.60
     min_depth_handoff_margin_m: 0.02
     min_depth_handoff_bbox_area_ratio: 0.30
     min_depth_handoff_bbox_height_ratio: 0.75
