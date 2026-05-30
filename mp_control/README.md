@@ -93,6 +93,11 @@ The real EEF camera can show a tightly fitted box with the object center around
 the gripper instead of repeatedly commanding a Servo correction that collision
 scaling cannot execute.
 
+The EEF camera must not update gripper width. Width-aware gripper commands use
+only the latest object width measured from the front depth image; if no valid
+front-depth width exists, the configured fallback width is used. EEF RGB is only
+for final position correction when the end effector is slightly misaligned.
+
 ## Front-EEF RGB Triangulation
 
 After the 0.47 m depth handoff, `mp_control` triangulates the object using:

@@ -1637,7 +1637,7 @@ private:
       return std::nullopt;
     }
 
-    rememberMeasuredObjectWidth(eef_bbox.width * eef_range / eef_info.fx);
+    // EEF RGB is alignment-only; gripper width is updated only from front depth.
 
     geometry_msgs::msg::PointStamped point;
     point.header.stamp = stamp;
