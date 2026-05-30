@@ -188,6 +188,16 @@ For the calibration command and service remapping, use:
 mp_control/calibration/eef_camera/README.md
 ```
 
+Front-EEF stereo calibration capture and validation scripts are documented in:
+
+```text
+mp_control/scripts/STEREO_CALIBRATION_USAGE.md
+```
+
+Those scripts run from the source tree with `python3 mp_control/scripts/...`.
+They use `/camera/color/image_raw` and `/eef_camera/image_raw` for capture, then
+load intrinsics from the front Astra JSON and EEF USB YAML files.
+
 ## Useful Runtime Checks
 
 ```bash
