@@ -119,6 +119,7 @@ class SimPickPlaceDemo(Node):
         self.declare_parameter("pregrasp_preserve_gripper_roll", True)
         self.declare_parameter("pregrasp_hold_current_duration_s", 0.15)
         self.declare_parameter("pregrasp_move_duration_s", 1.2)
+        self.declare_parameter("pregrasp_sync_steps", 12)
         self.declare_parameter("pregrasp_settle_s", 0.5)
         self.declare_parameter("pregrasp_reverse_joint3_delta", True)
         self.declare_parameter("pregrasp_joint_min_positions", [-3.14, -1.79, -0.94, -1.79])
@@ -175,6 +176,8 @@ class SimPickPlaceDemo(Node):
             0.0, float(self.get_parameter("pregrasp_hold_current_duration_s").value))
         self.pregrasp_move_duration_s = max(
             0.2, float(self.get_parameter("pregrasp_move_duration_s").value))
+        self.pregrasp_sync_steps = max(
+            1, int(self.get_parameter("pregrasp_sync_steps").value))
         self.pregrasp_settle_s = max(
             0.0, float(self.get_parameter("pregrasp_settle_s").value))
         self.pregrasp_reverse_joint3_delta = bool(
@@ -322,11 +325,17 @@ class SimPickPlaceDemo(Node):
             trajectory_time_s += self.pregrasp_hold_current_duration_s
             points.append((self._clamp_joint_positions(current), trajectory_time_s))
 
-        trajectory_time_s += self.pregrasp_move_duration_s
-        points.append((
-            self._pregrasp_target_from_current(current),
-            trajectory_time_s,
-        ))
+        target = self._pregrasp_target_from_current(current)
+        for step in range(1, self.pregrasp_sync_steps + 1):
+            ratio = float(step) / float(self.pregrasp_sync_steps)
+            waypoint = [
+                current[i] + (target[i] - current[i]) * ratio
+                for i in range(4)
+            ]
+            points.append((
+                self._clamp_joint_positions(waypoint),
+                trajectory_time_s + self.pregrasp_move_duration_s * ratio,
+            ))
         return points
 
     def _pregrasp_wait_s(self, points):
