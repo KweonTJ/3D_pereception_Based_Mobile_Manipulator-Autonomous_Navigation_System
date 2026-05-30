@@ -1183,7 +1183,7 @@ private:
       }
     }
 
-    if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
+    if ((now() - bbox.stamp).seconds() > max_target_age_s_ && !eef_forward_advance_active_) {
       publishStop();
       publishStatus("waiting for fresh end-effector visual feature bbox");
       return;
@@ -1259,6 +1259,31 @@ private:
         publishStatus(status.str());
         return;
       }
+
+      stable_cycles_ += 1;
+      publishStop();
+      if (stable_cycles_ >= close_after_stable_cycles_) {
+        if (close_gripper_on_arrival_ && !close_sent_) {
+          sendGripperGraspForObject();
+          close_sent_ = true;
+          publishCargoEvent("picked", true);
+        }
+        done_ = true;
+        active_ = false;
+        {
+          std::lock_guard<std::mutex> lock(data_mutex_);
+          eef_refinement_requested_ = false;
+        }
+        publishStatus("eef fixed-pose forward advance complete; width-aware gripper command sent", true);
+      } else {
+        std::ostringstream status;
+        status << "eef forward advance complete; holding before closing"
+               << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
+               << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
+               << ", " << rpy_error.yaw << ")";
+        publishStatus(status.str());
+      }
+      return;
     }
 
     if (pose_ready) {
