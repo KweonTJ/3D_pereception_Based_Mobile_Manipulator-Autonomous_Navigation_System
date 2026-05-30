@@ -19,10 +19,10 @@ Runtime flow:
 1. Front YOLO publishes `/target/init_bbox`.
 2. `hybrid_csrt_ibvs` tracks the front-camera object and publishes `/target/tracked_bbox`.
 3. The base approaches using front RGB-D until the Astra depth near limit.
-4. EEF YOLO is pre-enabled before the depth handoff so its bbox is ready.
+4. EEF YOLO runs from launch start so its bbox is already ready before the depth handoff.
 5. After the depth near limit, front depth is ignored.
 6. Front RGB + EEF RGB triangulation narrows the robot-object distance.
-7. The base stops, the arm moves to pregrasp, EEF RGB refinement runs, then the gripper closes.
+7. The base stops, the arm moves to joint pregrasp, EEF RGB refinement runs, then the gripper closes.
 
 ## Important Real Parameters
 
@@ -36,6 +36,9 @@ min_depth_handoff_bbox_area_ratio: 0.08
 min_depth_handoff_bbox_height_ratio: 0.40
 color_triangulation_base_stop_object_x_m: 0.30
 arm_start_max_object_x_m: 0.30
+use_joint_pregrasp: true
+pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
+pregrasp_reverse_joint3_delta: true
 object_pregrasp_standoff_m: 0.08
 position_tolerance_m: 0.035
 close_after_stable_cycles: 4
@@ -49,11 +52,19 @@ Meaning:
   40% of image height, the system switches out of depth wait and starts the
   close-range RGB/EEF handoff path.
 - `0.30 m`: RGB triangulation target distance before the arm enters the grasp phase.
+- `use_joint_pregrasp`: real hardware sends `/arm_controller/joint_trajectory`
+  before EEF refinement, avoiding MoveIt Servo collision scaling during arm
+  extension.
+- `pregrasp_reverse_joint3_delta`: keeps the configured ready target as the
+  reference but moves joint3 in the opposite direction from the current real
+  hardware pose.
 - `0.08 m`: EEF pregrasp standoff from the triangulated object point.
 
 ## EEF Camera Path
 
 The EEF camera has no depth stream. It is used as an RGB-only near-field camera.
+The real launch starts EEF YOLO immediately and publishes `/target/eef_init_bbox`
+continuously; `mp_control` only consumes it during the near-field grasp phase.
 
 Current control topic:
 

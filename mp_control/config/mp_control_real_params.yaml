@@ -8,12 +8,12 @@ mp_control_node:
     camera_info_topic: /camera/color/camera_info_calibrated
     eef_camera_info_topic: /eef_camera/camera_info
     eef_auto_init_enable_topic: /target/eef_auto_init_enable
-	    base_hold_topic: /target/base_hold
+    base_hold_topic: /target/base_hold
 
-	    twist_topic: /servo_node/delta_twist_cmds
-	    joint_state_topic: /joint_states
-	    joint_trajectory_topic: /arm_controller/joint_trajectory
-	    gripper_action_name: /gripper_controller/gripper_cmd
+    twist_topic: /servo_node/delta_twist_cmds
+    joint_state_topic: /joint_states
+    joint_trajectory_topic: /arm_controller/joint_trajectory
+    gripper_action_name: /gripper_controller/gripper_cmd
     start_topic: /mp_control/start
     cancel_topic: /mp_control/cancel
     status_topic: /mp_control/status
@@ -37,12 +37,12 @@ mp_control_node:
     close_gripper_on_arrival: true
     use_eef_refinement: true
     wait_for_base_approach: true
-	    auto_init_eef_tracker_from_object: false
-	    use_depthless_triangulation: false
-	    use_color_triangulation_after_min_depth: true
-	    # Real hardware pregrasp bypasses Cartesian Servo because Servo collision
-	    # scaling can stall while the arm is still mechanically able to extend.
-	    use_joint_pregrasp: true
+    auto_init_eef_tracker_from_object: false
+    use_depthless_triangulation: false
+    use_color_triangulation_after_min_depth: true
+    # Real hardware pregrasp bypasses Cartesian Servo because Servo collision
+    # scaling can stall while the arm is still mechanically able to extend.
+    use_joint_pregrasp: true
 
     command_rate_hz: 20.0
     max_target_age_s: 2.0
@@ -92,17 +92,17 @@ mp_control_node:
     eef_final_depth_m: 0.08
     object_pregrasp_standoff_m: 0.08
     object_pregrasp_min_z_m: 0.50
-	    object_pregrasp_lower_standoff_m: 0.02
-	    object_pregrasp_min_lower_z_m: 0.12
-	    object_pregrasp_enable_lowering: false
-	    pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
-	    pregrasp_reverse_joint3_delta: true
-	    pregrasp_hold_current_duration_s: 0.15
-	    pregrasp_move_duration_s: 1.2
-	    pregrasp_settle_s: 0.5
-	    pregrasp_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
-	    pregrasp_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
-	    eef_center_tolerance_px: 18.0
+    object_pregrasp_lower_standoff_m: 0.02
+    object_pregrasp_min_lower_z_m: 0.12
+    object_pregrasp_enable_lowering: false
+    pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
+    pregrasp_reverse_joint3_delta: true
+    pregrasp_hold_current_duration_s: 0.15
+    pregrasp_move_duration_s: 1.2
+    pregrasp_settle_s: 0.5
+    pregrasp_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
+    pregrasp_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
+    eef_center_tolerance_px: 18.0
     eef_close_tolerance_px: 55.0
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
