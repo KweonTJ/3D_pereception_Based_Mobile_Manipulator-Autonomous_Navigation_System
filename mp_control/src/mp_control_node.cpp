@@ -1439,6 +1439,7 @@ private:
       const double handoff_depth =
         estimateRangeFromBboxSize(bbox, info).value_or(eef_refinement_start_depth_m_);
       rememberObjectDepth(handoff_depth);
+      maybePreEnableEefYolo(handoff_depth);
 
       geometry_msgs::msg::PointStamped object_camera;
       object_camera.header.stamp = depth->header.stamp;
@@ -1475,6 +1476,7 @@ private:
         const auto near_limit_depth = nearLimitDepthInBbox(*depth, info, bbox);
         if (near_limit_depth) {
           rememberObjectDepth(*near_limit_depth);
+          maybePreEnableEefYolo(*near_limit_depth);
 
           geometry_msgs::msg::PointStamped object_camera;
           object_camera.header.stamp = depth->header.stamp;
@@ -1507,6 +1509,7 @@ private:
       return std::nullopt;
     }
     rememberObjectDepth(*depth_m);
+    maybePreEnableEefYolo(*depth_m);
     rememberMeasuredObjectWidth(bbox.width * (*depth_m) / info.fx);
 
     geometry_msgs::msg::PointStamped object_camera;
