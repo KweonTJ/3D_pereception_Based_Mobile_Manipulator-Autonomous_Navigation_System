@@ -31,6 +31,9 @@ def generate_launch_description():
     start_tracker = LaunchConfiguration("start_tracker")
     start_eef_tracker = LaunchConfiguration("start_eef_tracker")
     start_servo = LaunchConfiguration("start_servo")
+    start_joint_trajectory_transformer = LaunchConfiguration("start_joint_trajectory_transformer")
+    joint_trajectory_raw_topic = LaunchConfiguration("joint_trajectory_raw_topic")
+    joint_trajectory_output_topic = LaunchConfiguration("joint_trajectory_output_topic")
     start_mp_control = LaunchConfiguration("start_mp_control")
     control_start_delay = LaunchConfiguration("control_start_delay")
 
@@ -160,6 +163,10 @@ def generate_launch_description():
             "start_tracker": start_tracker,
             "start_eef_tracker": start_eef_tracker,
             "start_servo": start_servo,
+            "servo_command_out_topic": joint_trajectory_raw_topic,
+            "start_joint_trajectory_transformer": start_joint_trajectory_transformer,
+            "joint_trajectory_raw_topic": joint_trajectory_raw_topic,
+            "joint_trajectory_output_topic": joint_trajectory_output_topic,
             "start_mp_control": start_mp_control,
         }.items(),
     )
@@ -445,6 +452,21 @@ def generate_launch_description():
             "start_servo",
             default_value="true",
             description="Start MoveIt Servo after the hardware stack is ready.",
+        ),
+        DeclareLaunchArgument(
+            "start_joint_trajectory_transformer",
+            default_value="true",
+            description="Route MoveIt Servo through a joint3 delta-mirror transformer before the real arm controller.",
+        ),
+        DeclareLaunchArgument(
+            "joint_trajectory_raw_topic",
+            default_value="/arm_controller/joint_trajectory_raw",
+            description="Raw MoveIt Servo trajectory topic before real joint3 direction conversion.",
+        ),
+        DeclareLaunchArgument(
+            "joint_trajectory_output_topic",
+            default_value="/arm_controller/joint_trajectory",
+            description="Arm-controller trajectory topic after real joint3 direction conversion.",
         ),
         DeclareLaunchArgument(
             "start_mp_control",

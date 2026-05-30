@@ -32,11 +32,17 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     use_sim = LaunchConfiguration('use_sim')
+    command_out_topic = LaunchConfiguration('command_out_topic')
     declare_use_sim = DeclareLaunchArgument(
         'use_sim',
         default_value='true',
         description='Start robot in Gazebo simulation.')
     ld.add_action(declare_use_sim)
+    declare_command_out_topic = DeclareLaunchArgument(
+        'command_out_topic',
+        default_value='/arm_controller/joint_trajectory',
+        description='JointTrajectory topic published by MoveIt Servo.')
+    ld.add_action(declare_command_out_topic)
 
     # Robot description
     robot_description_config = xacro.process_file(
@@ -81,7 +87,9 @@ def generate_launch_description():
     )
     try:
         with open(servo_yaml_path, 'r') as file:
-            servo_params = {'moveit_servo': yaml.safe_load(file)}
+            servo_yaml = yaml.safe_load(file)
+            servo_yaml['command_out_topic'] = command_out_topic
+            servo_params = {'moveit_servo': servo_yaml}
     except EnvironmentError:  # parent of IOError, OSError *and* WindowsError where available
         return None
 

@@ -20,6 +20,10 @@ def generate_launch_description():
     start_tracker = LaunchConfiguration("start_tracker")
     start_eef_tracker = LaunchConfiguration("start_eef_tracker")
     start_servo = LaunchConfiguration("start_servo")
+    servo_command_out_topic = LaunchConfiguration("servo_command_out_topic")
+    start_joint_trajectory_transformer = LaunchConfiguration("start_joint_trajectory_transformer")
+    joint_trajectory_raw_topic = LaunchConfiguration("joint_trajectory_raw_topic")
+    joint_trajectory_output_topic = LaunchConfiguration("joint_trajectory_output_topic")
     start_mp_control = LaunchConfiguration("start_mp_control")
 
     servo_launch = IncludeLaunchDescription(
@@ -30,7 +34,24 @@ def generate_launch_description():
                 "servo.launch.py",
             ])
         ]),
-        launch_arguments={"use_sim": use_sim}.items(),
+        launch_arguments={
+            "use_sim": use_sim,
+            "command_out_topic": servo_command_out_topic,
+        }.items(),
+    )
+
+    joint_trajectory_transformer_node = Node(
+        package="mp_control",
+        executable="joint_trajectory_transformer.py",
+        name="joint_trajectory_transformer",
+        output="screen",
+        parameters=[{
+            "input_topic": joint_trajectory_raw_topic,
+            "output_topic": joint_trajectory_output_topic,
+            "joint_state_topic": "/joint_states",
+            "reverse_joint_names": ["joint3"],
+        }],
+        condition=IfCondition(start_joint_trajectory_transformer),
     )
 
     tracker_launch = IncludeLaunchDescription(
@@ -136,10 +157,31 @@ def generate_launch_description():
             description="Call /servo_node/start_servo after Servo starts.",
         ),
         DeclareLaunchArgument(
+            "servo_command_out_topic",
+            default_value="/arm_controller/joint_trajectory",
+            description="JointTrajectory topic published by MoveIt Servo.",
+        ),
+        DeclareLaunchArgument(
+            "start_joint_trajectory_transformer",
+            default_value="false",
+            description="Mirror selected joint deltas before the real arm controller.",
+        ),
+        DeclareLaunchArgument(
+            "joint_trajectory_raw_topic",
+            default_value="/arm_controller/joint_trajectory_raw",
+            description="Raw JointTrajectory topic consumed by the transformer.",
+        ),
+        DeclareLaunchArgument(
+            "joint_trajectory_output_topic",
+            default_value="/arm_controller/joint_trajectory",
+            description="Controller JointTrajectory topic published by the transformer.",
+        ),
+        DeclareLaunchArgument(
             "start_mp_control",
             default_value="true",
             description="Launch mp_control node.",
         ),
+        joint_trajectory_transformer_node,
         servo_launch,
         tracker_launch,
         eef_tracker_launch,
