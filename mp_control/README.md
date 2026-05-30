@@ -164,13 +164,13 @@ This means the EEF camera is 5 cm behind and 15 cm above the front camera in
 Front Astra color calibration:
 
 ```text
-depth_perception/astra_mini_calibration/config/astra_mini_color.json
+../depth_perception/astra_mini_calibration/config/astra_mini_color.json
 ```
 
 EEF USB camera calibration:
 
 ```text
-mp_control/calibration/eef_camera/eef_usb_camera.yaml
+calibration/eef_camera/eef_usb_camera.yaml
 ```
 
 The current EEF calibration is for the 320x240 EEF camera at about 50 cm. The
@@ -185,18 +185,19 @@ active runtime topics are:
 For the calibration command and service remapping, use:
 
 ```text
-mp_control/calibration/eef_camera/README.md
+calibration/eef_camera/README.md
 ```
 
 Front-EEF stereo calibration capture and validation scripts are documented in:
 
 ```text
-mp_control/scripts/STEREO_CALIBRATION_USAGE.md
+scripts/STEREO_CALIBRATION_USAGE.md
 ```
 
-Those scripts run from the source tree with `python3 mp_control/scripts/...`.
+Run them from `~/turtlebot3_ws/src/mp_control` with `python3 scripts/...`.
 They use `/camera/color/image_raw` and `/eef_camera/image_raw` for capture, then
-load intrinsics from the front Astra JSON and EEF USB YAML files.
+load intrinsics from `../depth_perception/.../astra_mini_color.json` and
+`calibration/eef_camera/eef_usb_camera.yaml`.
 
 ## Useful Runtime Checks
 
