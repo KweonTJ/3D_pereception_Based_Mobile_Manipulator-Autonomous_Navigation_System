@@ -383,6 +383,7 @@ private:
       declare_parameter<double>("gripper_grasp_compression_m", 0.002);
     gripper_grasp_clearance_m_ =
       declare_parameter<double>("gripper_grasp_clearance_m", 0.0);
+    gripper_grasp_clearance_m_ = std::max(0.0, gripper_grasp_clearance_m_);
     gripper_min_position_ = declare_parameter<double>("gripper_min_position", -0.010);
     gripper_max_position_ = declare_parameter<double>("gripper_max_position", 0.019);
     gripper_min_measured_object_width_m_ =
@@ -2449,6 +2450,7 @@ private:
     if (!gripper_width_control_enabled_) {
       return GripperTarget{
         open ? gripper_open_position_ : gripper_close_position_,
+        0.0,
         0.0,
         false};
     }
