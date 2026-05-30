@@ -885,14 +885,6 @@ private:
       (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
   }
 
-  bool hasFreshEefBbox()
-  {
-    const auto stamp = now();
-    std::lock_guard<std::mutex> lock(data_mutex_);
-    return latest_eef_bbox_ &&
-      (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
-  }
-
   bool shouldStartEefRefinementByDepth()
   {
     const auto stamp = now();
