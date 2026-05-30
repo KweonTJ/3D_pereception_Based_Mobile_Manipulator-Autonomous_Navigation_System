@@ -847,6 +847,50 @@ def process_pair(
     )
 
 
+def show_saved_pair_overlays(
+    pair_results: Sequence[PairResult],
+    overlay_dir: Path,
+    wait_ms: int,
+) -> None:
+    for result in pair_results:
+        front_overlay_path = overlay_dir / f"front_{result.pair_index:03d}_corners.png"
+        eef_overlay_path = overlay_dir / f"eef_{result.pair_index:03d}_corners.png"
+        front_overlay = cv2.imread(str(front_overlay_path), cv2.IMREAD_COLOR)
+        eef_overlay = cv2.imread(str(eef_overlay_path), cv2.IMREAD_COLOR)
+        if front_overlay is None or eef_overlay is None:
+            continue
+
+        combined = stack_overlays(front_overlay, eef_overlay)
+        lines = [
+            f"pair {result.pair_index:03d}",
+            f"valid: {'yes' if not result.failure_reason else 'no'}",
+        ]
+        if result.failure_reason:
+            lines.append(result.failure_reason)
+        else:
+            lines.append(f"reproj mean/max: {result.total_reproj_mean_px:.3f}/{result.total_reproj_max_px:.3f}px")
+            lines.append(f"epipolar mean: {result.epipolar_mean_px:.3f}px")
+            lines.append(f"front range: {result.front_board_distance_m:.4f}m")
+            lines.append(f"eef range: {result.eef_board_distance_m:.4f}m")
+        cv2.rectangle(combined, (0, 0), (min(combined.shape[1], 620), 26 * len(lines) + 12), (0, 0, 0), -1)
+        for index, line in enumerate(lines):
+            cv2.putText(
+                combined,
+                line,
+                (12, 26 + 26 * index),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 0) if index == 1 and not result.failure_reason else (255, 255, 255),
+                2,
+                cv2.LINE_AA,
+            )
+        cv2.imshow("front/eef stereo validation", combined)
+        key = cv2.waitKey(max(0, wait_ms)) & 0xFF
+        if key in (ord("q"), 27):
+            break
+    cv2.destroyAllWindows()
+
+
 def finite_mean(values: Iterable[float]) -> float:
     array = np.asarray([value for value in values if math.isfinite(value)], dtype=np.float64)
     return float(np.mean(array)) if array.size else math.nan
