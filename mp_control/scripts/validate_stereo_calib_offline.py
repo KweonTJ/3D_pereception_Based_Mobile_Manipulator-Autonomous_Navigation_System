@@ -93,7 +93,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--square-size", type=float, default=0.020, help="Checkerboard square size in meters")
     parser.add_argument(
         "--output-dir",
-        default="mp_control/calibration/stereo/validation",
+        default="calibration/stereo/validation",
         help="Directory for report CSV/TXT and overlay images",
     )
     parser.add_argument("--synthetic-test-only", action="store_true", help="Run synthetic triangulation test only")
@@ -139,7 +139,13 @@ def parse_args() -> argparse.Namespace:
         default=30,
         help="Save stream overlay images every N processed frames; 0 disables overlay image saving",
     )
-    parser.add_argument("--display", action="store_true", help="Show live validation overlay window")
+    parser.add_argument("--display", action="store_true", help="Show validation overlay window")
+    parser.add_argument(
+        "--display-wait-ms",
+        type=int,
+        default=1,
+        help="OpenCV wait time for saved-image overlays; 0 waits for a key",
+    )
 
     parser.add_argument("--max-mean-reproj-error-px", type=float, default=2.0)
     parser.add_argument("--max-max-reproj-error-px", type=float, default=8.0)
