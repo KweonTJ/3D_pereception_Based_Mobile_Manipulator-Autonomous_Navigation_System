@@ -2558,7 +2558,7 @@ private:
 
   bool visualGraspConfirmed(const VisualGraspState & state) const
   {
-    return state.front_fresh && !state.eef_fresh;
+    return state.front_fresh && eef_bbox_seen_after_close_ && !state.eef_fresh;
   }
 
   void completeGrasp(const std::string & status_text)
@@ -2590,10 +2590,13 @@ private:
     }
 
     const auto visual_state = currentVisualGraspState();
+    if (visual_state.eef_fresh) {
+      eef_bbox_seen_after_close_ = true;
+    }
     if (visualGraspConfirmed(visual_state)) {
       completeGrasp(
         complete_status +
-        "; visual confirmation: front bbox present, eef bbox lost");
+        "; visual confirmation: front bbox present, eef bbox seen then lost");
       return true;
     }
 
@@ -2611,14 +2614,17 @@ private:
     }
 
     const auto visual_state = currentVisualGraspState();
+    if (visual_state.eef_fresh) {
+      eef_bbox_seen_after_close_ = true;
+    }
     if (visualGraspConfirmed(visual_state)) {
       completeGrasp(
         complete_status +
-        "; visual confirmation: front bbox present, eef bbox lost");
+        "; visual confirmation: front bbox present, eef bbox seen then lost");
       return true;
     }
 
-    if (visual_state.eef_fresh && eef_forward_after_align_ && eef_forward_speed_mps_ > 0.0) {
+    if (visual_state.eef_fresh && eef_forward_speed_mps_ > 0.0) {
       const RpyError rpy_error = computeEefRpyError(eef_tf);
       publishEefForwardAdvanceCommand(rpy_error);
       publishStatus(
@@ -2630,7 +2636,8 @@ private:
     publishStop();
     publishStatus(
       "waiting for visual grasp confirmation after gripper close: " +
-      visualGraspStateText(visual_state));
+      visualGraspStateText(visual_state) +
+      ", eef_seen_after_close=" + (eef_bbox_seen_after_close_ ? "true" : "false"));
     return true;
   }
 
