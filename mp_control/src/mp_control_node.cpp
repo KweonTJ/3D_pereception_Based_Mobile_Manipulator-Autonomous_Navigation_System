@@ -636,6 +636,7 @@ private:
     active_ = true;
     done_ = false;
     close_sent_ = false;
+    eef_bbox_seen_after_close_ = false;
     open_sent_ = false;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
@@ -675,6 +676,7 @@ private:
   {
     active_ = false;
     done_ = false;
+    eef_bbox_seen_after_close_ = false;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
