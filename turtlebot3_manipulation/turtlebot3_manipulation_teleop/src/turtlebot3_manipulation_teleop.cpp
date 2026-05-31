@@ -137,14 +137,14 @@ int KeyboardServo::keyLoop()
         cmd_vel_.angular.x = 0.0;
         cmd_vel_.angular.y = 0.0;
         cmd_vel_.angular.z =
-          std::min(cmd_vel_.angular.z + BASE_ANGULAR_VEL_STEP, BASE_ANGULAR_VEL_MAX);
+          std::max(cmd_vel_.angular.z - BASE_ANGULAR_VEL_STEP, -BASE_ANGULAR_VEL_MAX);
         RCLCPP_INFO_STREAM(nh_->get_logger(), "ANGULAR VEL : " << cmd_vel_.angular.z);
         break;
       case KEYCODE_L:
         cmd_vel_.angular.x = 0.0;
         cmd_vel_.angular.y = 0.0;
         cmd_vel_.angular.z =
-          std::max(cmd_vel_.angular.z - BASE_ANGULAR_VEL_STEP, -BASE_ANGULAR_VEL_MAX);
+          std::min(cmd_vel_.angular.z + BASE_ANGULAR_VEL_STEP, BASE_ANGULAR_VEL_MAX);
         RCLCPP_INFO_STREAM(nh_->get_logger(), "ANGULAR VEL : " << cmd_vel_.angular.z);
         break;
       case KEYCODE_SPACE:
