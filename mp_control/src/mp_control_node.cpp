@@ -664,6 +664,7 @@ private:
     joint_pregrasp_controller_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    eef_forward_last_joint_nudge_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     resetEefRefinementMotionState();
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
@@ -703,6 +704,7 @@ private:
     joint_pregrasp_controller_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    eef_forward_last_joint_nudge_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     resetEefRefinementMotionState();
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
