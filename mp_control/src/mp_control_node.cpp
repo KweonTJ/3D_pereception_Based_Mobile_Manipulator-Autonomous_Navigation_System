@@ -2926,6 +2926,10 @@ private:
   void completeGrasp(const std::string & status_text)
   {
     publishCargoEvent("picked", true);
+    if (handoff_after_grasp_) {
+      startHandoffSequence(status_text);
+      return;
+    }
     done_ = true;
     active_ = false;
     {
@@ -2935,6 +2939,186 @@ private:
     publishEefAutoInitEnable(false);
     publishBaseHold(false);
     publishStatus(status_text, true);
+  }
+
+  bool isHandoffStage(GraspStage stage) const
+  {
+    return
+      stage == GraspStage::HANDOFF_LIFT ||
+      stage == GraspStage::HANDOFF_ROTATE ||
+      stage == GraspStage::HANDOFF_PLACE ||
+      stage == GraspStage::HANDOFF_RELEASE;
+  }
+
+  void startHandoffSequence(const std::string & grasp_status)
+  {
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      eef_refinement_requested_ = false;
+    }
+    publishEefAutoInitEnable(false);
+    publishBaseHold(true);
+    publishStop();
+    publishBaseStop();
+    handoff_lift_controller_target_.reset();
+    handoff_place_controller_target_.reset();
+    stage_ = GraspStage::HANDOFF_LIFT;
+    handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    publishStatus(grasp_status + "; handoff lift started", true);
+  }
+
+  void updateHandoff()
+  {
+    switch (stage_) {
+      case GraspStage::HANDOFF_LIFT:
+        updateHandoffLift();
+        return;
+      case GraspStage::HANDOFF_ROTATE:
+        updateHandoffRotate();
+        return;
+      case GraspStage::HANDOFF_PLACE:
+        updateHandoffPlace();
+        return;
+      case GraspStage::HANDOFF_RELEASE:
+        updateHandoffRelease();
+        return;
+      default:
+        return;
+    }
+  }
+
+  std::array<double, 4> clampHandoffTarget(const std::array<double, 4> & positions) const
+  {
+    std::array<double, 4> clamped = positions;
+    clamped[0] = clampValue(clamped[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
+    clamped[1] = clampValue(clamped[1], joint_pregrasp_min_positions_[1], joint_pregrasp_max_positions_[1]);
+    clamped[3] = clampValue(clamped[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
+    return clamped;
+  }
+
+  void publishHandoffJointTrajectory(const std::array<double, 4> & controller_target)
+  {
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      publishStatus("handoff waiting for joint states before joint trajectory");
+      return;
+    }
+
+    const auto target = clampHandoffTarget(controller_target);
+    const auto raw_target = jointNudgeRawTargetFromControllerTarget(*current, target);
+
+    trajectory_msgs::msg::JointTrajectory msg;
+    msg.header.stamp = now();
+    msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
+    appendJointTrajectoryPoint(msg, raw_target, handoff_joint_move_duration_s_);
+    joint_trajectory_pub_->publish(msg);
+  }
+
+  void updateHandoffLift()
+  {
+    const auto stamp = now();
+    if (handoff_stage_start_stamp_.nanoseconds() == 0) {
+      const auto current = latestArmJointPositions();
+      if (!current) {
+        publishStatus("handoff lift waiting for joint states");
+        return;
+      }
+      std::array<double, 4> target = *current;
+      target[1] += handoff_lift_joint2_delta_rad_;
+      handoff_lift_controller_target_ = clampHandoffTarget(target);
+      publishHandoffJointTrajectory(*handoff_lift_controller_target_);
+      handoff_stage_start_stamp_ = stamp;
+      publishStatus(
+        "handoff lift: object grasped, lifting before 180deg turn; target=" +
+        formatJointArray(*handoff_lift_controller_target_), true);
+      return;
+    }
+
+    publishStop();
+    publishBaseStop();
+    if ((stamp - handoff_stage_start_stamp_).seconds() >=
+        handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
+      stage_ = GraspStage::HANDOFF_ROTATE;
+      handoff_stage_start_stamp_ = stamp;
+      publishStatus("handoff rotate: turning 180deg toward follower", true);
+    }
+  }
+
+  void updateHandoffRotate()
+  {
+    const auto stamp = now();
+    const double rotate_duration_s =
+      std::abs(handoff_rotate_angle_rad_) / handoff_rotate_angular_speed_rad_s_;
+    const double elapsed_s = (stamp - handoff_stage_start_stamp_).seconds();
+
+    geometry_msgs::msg::Twist cmd;
+    if (elapsed_s < rotate_duration_s) {
+      cmd.angular.z =
+        std::copysign(handoff_rotate_angular_speed_rad_s_, handoff_rotate_angle_rad_);
+      base_cmd_vel_pub_->publish(cmd);
+      publishStatus(
+        "handoff rotate: turning 180deg toward follower elapsed=" +
+        std::to_string(elapsed_s) + "/" + std::to_string(rotate_duration_s));
+      return;
+    }
+
+    publishBaseStop();
+    stage_ = GraspStage::HANDOFF_PLACE;
+    handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    publishStatus("handoff place: lowering object toward follower side", true);
+  }
+
+  void updateHandoffPlace()
+  {
+    const auto stamp = now();
+    if (handoff_stage_start_stamp_.nanoseconds() == 0) {
+      std::array<double, 4> target{};
+      if (handoff_lift_controller_target_) {
+        target = *handoff_lift_controller_target_;
+      } else {
+        const auto current = latestArmJointPositions();
+        if (!current) {
+          publishStatus("handoff place waiting for joint states");
+          return;
+        }
+        target = *current;
+      }
+      target[1] += handoff_place_joint2_delta_rad_;
+      handoff_place_controller_target_ = clampHandoffTarget(target);
+      publishHandoffJointTrajectory(*handoff_place_controller_target_);
+      handoff_stage_start_stamp_ = stamp;
+      publishStatus(
+        "handoff place: lowering object before release; target=" +
+        formatJointArray(*handoff_place_controller_target_), true);
+      return;
+    }
+
+    publishStop();
+    publishBaseStop();
+    if ((stamp - handoff_stage_start_stamp_).seconds() >=
+        handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
+      stage_ = GraspStage::HANDOFF_RELEASE;
+      handoff_stage_start_stamp_ = stamp;
+      sendGripperOpenForObject();
+      publishCargoEvent("placed", true);
+      publishStatus("handoff release: opening gripper on follower side", true);
+    }
+  }
+
+  void updateHandoffRelease()
+  {
+    publishStop();
+    publishBaseStop();
+    if ((now() - handoff_stage_start_stamp_).seconds() < handoff_release_settle_s_) {
+      publishStatus("handoff release: waiting for gripper open settle");
+      return;
+    }
+
+    done_ = true;
+    active_ = false;
+    publishBaseHold(false);
+    publishCargoEvent("loaded", true);
+    publishStatus("cargo_loaded: placed on follower side after 180deg turn", true);
   }
 
   bool closeAndCompleteWhenVisualReady(
