@@ -42,7 +42,7 @@ use_joint_pregrasp: true
 joint_trajectory_topic: /arm_controller/joint_trajectory_raw
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
 pregrasp_preserve_gripper_roll: true
-pregrasp_reverse_joint3_delta: false
+pregrasp_reverse_joint3_delta: true
 pregrasp_hold_current_duration_s: 0.0
 pregrasp_sync_steps: 1
 pregrasp_joint_tolerance_rad: 0.04
@@ -55,6 +55,7 @@ eef_forward_after_align: true
 eef_forward_distance_m: 0.05
 eef_forward_speed_mps: 0.012
 gripper_grasp_clearance_m: 0.004
+gripper_grasp_width_scale: 1.04
 position_tolerance_m: 0.035
 close_after_stable_cycles: 4
 ```
@@ -73,7 +74,7 @@ close_after_stable_cycles: 4
 - `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있으므로 실제 로봇에서는 1을 유지한다.
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
-- `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 꺼져 있다. joint3 방향 반전은 `joint_trajectory_transformer.py` 한 곳에서만 처리한다. 이 값을 다시 켜면 `mp_control` 내부 반전과 transformer 반전이 겹쳐 joint3가 원래 방향으로 돌아갈 수 있다.
+- `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 켜져 있다. `pregrasp_ready_joint_positions`는 최종 controller 기준 목표이고, `mp_control`은 raw 토픽으로 보내기 전에 joint3만 미리 반전한다. 이후 `joint_trajectory_transformer.py`가 다시 반전해서 arm controller에는 의도한 최종 joint3 방향으로 들어간다. 이때 도달 판정은 raw 목표가 아니라 controller 목표와 `/joint_states`를 비교한다.
 - `0.08 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다.
 
 ## 실제 로봇 joint3 trajectory 변환
@@ -96,7 +97,7 @@ MoveIt Servo
 joint3_out = current_joint3 - (joint3_in - current_joint3)
 ```
 
-joint4 보정은 변환 노드에서 하지 않는다. `mp_control` 내부 pregrasp 목표 생성 시 한 번만 계산한다. 변환 노드와 `mp_control`이 동시에 joint4를 보정하면 joint4 목표가 과도하게 음수 방향으로 튀어 그리퍼가 베이스/지지대와 충돌할 수 있다.
+joint4 보정은 변환 노드에서 하지 않는다. `mp_control` 내부 pregrasp 목표 생성 시 최종 controller 기준으로 한 번만 계산한다. 그 다음 raw 토픽 전송용으로 joint3만 pre-invert한다. 변환 노드와 `mp_control`이 동시에 joint4를 보정하거나, raw joint3 기준으로 joint4를 계산하면 joint4 목표가 과도하게 튀어 그리퍼가 베이스/지지대와 충돌할 수 있다.
 
 pregrasp trajectory는 joint1~4가 모두 들어간 단일 point로 발행된다. 따라서 joint2, joint3, joint4는 순차 명령이 아니라 하나의 동시 trajectory 명령으로 arm controller에 들어간다. 런타임에서 순차 동작처럼 보이면 `/arm_controller/joint_trajectory`에 transformer 외 publisher가 붙었거나, 설치본 config가 최신이 아닌지 확인해야 한다.
 
@@ -111,7 +112,7 @@ ros2 topic echo /arm_controller/joint_trajectory_raw --once
 ros2 topic echo /arm_controller/joint_trajectory --once
 ```
 
-실제 런치에서는 `/servo_node`와 `mp_control_node`가 모두 raw 토픽을 발행하고, `joint_trajectory_transformer`만 실제 arm controller 토픽을 발행해야 한다. 따라서 `/arm_controller/joint_trajectory`의 publisher는 transformer 하나만 보이는 것이 정상이다. `mp_control` 내부의 `pregrasp_reverse_joint3_delta`는 실제 로봇 설정에서 꺼 둔다.
+실제 런치에서는 `/servo_node`와 `mp_control_node`가 모두 raw 토픽을 발행하고, `joint_trajectory_transformer`만 실제 arm controller 토픽을 발행해야 한다. 따라서 `/arm_controller/joint_trajectory`의 publisher는 transformer 하나만 보이는 것이 정상이다. `mp_control` status의 `raw_target`은 transformer 입력이고, `controller_target`은 실제 `/joint_states`가 도달해야 하는 목표다.
 
 ## EEF 카메라 경로
 
@@ -151,7 +152,7 @@ eef_forward_speed_mps: 0.012
 
 EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전면 depth에서 얻은 물체 폭만 사용한다. 유효한 전면 depth 폭이 없으면 fallback 폭을 쓴다. EEF RGB는 EE가 약간 틀어진 경우 최종 위치 보정에만 사용한다.
 
-최종 그리퍼 명령은 `object_width + gripper_grasp_clearance_m`를 사용한다. 그래서 측정된 물체 폭보다 약간 크게 벌린 상태로 닫기 명령을 보내며, `gripper_grasp_clearance_m: 0.0`이면 기존 `gripper_grasp_compression_m` 방식으로 돌아간다.
+최종 그리퍼 명령은 `object_width * gripper_grasp_width_scale + gripper_grasp_clearance_m`를 사용한다. 실제 설정은 `1.04`라서 전면 depth로 측정된 물체 폭보다 약 4% 크게 잡고, 여기에 작은 여유폭을 더한다. `gripper_grasp_clearance_m: 0.0`이면 같은 4% scale을 적용한 뒤 기존 `gripper_grasp_compression_m` 방식으로 돌아간다.
 
 ## 전면-EEF RGB 삼각 측량
 
