@@ -103,10 +103,10 @@ mp_control_node:
     # The real trajectory transformer must only mirror joint3; joint4 roll
     # compensation is intentionally kept here to avoid applying it twice.
     pregrasp_preserve_gripper_roll: true
-    # The real joint3 direction correction is handled by
-    # joint_trajectory_transformer.py on /arm_controller/joint_trajectory_raw.
-    # Keep this false to avoid mirroring joint3 twice.
-    pregrasp_reverse_joint3_delta: false
+    # pregrasp_ready_joint_positions is the desired final controller pose.
+    # mp_control pre-inverts joint3 on the raw topic, then
+    # joint_trajectory_transformer.py mirrors it back on the controller topic.
+    pregrasp_reverse_joint3_delta: true
     pregrasp_hold_current_duration_s: 0.0
     pregrasp_move_duration_s: 1.2
     # Keep one synchronized target point so joint2, joint3, and joint4 start
