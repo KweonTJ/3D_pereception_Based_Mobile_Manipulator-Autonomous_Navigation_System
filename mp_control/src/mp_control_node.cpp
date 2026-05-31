@@ -3255,6 +3255,8 @@ private:
   double gripper_down_joint4_offset_rad_{0.0};
   bool close_on_front_bbox_shrink_{false};
   double front_bbox_close_area_ratio_{0.60};
+  bool close_on_eef_bbox_shrink_{false};
+  double eef_bbox_close_area_ratio_{0.60};
   double triangulation_extend_x_m_{0.25};
   double triangulation_extend_y_m_{0.0};
   double triangulation_extend_z_m_{0.12};
