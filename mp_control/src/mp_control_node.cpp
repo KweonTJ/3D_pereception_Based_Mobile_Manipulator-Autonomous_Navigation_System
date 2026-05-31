@@ -2833,6 +2833,7 @@ private:
   bool start_servo_on_start_{true};
   bool open_gripper_on_start_{true};
   bool close_gripper_on_arrival_{true};
+  bool require_visual_grasp_confirmation_{true};
   bool use_eef_refinement_{true};
   bool wait_for_base_approach_{false};
   bool auto_init_eef_tracker_from_object_{true};
@@ -2846,6 +2847,8 @@ private:
   double max_linear_speed_{0.025};
   double position_tolerance_m_{0.035};
   int close_after_stable_cycles_{8};
+  double grasp_completion_front_max_age_s_{0.6};
+  double grasp_completion_eef_lost_timeout_s_{0.6};
   int depth_roi_radius_px_{5};
   double depth_unit_scale_{0.001};
   double min_valid_depth_m_{0.12};
