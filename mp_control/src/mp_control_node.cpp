@@ -2545,6 +2545,110 @@ private:
     return std::max(0.0, scaled_width - gripper_grasp_compression_m_);
   }
 
+  VisualGraspState currentVisualGraspState()
+  {
+    VisualGraspState state;
+    const auto stamp = now();
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    if (latest_bbox_) {
+      state.front_age_s = (stamp - latest_bbox_->stamp).seconds();
+      state.front_fresh = state.front_age_s <= grasp_completion_front_max_age_s_;
+    }
+    if (latest_eef_bbox_) {
+      state.eef_age_s = (stamp - latest_eef_bbox_->stamp).seconds();
+      state.eef_fresh = state.eef_age_s <= grasp_completion_eef_lost_timeout_s_;
+    }
+    return state;
+  }
+
+  std::string visualGraspStateText(const VisualGraspState & state) const
+  {
+    std::ostringstream status;
+    status << "front_bbox=" << (state.front_fresh ? "fresh" : "missing")
+           << " age=" << state.front_age_s
+           << "s, eef_bbox=" << (state.eef_fresh ? "visible" : "lost")
+           << " age=" << state.eef_age_s << "s";
+    return status.str();
+  }
+
+  bool visualGraspConfirmed(const VisualGraspState & state) const
+  {
+    return state.front_fresh && !state.eef_fresh;
+  }
+
+  void completeGrasp(const std::string & status_text)
+  {
+    publishCargoEvent("picked", true);
+    done_ = true;
+    active_ = false;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      eef_refinement_requested_ = false;
+    }
+    publishEefAutoInitEnable(false);
+    publishBaseHold(false);
+    publishStatus(status_text, true);
+  }
+
+  bool closeAndCompleteWhenVisualReady(
+    const std::string & complete_status,
+    const std::string & waiting_status)
+  {
+    if (close_gripper_on_arrival_ && !close_sent_) {
+      sendGripperGraspForObject();
+      close_sent_ = true;
+    }
+
+    if (!require_visual_grasp_confirmation_) {
+      completeGrasp(complete_status);
+      return true;
+    }
+
+    const auto visual_state = currentVisualGraspState();
+    if (visualGraspConfirmed(visual_state)) {
+      completeGrasp(
+        complete_status +
+        "; visual confirmation: front bbox present, eef bbox lost");
+      return true;
+    }
+
+    publishStop();
+    publishStatus(waiting_status + ": " + visualGraspStateText(visual_state));
+    return false;
+  }
+
+  bool continueAfterCloseUntilEefBboxLost(
+    const geometry_msgs::msg::TransformStamped & eef_tf,
+    const std::string & complete_status)
+  {
+    if (!close_sent_ || !require_visual_grasp_confirmation_) {
+      return false;
+    }
+
+    const auto visual_state = currentVisualGraspState();
+    if (visualGraspConfirmed(visual_state)) {
+      completeGrasp(
+        complete_status +
+        "; visual confirmation: front bbox present, eef bbox lost");
+      return true;
+    }
+
+    if (visual_state.eef_fresh && eef_forward_after_align_ && eef_forward_speed_mps_ > 0.0) {
+      const RpyError rpy_error = computeEefRpyError(eef_tf);
+      publishEefForwardAdvanceCommand(rpy_error);
+      publishStatus(
+        "eef bbox still visible after gripper close; continuing fixed-pose forward advance: " +
+        visualGraspStateText(visual_state));
+      return true;
+    }
+
+    publishStop();
+    publishStatus(
+      "waiting for visual grasp confirmation after gripper close: " +
+      visualGraspStateText(visual_state));
+    return true;
+  }
+
   void sendGripperOpenForObject()
   {
     const auto target = makeGripperTarget(true);
