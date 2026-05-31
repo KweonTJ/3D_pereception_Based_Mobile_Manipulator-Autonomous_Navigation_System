@@ -624,6 +624,7 @@ private:
     joint_pregrasp_sent_ = false;
     joint_pregrasp_done_ = false;
     joint_pregrasp_target_.reset();
+    joint_pregrasp_controller_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     resetEefRefinementMotionState();
@@ -661,6 +662,7 @@ private:
     joint_pregrasp_sent_ = false;
     joint_pregrasp_done_ = false;
     joint_pregrasp_target_.reset();
+    joint_pregrasp_controller_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     resetEefRefinementMotionState();
