@@ -55,6 +55,11 @@ eef_hold_stay_roll: true
 eef_forward_after_align: true
 eef_forward_distance_m: 0.08
 eef_forward_speed_mps: 0.018
+eef_forward_use_joint_nudge: true
+eef_forward_joint2_delta_rad: 0.025
+eef_forward_joint3_delta_rad: -0.025
+eef_forward_joint_nudge_duration_s: 0.45
+eef_forward_joint_nudge_period_s: 0.35
 gripper_grasp_clearance_m: 0.004
 gripper_grasp_width_scale: 1.04
 position_tolerance_m: 0.035
@@ -82,6 +87,8 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
 - `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 켜져 있다. `pregrasp_ready_joint_positions`는 최종 controller 기준 목표이고, `mp_control`은 raw 토픽으로 보내기 전에 joint3만 미리 반전한다. 이후 `joint_trajectory_transformer.py`가 다시 반전해서 arm controller에는 의도한 최종 joint3 방향으로 들어간다. 이때 도달 판정은 raw 목표가 아니라 controller 목표와 `/joint_states`를 비교한다.
 - `0.06 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다. 실제 파지 직전에는 EEF 고정자세 전진을 별도로 수행하므로, 이 값은 물체 앞에서 너무 일찍 멈추지 않게 작게 둔다.
+- `eef_forward_use_joint_nudge`: 실제 로봇에서는 최종 전진을 MoveIt Servo twist에만 맡기지 않는다. Servo가 singularity/collision scaling으로 멈추는 경우가 있어서, joint2/joint3/joint4를 같은 trajectory point로 아주 조금씩 동시에 밀어준다.
+- `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. joint4는 stay roll을 유지하도록 `joint2 + joint3 + joint4` 합에서 자동 계산한다. raw 토픽으로 나가기 전 joint3 delta는 기존 transformer 경로와 맞게 pre-invert된다.
 
 ## 실제 로봇 joint3 trajectory 변환
 
@@ -175,6 +182,8 @@ EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전�
 즉 전면 카메라에서는 물체 bbox가 계속 보이고, EEF 카메라에서는 close 이후 물체 bbox가 보이다가 더 이상 생성되지 않을 때 물체가 그리퍼 안으로 들어왔다고 판단한다. 이 조건을 만족해야 `/cargo/events`에 `picked`가 발행되고 `/leader/cargo_state`가 `GRASPED`로 넘어간다. close 직후 EEF bbox를 한 번도 보지 못한 상태에서는 EEF bbox가 없더라도 파지 완료로 처리하지 않는다.
 
 그리퍼 close 이후에도 EEF bbox가 계속 보이면 `mp_control`은 완료로 빠지지 않고 stay roll/current pitch/yaw를 유지한 채 EEF fixed-pose 전진 명령을 계속 보낸다. EEF bbox가 점점 작아지거나 그리퍼/물체 접촉으로 더 이상 검출되지 않고, 전면 bbox가 유지되는 순간 파지 완료로 확정한다.
+
+실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다.
 
 ## 전면-EEF RGB 삼각 측량
 
