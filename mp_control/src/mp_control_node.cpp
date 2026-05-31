@@ -916,14 +916,9 @@ private:
       stable_cycles_ += 1;
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
-        if (close_gripper_on_arrival_ && !close_sent_) {
-          sendGripperGraspForObject();
-          close_sent_ = true;
-          publishCargoEvent("picked", true);
-        }
-        done_ = true;
-        active_ = false;
-        publishStatus("grasp target reached; width-aware gripper command sent", true);
+        closeAndCompleteWhenVisualReady(
+          "grasp target reached; width-aware gripper command sent",
+          "gripper close commanded; waiting for front-only visual grasp confirmation");
       } else {
         publishStatus("holding near target before closing");
       }
@@ -1190,6 +1185,13 @@ private:
     const geometry_msgs::msg::PointStamped & object_in_target,
     const geometry_msgs::msg::TransformStamped & eef_tf)
   {
+    if (continueAfterCloseUntilEefBboxLost(
+        eef_tf,
+        "eef camera refined grasp reached; width-aware gripper command sent"))
+    {
+      return;
+    }
+
     if (!prepareEefRefinement(object_in_target)) {
       return;
     }
@@ -1299,18 +1301,9 @@ private:
       stable_cycles_ += 1;
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
-        if (close_gripper_on_arrival_ && !close_sent_) {
-          sendGripperGraspForObject();
-          close_sent_ = true;
-          publishCargoEvent("picked", true);
-        }
-        done_ = true;
-        active_ = false;
-        {
-          std::lock_guard<std::mutex> lock(data_mutex_);
-          eef_refinement_requested_ = false;
-        }
-        publishStatus("eef fixed-pose forward advance complete; width-aware gripper command sent", true);
+        closeAndCompleteWhenVisualReady(
+          "eef fixed-pose forward advance complete; width-aware gripper command sent",
+          "gripper close commanded after EEF forward advance; waiting for front-only visual grasp confirmation");
       } else {
         std::ostringstream status;
         status << "eef forward advance complete; holding before closing"
@@ -1348,18 +1341,9 @@ private:
       stable_cycles_ += 1;
       publishStop();
       if (stable_cycles_ >= close_after_stable_cycles_) {
-        if (close_gripper_on_arrival_ && !close_sent_) {
-          sendGripperGraspForObject();
-          close_sent_ = true;
-          publishCargoEvent("picked", true);
-        }
-        done_ = true;
-        active_ = false;
-        {
-          std::lock_guard<std::mutex> lock(data_mutex_);
-          eef_refinement_requested_ = false;
-        }
-        publishStatus("eef camera refined grasp reached after fixed-pose forward advance; width-aware gripper command sent", true);
+        closeAndCompleteWhenVisualReady(
+          "eef camera refined grasp reached after fixed-pose forward advance; width-aware gripper command sent",
+          "gripper close commanded after EEF refinement; waiting for front-only visual grasp confirmation");
       } else {
         std::ostringstream hold_status;
         hold_status << "eef camera close-ready; holding before closing"
