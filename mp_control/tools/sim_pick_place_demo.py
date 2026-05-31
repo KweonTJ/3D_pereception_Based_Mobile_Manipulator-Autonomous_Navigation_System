@@ -307,11 +307,11 @@ class SimPickPlaceDemo(Node):
             current = list(self.stay_arm_positions)
 
         target = [float(v) for v in self.pregrasp_ready_joint_positions]
+        if self.pregrasp_reverse_joint3_delta:
+            target[2] = current[2] - (target[2] - current[2])
         if self.pregrasp_preserve_gripper_roll:
             current_roll_proxy = current[1] + current[2] + current[3]
             target[3] = current_roll_proxy - target[1] - target[2]
-        if self.pregrasp_reverse_joint3_delta:
-            target[2] = current[2] - (target[2] - current[2])
         return self._clamp_joint_positions(target)
 
     def _build_pregrasp_trajectory(self, current_positions=None):
