@@ -3376,6 +3376,7 @@ private:
 	  std::string eef_auto_init_enable_topic_;
 	  std::string base_hold_topic_;
 	  std::string twist_topic_;
+	  std::string base_cmd_vel_topic_;
 	  std::string joint_state_topic_;
 	  std::string joint_trajectory_topic_;
 	  std::string start_topic_;
@@ -3489,6 +3490,14 @@ private:
   double front_bbox_close_area_ratio_{0.60};
   bool close_on_eef_bbox_shrink_{false};
   double eef_bbox_close_area_ratio_{0.60};
+  bool handoff_after_grasp_{false};
+  double handoff_lift_joint2_delta_rad_{0.25};
+  double handoff_place_joint2_delta_rad_{-0.20};
+  double handoff_joint_move_duration_s_{1.0};
+  double handoff_joint_settle_s_{0.4};
+  double handoff_rotate_angle_rad_{3.14159265358979323846};
+  double handoff_rotate_angular_speed_rad_s_{0.45};
+  double handoff_release_settle_s_{0.5};
   double triangulation_extend_x_m_{0.25};
   double triangulation_extend_y_m_{0.0};
   double triangulation_extend_z_m_{0.12};
@@ -3535,6 +3544,7 @@ private:
 	  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
 	  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
 	  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+	  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr base_cmd_vel_pub_;
 	  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_trajectory_pub_;
 	  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_event_pub_;
@@ -3589,6 +3599,9 @@ private:
   rclcpp::Time joint_pregrasp_last_publish_stamp_;
   rclcpp::Time eef_forward_last_joint_nudge_stamp_;
   rclcpp::Time eef_forward_start_stamp_;
+  rclcpp::Time handoff_stage_start_stamp_;
+  std::optional<std::array<double, 4>> handoff_lift_controller_target_;
+  std::optional<std::array<double, 4>> handoff_place_controller_target_;
   double eef_forward_start_x_m_{0.0};
 	};
 
