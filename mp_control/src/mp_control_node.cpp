@@ -1684,6 +1684,10 @@ private:
 
   void publishEefForwardAdvanceCommand(const RpyError & rpy_error)
   {
+    if (eef_forward_use_joint_nudge_ && publishEefForwardJointNudge()) {
+      return;
+    }
+
     geometry_msgs::msg::TwistStamped cmd;
     cmd.header.stamp = now();
     cmd.header.frame_id = target_frame_;
@@ -1692,6 +1696,47 @@ private:
     cmd.twist.linear.z = 0.0;
     applyEefRpyCorrection(rpy_error, cmd);
     twist_pub_->publish(cmd);
+  }
+
+  bool publishEefForwardJointNudge()
+  {
+    const auto stamp = now();
+    if (eef_forward_last_joint_nudge_stamp_.nanoseconds() != 0 &&
+        (stamp - eef_forward_last_joint_nudge_stamp_).seconds() <
+        eef_forward_joint_nudge_period_s_) {
+      return true;
+    }
+
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      return false;
+    }
+
+    const double roll_proxy = (*current)[1] + (*current)[2] + (*current)[3];
+    std::array<double, 4> controller_target = *current;
+    controller_target[1] += eef_forward_joint2_delta_rad_;
+    controller_target[2] += eef_forward_joint3_delta_rad_;
+    if (joint_pregrasp_preserve_gripper_roll_) {
+      controller_target[3] = roll_proxy - controller_target[1] - controller_target[2];
+    }
+    controller_target = clampJointPregraspTarget(controller_target);
+    const auto raw_target =
+      jointPregraspRawTargetFromControllerTarget(*current, controller_target);
+
+    trajectory_msgs::msg::JointTrajectory msg;
+    msg.header.stamp = stamp;
+    msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
+    appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
+    joint_trajectory_pub_->publish(msg);
+    eef_forward_last_joint_nudge_stamp_ = stamp;
+
+    std::ostringstream status;
+    status << "eef forward joint nudge: current=" << formatJointArray(*current)
+           << " raw_target=" << formatJointArray(raw_target)
+           << " controller_target=" << formatJointArray(controller_target)
+           << " duration=" << eef_forward_joint_nudge_duration_s_;
+    publishStatus(status.str());
+    return true;
   }
 
   bool updateJointPregrasp()
