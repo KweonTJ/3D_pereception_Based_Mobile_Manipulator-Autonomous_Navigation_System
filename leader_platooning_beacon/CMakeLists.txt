@@ -66,8 +66,12 @@ install(PROGRAMS
 install(DIRECTORY
   launch
   config
-  include
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+  include/
+  DESTINATION include
 )
 
 if(BUILD_TESTING)

@@ -10,6 +10,8 @@
 
 `sensor_state_from_dynamic_joint_state_node`는 `/dynamic_joint_states`의 배터리와 바퀴 position 값을 이용해서 TurtleBot3 호환 `/sensor_state`를 발행한다. bumper, cliff, sonar, illumination, button 값은 ros2_control 하드웨어 인터페이스에서 제공되지 않으므로 0으로 유지한다.
 
+`include/leader_platooning_beacon/dynamic_joint_state_utils.hpp`는 두 relay 노드가 공통으로 쓰는 `/dynamic_joint_states` 조회 유틸이다. 센서나 조인트 이름으로 `InterfaceValue`를 찾고, 특정 state interface 값을 안전하게 가져오는 역할만 담당한다.
+
 ## 하드웨어 런치 연동
 
 리더 매니퓰레이터의 기본 하드웨어 런치인 `turtlebot3_manipulation_bringup/launch/hardware.launch.py`는 기본값으로 두 relay를 함께 실행한다.
