@@ -38,6 +38,7 @@ color_triangulation_base_stop_object_x_m: 0.30
 arm_start_max_object_x_m: 0.30
 use_fallback_bbox_for_control: true
 start_servo_on_start: false
+require_visual_grasp_confirmation: true
 use_joint_pregrasp: true
 joint_trajectory_topic: /arm_controller/joint_trajectory_raw
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
@@ -58,6 +59,8 @@ gripper_grasp_clearance_m: 0.004
 gripper_grasp_width_scale: 1.04
 position_tolerance_m: 0.035
 close_after_stable_cycles: 4
+grasp_completion_front_max_age_s: 2.0
+grasp_completion_eef_lost_timeout_s: 0.8
 ```
 
 의미:
@@ -66,6 +69,9 @@ close_after_stable_cycles: 4
 - `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
 - `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
 - `0.30 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다.
+- `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
+- `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
+- `grasp_completion_eef_lost_timeout_s`: 이 시간 동안 EEF bbox가 새로 들어오지 않으면 EEF에서 물체가 사라진 것으로 본다.
 - `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
 - `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 joint trajectory로 보낸다. 이 trajectory도 `/arm_controller/joint_trajectory_raw`로 나가며, 최종 arm controller에는 transformer를 거친 `/arm_controller/joint_trajectory`만 들어간다.
@@ -153,6 +159,21 @@ eef_forward_speed_mps: 0.018
 EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전면 depth에서 얻은 물체 폭만 사용한다. 유효한 전면 depth 폭이 없으면 fallback 폭을 쓴다. EEF RGB는 EE가 약간 틀어진 경우 최종 위치 보정에만 사용한다.
 
 최종 그리퍼 명령은 `object_width * gripper_grasp_width_scale + gripper_grasp_clearance_m`를 사용한다. 실제 설정은 `1.04`라서 전면 depth로 측정된 물체 폭보다 약 4% 크게 잡고, 여기에 작은 여유폭을 더한다. `gripper_grasp_clearance_m: 0.0`이면 같은 4% scale을 적용한 뒤 기존 `gripper_grasp_compression_m` 방식으로 돌아간다.
+
+## 파지 완료 판정
+
+파지 완료 이벤트는 그리퍼 close 명령 시점이 아니라 시각 확인 이후에만 발행한다.
+
+완료 조건:
+
+```text
+전면 카메라 /target/tracked_bbox 가 fresh 상태
+EEF 카메라 /target/eef_init_bbox 가 lost/stale 상태
+```
+
+즉 전면 카메라에서는 물체 bbox가 계속 보이지만, EEF 카메라에서는 물체 bbox가 더 이상 생성되지 않을 때 물체가 그리퍼 안으로 들어왔다고 판단한다. 이 조건을 만족해야 `/cargo/events`에 `picked`가 발행되고 `/leader/cargo_state`가 `GRASPED`로 넘어간다.
+
+그리퍼 close 이후에도 EEF bbox가 계속 보이면 `mp_control`은 완료로 빠지지 않고 stay roll/current pitch/yaw를 유지한 채 EEF fixed-pose 전진 명령을 계속 보낸다. EEF bbox가 사라지고 전면 bbox가 유지되는 순간 파지 완료로 확정한다.
 
 ## 전면-EEF RGB 삼각 측량
 
