@@ -1490,13 +1490,13 @@ private:
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
     }
-    if (joint_pregrasp_preserve_gripper_roll_) {
-      // Preserve the stay/current wrist roll proxy while joint2, joint3, and joint4 move together.
-      const double current_roll_proxy = current[1] + current[2] + current[3];
-      target[3] = current_roll_proxy - target[1] - target[2];
-    }
     if (joint_pregrasp_reverse_joint3_delta_) {
       target[2] = current[2] - (target[2] - current[2]);
+    }
+    if (joint_pregrasp_preserve_gripper_roll_) {
+      // Preserve the stay/current wrist roll proxy in the final hardware command basis.
+      const double current_roll_proxy = current[1] + current[2] + current[3];
+      target[3] = current_roll_proxy - target[1] - target[2];
     }
     return clampJointPregraspTarget(target);
   }

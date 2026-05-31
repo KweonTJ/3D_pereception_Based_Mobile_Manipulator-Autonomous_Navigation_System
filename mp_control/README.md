@@ -43,7 +43,8 @@ joint_trajectory_topic: /arm_controller/joint_trajectory
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
 pregrasp_preserve_gripper_roll: true
 pregrasp_reverse_joint3_delta: true
-pregrasp_sync_steps: 12
+pregrasp_hold_current_duration_s: 0.0
+pregrasp_sync_steps: 1
 pregrasp_joint_tolerance_rad: 0.04
 pregrasp_republish_period_s: 1.0
 object_pregrasp_standoff_m: 0.08
@@ -68,7 +69,8 @@ close_after_stable_cycles: 4
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
 - `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 `/arm_controller/joint_trajectory`로 직접 보낸다.
 - `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 이 값은 joint3 실제 모터 방향 보정 전에 계산하므로, joint2/3/4가 같은 trajectory point에서 동시에 움직이면서 그리퍼 roll이 무너지지 않게 한다.
-- `pregrasp_sync_steps`: pregrasp 이동을 하나의 큰 최종 point로만 보내지 않고 여러 waypoint로 쪼갠다. 각 waypoint에는 joint1~4 위치가 모두 들어가며, joint2/3/4가 같은 비율로 동시에 전개되도록 만든다.
+- `pregrasp_hold_current_duration_s`: 기본값은 `0.0`이다. pregrasp 시작 전에 현재 자세 hold point를 추가하지 않아서 시작 지연을 만들지 않는다.
+- `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있다.
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
 - `pregrasp_reverse_joint3_delta`: 실제 로봇에서는 켜져 있다. 소프트웨어 grasp 표의 ready 목표는 `joint3=-0.85 rad`로 유지하지만, 실제 명령은 현재 joint3 기준 이동량만 반대로 보낸다.
