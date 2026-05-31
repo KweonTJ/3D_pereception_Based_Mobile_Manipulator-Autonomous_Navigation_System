@@ -54,9 +54,6 @@ private:
     double x_error_norm{0.0};
     double y_error_norm{0.0};
     double area_ratio{0.0};
-    double yaw_pid_p{0.0};
-    double yaw_pid_i{0.0};
-    double yaw_pid_d{0.0};
     bool depth_too_close{false};
   };
 
@@ -81,8 +78,6 @@ private:
     const cv::Size & image_size,
     const rclcpp::Time & current_time) const;
   IbvsResult computeIbvsCommand(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp);
-  double computeYawPidCommand(double x_error_norm, const rclcpp::Time & current_time, IbvsResult & result);
-  void resetYawPid();
   std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
   std::optional<double> pixelToMeters(const cv::Mat & depth, const std::string & encoding, int row, int col) const;
   void publishDebugImage(const sensor_msgs::msg::Image::ConstSharedPtr & src_msg, const cv::Mat & frame, const cv::Rect & bbox, const IbvsResult & ibvs, bool tracking_ok) const;
@@ -140,9 +135,6 @@ private:
   double desired_depth_m_{0.45};
   double desired_area_ratio_{0.06};
   double yaw_gain_{1.35};
-  double yaw_pid_i_gain_{0.0};
-  double yaw_pid_d_gain_{0.0};
-  double yaw_pid_integral_limit_{0.20};
   double linear_gain_{0.65};
   double area_gain_{1.2};
   double arm_lateral_gain_{0.05};
@@ -197,10 +189,6 @@ private:
   rclcpp::Time last_detector_bbox_stamp_;
   bool stop_sent_{true};
   std::atomic_bool base_hold_active_{false};
-  bool have_yaw_pid_error_{false};
-  double yaw_pid_integral_{0.0};
-  double last_yaw_pid_error_{0.0};
-  rclcpp::Time last_yaw_pid_stamp_;
 
   mutable std::mutex bbox_mutex_;
   std::optional<cv::Rect> pending_init_bbox_;
