@@ -2994,6 +2994,7 @@ private:
   bool done_{false};
   bool open_sent_{false};
   bool close_sent_{false};
+  bool eef_bbox_seen_after_close_{false};
 	  bool eef_refinement_requested_{false};
 	  bool object_pregrasp_horizontal_done_{false};
 	  bool joint_pregrasp_sent_{false};
