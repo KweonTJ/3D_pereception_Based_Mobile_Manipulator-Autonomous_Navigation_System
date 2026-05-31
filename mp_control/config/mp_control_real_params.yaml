@@ -96,8 +96,8 @@ mp_control_node:
     object_pregrasp_min_lower_z_m: 0.12
     object_pregrasp_enable_lowering: false
     pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
-    # Keep the wrist roll from the current stay pose by solving joint4 from
-    # joint2 + joint3 + joint4 before applying the real joint3 delta mirror.
+    # Keep the wrist roll from the current stay pose by solving joint4 after
+    # applying the real joint3 delta mirror, in the final hardware command basis.
     pregrasp_preserve_gripper_roll: true
     pregrasp_reverse_joint3_delta: true
     pregrasp_hold_current_duration_s: 0.0
