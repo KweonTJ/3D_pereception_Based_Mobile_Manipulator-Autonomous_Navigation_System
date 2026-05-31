@@ -11,6 +11,7 @@ mp_control_node:
     base_hold_topic: /target/base_hold
 
     twist_topic: /servo_node/delta_twist_cmds
+    base_cmd_vel_topic: /cmd_vel
     joint_state_topic: /joint_states
     # Send pregrasp trajectories through the same joint3 delta-mirror
     # transformer as MoveIt Servo. The transformer publishes to the real
@@ -184,6 +185,18 @@ mp_control_node:
     front_bbox_close_area_ratio: 0.60
     close_on_eef_bbox_shrink: true
     eef_bbox_close_area_ratio: 0.60
+    # After visual grasp confirmation, keep holding the base tracker, lift the
+    # object, rotate the leader 180 degrees, lower toward the follower side, and
+    # open the gripper. The joint motions are relative to the current grasp pose
+    # so joint3/joint4 are not re-solved into a torque-risky absolute pose.
+    handoff_after_grasp: true
+    handoff_lift_joint2_delta_rad: 0.25
+    handoff_place_joint2_delta_rad: -0.20
+    handoff_joint_move_duration_s: 1.0
+    handoff_joint_settle_s: 0.4
+    handoff_rotate_angle_rad: 3.14159265
+    handoff_rotate_angular_speed_rad_s: 0.45
+    handoff_release_settle_s: 0.5
     triangulation_extend_x_m: 0.25
     triangulation_extend_y_m: 0.0
     triangulation_extend_z_m: 0.50
