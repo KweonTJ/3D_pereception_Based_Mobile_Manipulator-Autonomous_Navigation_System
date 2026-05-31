@@ -22,7 +22,7 @@ class JointTrajectoryTransformer(Node):
         self.reverse_joint_names = set(
             self.declare_parameter("reverse_joint_names", ["joint3"]).value)
         self.preserve_roll_sum = bool(
-            self.declare_parameter("preserve_roll_sum", True).value)
+            self.declare_parameter("preserve_roll_sum", False).value)
         self.roll_parent_joint = self.declare_parameter(
             "roll_parent_joint", "joint2").value
         self.roll_reversed_joint = self.declare_parameter(
