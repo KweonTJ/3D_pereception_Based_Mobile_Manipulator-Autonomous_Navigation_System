@@ -3091,6 +3091,11 @@ private:
   double eef_forward_joint3_delta_rad_{-0.025};
   double eef_forward_joint_nudge_duration_s_{0.45};
   double eef_forward_joint_nudge_period_s_{0.35};
+  double eef_forward_roll_joint2_weight_{0.0};
+  double eef_forward_roll_joint3_weight_{1.0};
+  double eef_forward_roll_joint4_weight_{1.0};
+  double eef_forward_joint4_rpy_roll_gain_{0.6};
+  double eef_forward_joint4_rpy_roll_max_delta_rad_{0.04};
   double triangulation_extend_x_m_{0.25};
   double triangulation_extend_y_m_{0.0};
   double triangulation_extend_z_m_{0.12};
