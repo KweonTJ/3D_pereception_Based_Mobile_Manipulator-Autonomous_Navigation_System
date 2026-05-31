@@ -377,6 +377,8 @@ private:
       declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.45);
     eef_forward_joint_nudge_period_s_ =
       declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.35);
+    eef_forward_joint3_first_duration_ratio_ =
+      declare_parameter<double>("eef_forward_joint3_first_duration_ratio", 0.65);
     eef_forward_roll_joint2_weight_ =
       declare_parameter<double>("eef_forward_roll_joint2_weight", 0.0);
     eef_forward_roll_joint3_weight_ =
@@ -497,6 +499,8 @@ private:
       std::max(0.1, eef_forward_joint_nudge_duration_s_);
     eef_forward_joint_nudge_period_s_ =
       std::max(0.05, eef_forward_joint_nudge_period_s_);
+    eef_forward_joint3_first_duration_ratio_ =
+      clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
     if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
       eef_forward_roll_joint4_weight_ = 1.0;
     }
@@ -1823,12 +1827,15 @@ private:
       jointNudgeRawTargetFromControllerTarget(*current, joint3_first_target);
     const auto raw_target =
       jointNudgeRawTargetFromControllerTarget(*current, controller_target);
+    const double joint3_first_time_s =
+      eef_forward_joint_nudge_duration_s_ * eef_forward_joint3_first_duration_ratio_;
+    const double controller_joint3_delta = joint3_first_target[2] - (*current)[2];
+    const double raw_joint3_delta = raw_joint3_first[2] - (*current)[2];
 
     trajectory_msgs::msg::JointTrajectory msg;
     msg.header.stamp = stamp;
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
-    appendJointTrajectoryPoint(
-      msg, raw_joint3_first, 0.5 * eef_forward_joint_nudge_duration_s_);
+    appendJointTrajectoryPoint(msg, raw_joint3_first, joint3_first_time_s);
     appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
     joint_trajectory_pub_->publish(msg);
     eef_forward_last_joint_nudge_stamp_ = stamp;
@@ -1839,6 +1846,9 @@ private:
            << " raw_target=" << formatJointArray(raw_target)
            << " controller_joint3_first=" << formatJointArray(joint3_first_target)
            << " controller_target=" << formatJointArray(controller_target)
+           << " controller_joint3_delta=" << controller_joint3_delta
+           << " raw_joint3_delta=" << raw_joint3_delta
+           << " joint3_first_time=" << joint3_first_time_s
            << " roll_proxy_weights=(" << eef_forward_roll_joint2_weight_ << ", "
            << eef_forward_roll_joint3_weight_ << ", "
            << eef_forward_roll_joint4_weight_ << ")"
@@ -3091,6 +3101,7 @@ private:
   double eef_forward_joint3_delta_rad_{-0.025};
   double eef_forward_joint_nudge_duration_s_{0.45};
   double eef_forward_joint_nudge_period_s_{0.35};
+  double eef_forward_joint3_first_duration_ratio_{0.65};
   double eef_forward_roll_joint2_weight_{0.0};
   double eef_forward_roll_joint3_weight_{1.0};
   double eef_forward_roll_joint4_weight_{1.0};
