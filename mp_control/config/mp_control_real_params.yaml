@@ -166,21 +166,23 @@ mp_control_node:
     # before joint2/joint4 compensation starts.
     eef_forward_joint3_first_duration_ratio: 0.65
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
-    # The real EEF roll proxy is dominated by joint3+joint4 during the final
-    # close-range stretch, so joint4 compensates joint3 extension and also
-    # receives TF roll-error feedback.
+    # The real EEF roll proxy uses the opposite joint3 sign during the final
+    # close-range stretch. If joint3 extension is compensated with the same sign,
+    # joint4 rotates the gripper/EEF camera upward.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: 1.0
+    eef_forward_roll_joint3_weight: -1.0
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.6
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
-    # Bias joint4 slightly downward after the roll-preserving calculation so
-    # the gripper does not point upward while reaching for the object.
-    gripper_down_joint4_offset_rad: -0.10
+    # Extra offset is disabled; forcing joint4 past its URDF lower limit causes
+    # eef_usb_camera_link/link3 collision while the real fix is joint4 direction.
+    gripper_down_joint4_offset_rad: 0.0
     # During final EEF forward, close the gripper once the front bbox area
     # shrinks to roughly 50-60% of the area captured at forward-start.
     close_on_front_bbox_shrink: true
     front_bbox_close_area_ratio: 0.60
+    close_on_eef_bbox_shrink: true
+    eef_bbox_close_area_ratio: 0.60
     triangulation_extend_x_m: 0.25
     triangulation_extend_y_m: 0.0
     triangulation_extend_z_m: 0.50
