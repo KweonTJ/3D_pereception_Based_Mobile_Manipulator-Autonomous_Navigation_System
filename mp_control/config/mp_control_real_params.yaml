@@ -156,6 +156,15 @@ mp_control_node:
     eef_forward_joint3_delta_rad: -0.025
     eef_forward_joint_nudge_duration_s: 0.45
     eef_forward_joint_nudge_period_s: 0.35
+    # Additional EEF forward keeps the gripper roll, not joint4 itself.
+    # The real EEF roll proxy is dominated by joint3+joint4 during the final
+    # close-range stretch, so joint4 compensates joint3 extension and also
+    # receives TF roll-error feedback.
+    eef_forward_roll_joint2_weight: 0.0
+    eef_forward_roll_joint3_weight: 1.0
+    eef_forward_roll_joint4_weight: 1.0
+    eef_forward_joint4_rpy_roll_gain: 0.6
+    eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
     triangulation_extend_x_m: 0.25
     triangulation_extend_y_m: 0.0
     triangulation_extend_z_m: 0.50
