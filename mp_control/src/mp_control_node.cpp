@@ -1490,15 +1490,27 @@ private:
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
     }
-    if (joint_pregrasp_reverse_joint3_delta_) {
-      target[2] = current[2] - (target[2] - current[2]);
-    }
     if (joint_pregrasp_preserve_gripper_roll_) {
-      // Preserve the stay/current wrist roll proxy in the final hardware command basis.
+      // Preserve the stay/current wrist roll proxy in the final controller basis.
+      // joint3 raw pre-inversion, if enabled below, is only a transport detail.
       const double current_roll_proxy = current[1] + current[2] + current[3];
       target[3] = current_roll_proxy - target[1] - target[2];
     }
+    if (joint_pregrasp_reverse_joint3_delta_) {
+      target[2] = current[2] - (target[2] - current[2]);
+    }
     return clampJointPregraspTarget(target);
+  }
+
+  std::array<double, 4> expectedJointPregraspControllerTarget(
+    const std::array<double, 4> & current,
+    const std::array<double, 4> & raw_target) const
+  {
+    std::array<double, 4> target = raw_target;
+    if (joint_pregrasp_reverse_joint3_delta_) {
+      target[2] = current[2] - (raw_target[2] - current[2]);
+    }
+    return target;
   }
 
   void appendJointTrajectoryPoint(
@@ -1716,6 +1728,8 @@ private:
     }
 
     const auto target = jointPregraspTargetFromCurrent(*current);
+    const auto expected_controller_target =
+      expectedJointPregraspControllerTarget(*current, target);
     publishJointPregraspTrajectory(*current, target);
     joint_pregrasp_sent_ = true;
     joint_pregrasp_target_ = target;
@@ -1725,7 +1739,8 @@ private:
 
     std::ostringstream status;
     status << "moving arm to joint pregrasp: current=" << formatJointArray(*current)
-           << " target=" << formatJointArray(target)
+           << " raw_target=" << formatJointArray(target)
+           << " expected_controller_target=" << formatJointArray(expected_controller_target)
            << " preserve_gripper_roll="
            << (joint_pregrasp_preserve_gripper_roll_ ? "true" : "false")
            << " sync_steps=" << joint_pregrasp_sync_steps_

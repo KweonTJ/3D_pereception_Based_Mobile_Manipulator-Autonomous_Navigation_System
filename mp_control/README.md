@@ -68,7 +68,7 @@ close_after_stable_cycles: 4
 - `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
 - `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 joint trajectory로 보낸다. 이 trajectory도 `/arm_controller/joint_trajectory_raw`로 나가며, 최종 arm controller에는 transformer를 거친 `/arm_controller/joint_trajectory`만 들어간다.
-- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇에서는 joint3 이동량 반전을 raw trajectory transformer에서 처리하고, transformer가 joint3 반전량만큼 joint4를 동시에 보정한다. 따라서 최종 하드웨어 명령 기준에서도 stay 자세의 그리퍼 roll 합이 유지된다.
+- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇에서는 joint3 이동량 반전만 raw trajectory transformer에서 처리한다. joint4 roll 보정은 `mp_control` 한 곳에서만 계산해서 중복 보정으로 joint4가 크게 꺾이는 상황을 막는다.
 - `pregrasp_hold_current_duration_s`: 기본값은 `0.0`이다. pregrasp 시작 전에 현재 자세 hold point를 추가하지 않아서 시작 지연을 만들지 않는다.
 - `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있으므로 실제 로봇에서는 1을 유지한다.
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
@@ -96,13 +96,9 @@ MoveIt Servo
 joint3_out = current_joint3 - (joint3_in - current_joint3)
 ```
 
-joint3를 반전하면 그리퍼 roll proxy인 `joint2 + joint3 + joint4`가 깨질 수 있으므로, 변환 노드는 같은 trajectory point 안에서 joint4도 동시에 보정한다.
+joint4 보정은 변환 노드에서 하지 않는다. `mp_control` 내부 pregrasp 목표 생성 시 한 번만 계산한다. 변환 노드와 `mp_control`이 동시에 joint4를 보정하면 joint4 목표가 과도하게 음수 방향으로 튀어 그리퍼가 베이스/지지대와 충돌할 수 있다.
 
-```text
-joint4_out = joint4_in - (joint3_out - joint3_in)
-```
-
-이 보정은 joint3 반전과 같은 point에서 처리되므로 joint2, joint3, joint4는 순차 명령이 아니라 하나의 동시 trajectory 명령으로 arm controller에 들어간다.
+pregrasp trajectory는 joint1~4가 모두 들어간 단일 point로 발행된다. 따라서 joint2, joint3, joint4는 순차 명령이 아니라 하나의 동시 trajectory 명령으로 arm controller에 들어간다. 런타임에서 순차 동작처럼 보이면 `/arm_controller/joint_trajectory`에 transformer 외 publisher가 붙었거나, 설치본 config가 최신이 아닌지 확인해야 한다.
 
 Servo가 런치 종료나 cancel 과정에서 현재 위치 hold 명령을 보내면, 입력 목표와 `/joint_states` 기준점이 같아서 출력도 현재 위치 그대로 유지된다. 단순히 절대각을 `-joint3`으로 바꾸지 않기 때문에 취소 시 반대 절대각으로 튀지 않는다.
 
