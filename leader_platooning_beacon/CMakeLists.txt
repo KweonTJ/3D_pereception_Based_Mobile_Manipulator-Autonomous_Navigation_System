@@ -18,6 +18,8 @@ find_package(sensor_msgs REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(turtlebot3_msgs REQUIRED)
 
+include_directories(include)
+
 add_executable(leader_platooning_beacon_node src/leader_platooning_beacon_node.cpp)
 ament_target_dependencies(
   leader_platooning_beacon_node
@@ -64,6 +66,7 @@ install(PROGRAMS
 install(DIRECTORY
   launch
   config
+  include
   DESTINATION share/${PROJECT_NAME}
 )
 

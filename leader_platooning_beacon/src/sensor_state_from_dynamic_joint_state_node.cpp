@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "control_msgs/msg/dynamic_joint_state.hpp"
+#include "leader_platooning_beacon/dynamic_joint_state_utils.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "turtlebot3_msgs/msg/sensor_state.hpp"
 
@@ -60,41 +59,6 @@ public:
   }
 
 private:
-  static std::optional<double> findInterfaceValue(
-    const control_msgs::msg::InterfaceValue & interfaces,
-    const std::string & name)
-  {
-    const auto it = std::find(
-      interfaces.interface_names.begin(),
-      interfaces.interface_names.end(),
-      name);
-    if (it == interfaces.interface_names.end()) {
-      return std::nullopt;
-    }
-
-    const auto index = static_cast<size_t>(std::distance(interfaces.interface_names.begin(), it));
-    if (index >= interfaces.values.size() || !std::isfinite(interfaces.values[index])) {
-      return std::nullopt;
-    }
-    return interfaces.values[index];
-  }
-
-  static std::optional<const control_msgs::msg::InterfaceValue *> findJointInterfaces(
-    const control_msgs::msg::DynamicJointState & msg,
-    const std::string & name)
-  {
-    const auto it = std::find(msg.joint_names.begin(), msg.joint_names.end(), name);
-    if (it == msg.joint_names.end()) {
-      return std::nullopt;
-    }
-
-    const auto index = static_cast<size_t>(std::distance(msg.joint_names.begin(), it));
-    if (index >= msg.interface_values.size()) {
-      return std::nullopt;
-    }
-    return &msg.interface_values[index];
-  }
-
   int32_t radiansToEncoderTicks(const double radians) const
   {
     if (!std::isfinite(radians) || encoder_ticks_per_revolution_ <= 0.0) {
@@ -103,18 +67,6 @@ private:
 
     const auto ticks = radians * encoder_ticks_per_revolution_ / (2.0 * M_PI);
     return static_cast<int32_t>(std::llround(ticks));
-  }
-
-  std::optional<double> findValue(
-    const control_msgs::msg::DynamicJointState & msg,
-    const std::string & name,
-    const std::string & interface_name) const
-  {
-    const auto interfaces = findJointInterfaces(msg, name);
-    if (!interfaces) {
-      return std::nullopt;
-    }
-    return findInterfaceValue(**interfaces, interface_name);
   }
 
   void dynamicStateCallback(const control_msgs::msg::DynamicJointState::SharedPtr msg)
@@ -137,11 +89,11 @@ private:
     sensor.button = 0;
     sensor.torque = true;
     sensor.left_encoder = radiansToEncoderTicks(
-      findValue(*msg, left_wheel_name_, "position").value_or(0.0));
+      leader_platooning_beacon::find_state_value(*msg, left_wheel_name_, "position").value_or(0.0));
     sensor.right_encoder = radiansToEncoderTicks(
-      findValue(*msg, right_wheel_name_, "position").value_or(0.0));
+      leader_platooning_beacon::find_state_value(*msg, right_wheel_name_, "position").value_or(0.0));
     sensor.battery = static_cast<float>(
-      findValue(*msg, battery_sensor_name_, "voltage").value_or(
+      leader_platooning_beacon::find_state_value(*msg, battery_sensor_name_, "voltage").value_or(
         std::numeric_limits<float>::quiet_NaN()));
 
     sensor_pub_->publish(sensor);

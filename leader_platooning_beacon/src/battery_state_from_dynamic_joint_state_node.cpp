@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "control_msgs/msg/dynamic_joint_state.hpp"
+#include "leader_platooning_beacon/dynamic_joint_state_utils.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/battery_state.hpp"
 
@@ -57,25 +55,6 @@ public:
   }
 
 private:
-  static std::optional<double> findInterfaceValue(
-    const control_msgs::msg::InterfaceValue & interfaces,
-    const std::string & name)
-  {
-    const auto it = std::find(
-      interfaces.interface_names.begin(),
-      interfaces.interface_names.end(),
-      name);
-    if (it == interfaces.interface_names.end()) {
-      return std::nullopt;
-    }
-
-    const auto index = static_cast<size_t>(std::distance(interfaces.interface_names.begin(), it));
-    if (index >= interfaces.values.size() || !std::isfinite(interfaces.values[index])) {
-      return std::nullopt;
-    }
-    return interfaces.values[index];
-  }
-
   void dynamicStateCallback(const control_msgs::msg::DynamicJointState::SharedPtr msg)
   {
     const auto now = get_clock()->now();
@@ -85,11 +64,9 @@ private:
       return;
     }
 
-    const auto name_it = std::find(
-      msg->joint_names.begin(),
-      msg->joint_names.end(),
-      battery_sensor_name_);
-    if (name_it == msg->joint_names.end()) {
+    const auto battery_interfaces =
+      leader_platooning_beacon::find_joint_interfaces(*msg, battery_sensor_name_);
+    if (!battery_interfaces) {
       RCLCPP_WARN_THROTTLE(
         get_logger(),
         *get_clock(),
@@ -99,22 +76,12 @@ private:
       return;
     }
 
-    const auto index = static_cast<size_t>(std::distance(msg->joint_names.begin(), name_it));
-    if (index >= msg->interface_values.size()) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(),
-        *get_clock(),
-        5000,
-        "battery sensor '%s' has no interface values",
-        battery_sensor_name_.c_str());
-      return;
-    }
-
-    const auto & interfaces = msg->interface_values[index];
-    const auto voltage = findInterfaceValue(interfaces, "voltage");
-    const auto percentage = findInterfaceValue(interfaces, "percentage");
-    const auto design_capacity = findInterfaceValue(interfaces, "design_capacity");
-    const auto present = findInterfaceValue(interfaces, "present");
+    const auto & interfaces = **battery_interfaces;
+    const auto voltage = leader_platooning_beacon::find_interface_value(interfaces, "voltage");
+    const auto percentage = leader_platooning_beacon::find_interface_value(interfaces, "percentage");
+    const auto design_capacity =
+      leader_platooning_beacon::find_interface_value(interfaces, "design_capacity");
+    const auto present = leader_platooning_beacon::find_interface_value(interfaces, "present");
 
     if (!voltage && !percentage) {
       RCLCPP_WARN_THROTTLE(
