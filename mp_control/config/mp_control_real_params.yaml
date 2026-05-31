@@ -153,9 +153,12 @@ mp_control_node:
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
     eef_forward_joint2_delta_rad: 0.025
-    eef_forward_joint3_delta_rad: -0.025
+    eef_forward_joint3_delta_rad: -0.050
     eef_forward_joint_nudge_duration_s: 0.45
     eef_forward_joint_nudge_period_s: 0.35
+    # Give the first trajectory point enough time so joint3 visibly extends
+    # before joint2/joint4 compensation starts.
+    eef_forward_joint3_first_duration_ratio: 0.65
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # The real EEF roll proxy is dominated by joint3+joint4 during the final
     # close-range stretch, so joint4 compensates joint3 extension and also
