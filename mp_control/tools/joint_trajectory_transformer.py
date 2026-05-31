@@ -28,7 +28,7 @@ class JointTrajectoryTransformer(Node):
         self.roll_reversed_joint = self.declare_parameter(
             "roll_reversed_joint", "joint3").value
         self.roll_compensation_joint = self.declare_parameter(
-            "roll_compensation_joint", "joint4").value)
+            "roll_compensation_joint", "joint4").value
 
         if self.input_topic == self.output_topic:
             raise RuntimeError("input_topic and output_topic must be different")
