@@ -68,7 +68,7 @@ close_after_stable_cycles: 4
 - `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
 - `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 `/arm_controller/joint_trajectory`로 직접 보낸다.
-- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 이 값은 joint3 실제 모터 방향 보정 전에 계산하므로, joint2/3/4가 같은 trajectory point에서 동시에 움직이면서 그리퍼 roll이 무너지지 않게 한다.
+- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇에서는 joint3 이동량을 먼저 현재 `/joint_states` 기준으로 반전한 뒤, 최종 하드웨어 명령 기준에서 joint4를 다시 계산한다. 그래서 joint2/3/4가 같은 trajectory point에서 동시에 움직이면서 그리퍼 roll이 무너지지 않게 한다.
 - `pregrasp_hold_current_duration_s`: 기본값은 `0.0`이다. pregrasp 시작 전에 현재 자세 hold point를 추가하지 않아서 시작 지연을 만들지 않는다.
 - `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있다.
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
@@ -107,7 +107,7 @@ ros2 topic echo /arm_controller/joint_trajectory_raw --once
 ros2 topic echo /arm_controller/joint_trajectory --once
 ```
 
-실제 런치에서는 `/servo_node`가 raw 토픽을 발행하고, `joint_trajectory_transformer`가 실제 arm controller 토픽을 발행해야 한다. `mp_control`의 1회 pregrasp 명령은 기존처럼 controller 토픽으로 직접 나가지만, 내부의 `pregrasp_reverse_joint3_delta` 로직이 같은 현재 위치 기준 delta 반전을 수행한다.
+실제 런치에서는 `/servo_node`가 raw 토픽을 발행하고, `joint_trajectory_transformer`가 실제 arm controller 토픽을 발행해야 한다. `mp_control`의 1회 pregrasp 명령은 기존처럼 controller 토픽으로 직접 나가지만, 내부의 `pregrasp_reverse_joint3_delta` 로직이 같은 현재 위치 기준 delta 반전을 수행한다. 이때 joint4 roll 보존 계산은 joint3 반전 이후에 수행한다.
 
 ## EEF 카메라 경로
 
