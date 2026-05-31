@@ -141,6 +141,14 @@ mp_control_node:
     eef_forward_after_align: true
     eef_forward_distance_m: 0.08
     eef_forward_speed_mps: 0.018
+    # Final EEF advance uses synchronized joint nudges on real hardware.
+    # This bypasses MoveIt Servo collision/singularity scaling that can stall
+    # when the object is already close to the gripper.
+    eef_forward_use_joint_nudge: true
+    eef_forward_joint2_delta_rad: 0.025
+    eef_forward_joint3_delta_rad: -0.025
+    eef_forward_joint_nudge_duration_s: 0.45
+    eef_forward_joint_nudge_period_s: 0.35
     triangulation_extend_x_m: 0.25
     triangulation_extend_y_m: 0.0
     triangulation_extend_z_m: 0.50
