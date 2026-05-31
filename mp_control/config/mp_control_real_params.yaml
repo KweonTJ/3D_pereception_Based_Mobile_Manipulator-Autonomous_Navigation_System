@@ -205,7 +205,7 @@ mp_control_node:
     gripper_pre_grasp_clearance_m: 0.012
     # Final grasp keeps the commanded gap slightly larger than the front-depth
     # object width; EEF RGB never updates this width estimate.
-    gripper_grasp_width_scale: 1.25
+    gripper_grasp_width_scale: 1.50
     gripper_grasp_clearance_m: 0.004
     # Used only when gripper_grasp_clearance_m is 0.0.
     gripper_grasp_compression_m: 0.002
