@@ -103,7 +103,9 @@ mp_control_node:
     object_pregrasp_lower_standoff_m: 0.02
     object_pregrasp_min_lower_z_m: 0.12
     object_pregrasp_enable_lowering: false
-    pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
+    # Keep the shoulder higher than the old pregrasp pose so the arm does not
+    # drop into the front Astra camera view before close-range EEF alignment.
+    pregrasp_ready_joint_positions: [0.0, 0.50, -0.85, -1.05]
     # Keep the wrist roll from the current stay pose in the raw command.
     # The real arm's gripper-side roll compensation is based on joint2+joint4.
     # joint3 is the extension joint and must not cancel joint4 motion.
@@ -147,12 +149,13 @@ mp_control_node:
     # Servo can stall while trying to remove the last few pixels of lateral error.
     eef_forward_start_tolerance_px: 90.0
     # Final EEF advance uses staged joint nudges on real hardware.
-    # joint3 extends first, then joint2 and joint4 move together while preserving
-    # the stay-pose gripper roll proxy.
+    # joint3 extends first, then joint4 preserves the stay-pose gripper roll.
+    # joint2 is not lowered further here because that can cover the front Astra
+    # camera while the visual grasp confirmation still depends on the front bbox.
     # This bypasses MoveIt Servo collision/singularity scaling that can stall
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
-    eef_forward_joint2_delta_rad: 0.025
+    eef_forward_joint2_delta_rad: 0.0
     eef_forward_joint3_delta_rad: -0.050
     eef_forward_joint_nudge_duration_s: 0.45
     eef_forward_joint_nudge_period_s: 0.35

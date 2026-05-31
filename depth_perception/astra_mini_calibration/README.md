@@ -61,6 +61,14 @@ ros2 run astra_mini_calibration camera_info_from_json.py \
 This path only republishes `CameraInfo`; it does not start the camera and does
 not require `image_proc`.
 
+## 종료 처리
+
+`camera_info_from_json.py`는 launch 종료나 `Ctrl-C` 때 `KeyboardInterrupt`를
+정상 종료로 처리한다. ROS 컨텍스트가 이미 내려간 상태에서 다시
+`rclpy.shutdown()`을 호출하지 않으므로, 종료 로그에
+`rcl_shutdown already called` 예외가 떠서 전체 launch 종료를 지연시키는 상황을
+피한다.
+
 The same publisher can also be launched through:
 
 ```bash

@@ -290,6 +290,18 @@ ros2 topic info -v /arm_controller/joint_trajectory_raw
 ros2 topic info -v /arm_controller/joint_trajectory
 ```
 
+## 런치 종료 확인
+
+실제 리더 런치 종료 시 `joint_trajectory_transformer.py`는 `Ctrl-C`로 들어오는
+`KeyboardInterrupt`를 정상 종료로 처리한다. 종료 로그에서 transformer가
+`exit code -2`로 ERROR 표시되면 설치본이 최신이 아닌 상태일 수 있으므로
+`mp_control`을 다시 빌드한다.
+
+전면 Astra camera container는 드라이버 종료가 오래 걸릴 수 있어서
+`astra_mini.launch.py`의 container shutdown timeout을 짧게 둔다. 따라서
+`Ctrl-C` 이후에도 container가 즉시 내려가지 않으면 launch가 짧게 기다린 뒤
+강제 종료하며, 다음 실행 전에 남은 프로세스가 있는지만 확인하면 된다.
+
 ## 빌드
 
 ```bash
