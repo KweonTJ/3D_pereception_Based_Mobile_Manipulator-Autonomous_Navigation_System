@@ -20,12 +20,14 @@ ros2 run turtlebot3_manipulation_teleop turtlebot3_manipulation_teleop
 ```text
 i: 전진 속도 증가
 k: 후진 속도 증가
-j: 반시계 방향 회전 증가
-l: 시계 방향 회전 증가
+j: 좌회전
+l: 우회전
 space: 정지
 ```
 
 이 패키지는 `cmd_vel` publisher를 직접 만들고 10 ms 주기로 현재 명령을 발행한다. `/cmd_vel` 발행이 꺼져 있으면 키 입력 로그는 보여도 실제 베이스는 움직이지 않는다.
+
+실제 리더 하드웨어 기준으로 `j`는 음수 `angular.z`, `l`은 양수 `angular.z`를 발행한다. 전진/후진 방향은 그대로 유지하고 좌/우 회전 부호만 하드웨어 방향에 맞춘다.
 
 ## 확인
 
