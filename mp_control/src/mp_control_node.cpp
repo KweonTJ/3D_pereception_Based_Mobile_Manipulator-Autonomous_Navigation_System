@@ -236,6 +236,7 @@ private:
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
 	    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
 	    twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
+	    base_cmd_vel_topic_ = declare_parameter<std::string>("base_cmd_vel_topic", "/cmd_vel");
 	    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
 	    joint_trajectory_topic_ =
 	      declare_parameter<std::string>("joint_trajectory_topic", "/arm_controller/joint_trajectory");
@@ -411,6 +412,21 @@ private:
       declare_parameter<bool>("close_on_eef_bbox_shrink", false);
     eef_bbox_close_area_ratio_ =
       declare_parameter<double>("eef_bbox_close_area_ratio", 0.60);
+    handoff_after_grasp_ = declare_parameter<bool>("handoff_after_grasp", false);
+    handoff_lift_joint2_delta_rad_ =
+      declare_parameter<double>("handoff_lift_joint2_delta_rad", 0.25);
+    handoff_place_joint2_delta_rad_ =
+      declare_parameter<double>("handoff_place_joint2_delta_rad", -0.20);
+    handoff_joint_move_duration_s_ =
+      declare_parameter<double>("handoff_joint_move_duration_s", 1.0);
+    handoff_joint_settle_s_ =
+      declare_parameter<double>("handoff_joint_settle_s", 0.4);
+    handoff_rotate_angle_rad_ =
+      declare_parameter<double>("handoff_rotate_angle_rad", M_PI);
+    handoff_rotate_angular_speed_rad_s_ =
+      declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
+    handoff_release_settle_s_ =
+      declare_parameter<double>("handoff_release_settle_s", 0.5);
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
