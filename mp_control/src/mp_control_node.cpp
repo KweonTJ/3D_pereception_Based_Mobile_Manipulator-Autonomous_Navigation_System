@@ -3202,6 +3202,9 @@ private:
   double eef_forward_roll_joint4_weight_{1.0};
   double eef_forward_joint4_rpy_roll_gain_{0.6};
   double eef_forward_joint4_rpy_roll_max_delta_rad_{0.04};
+  double gripper_down_joint4_offset_rad_{0.0};
+  bool close_on_front_bbox_shrink_{false};
+  double front_bbox_close_area_ratio_{0.60};
   double triangulation_extend_x_m_{0.25};
   double triangulation_extend_y_m_{0.0};
   double triangulation_extend_z_m_{0.12};
@@ -3286,6 +3289,7 @@ private:
 	  bool joint_pregrasp_sent_{false};
 	  bool joint_pregrasp_done_{false};
   bool eef_forward_advance_active_{false};
+  std::optional<double> front_bbox_area_at_eef_forward_start_;
 	  bool min_depth_reached_{false};
   bool servo_start_requested_{false};
   std::optional<std::array<double, 4>> joint_pregrasp_target_;
