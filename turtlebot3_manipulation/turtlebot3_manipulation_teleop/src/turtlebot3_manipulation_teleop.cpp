@@ -58,8 +58,8 @@ KeyboardServo::KeyboardServo()
   servo_stop_client_ =
     nh_->create_client<std_srvs::srv::Trigger>("/servo_node/stop_servo");
 
-  // base_twist_pub_ =
-    // nh_->create_publisher<geometry_msgs::msg::Twist>(BASE_TWIST_TOPIC, ROS_QUEUE_SIZE);
+  base_twist_pub_ =
+    nh_->create_publisher<geometry_msgs::msg::Twist>(BASE_TWIST_TOPIC, ROS_QUEUE_SIZE);
   joint_pub_ = nh_->create_publisher<control_msgs::msg::JointJog>(ARM_JOINT_TOPIC, ROS_QUEUE_SIZE);
   client_ = rclcpp_action::create_client<control_msgs::action::GripperCommand>(
     nh_, "gripper_controller/gripper_cmd");
@@ -305,7 +305,7 @@ void KeyboardServo::pub()
       publish_joint_ = false;
       RCLCPP_INFO_STREAM(nh_->get_logger(), "Joint PUB");
     }
-    // base_twist_pub_->publish(cmd_vel_);
+    base_twist_pub_->publish(cmd_vel_);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
   }
 }
