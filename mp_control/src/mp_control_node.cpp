@@ -1528,6 +1528,20 @@ private:
     return clamped;
   }
 
+  double gripperRollProxyFromJoints(const std::array<double, 4> & joints) const
+  {
+    // On the real leader arm, joint2 and joint4 define the gripper-side roll compensation.
+    // joint3 is the extension joint and must not cancel joint4 motion during forward nudges.
+    return joints[1] + joints[3];
+  }
+
+  double joint4ForPreservedGripperRoll(
+    const std::array<double, 4> & reference,
+    const std::array<double, 4> & target) const
+  {
+    return gripperRollProxyFromJoints(reference) - target[1];
+  }
+
   std::array<double, 4> jointPregraspControllerTargetFromCurrent(
     const std::array<double, 4> & current) const
   {
@@ -1536,10 +1550,7 @@ private:
       target[i] = joint_pregrasp_ready_positions_[i];
     }
     if (joint_pregrasp_preserve_gripper_roll_) {
-      // Preserve the stay/current wrist roll proxy in the final controller basis.
-      // joint3 raw pre-inversion, if enabled below, is only a transport detail.
-      const double current_roll_proxy = current[1] + current[2] + current[3];
-      target[3] = current_roll_proxy - target[1] - target[2];
+      target[3] = joint4ForPreservedGripperRoll(current, target);
     }
     return clampJointPregraspTarget(target);
   }
