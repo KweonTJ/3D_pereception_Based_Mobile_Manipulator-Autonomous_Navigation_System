@@ -6,6 +6,7 @@
 #include <cstring>
 #include <future>
 #include <iomanip>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <optional>
