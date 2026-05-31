@@ -326,6 +326,12 @@ private:
 	      "pregrasp_ready_joint_positions", std::vector<double>{0.0, 0.65, -0.85, -1.20});
 	    joint_pregrasp_preserve_gripper_roll_ =
 	      declare_parameter<bool>("pregrasp_preserve_gripper_roll", true);
+	    pregrasp_roll_joint2_weight_ =
+	      declare_parameter<double>("pregrasp_roll_joint2_weight", 1.0);
+	    pregrasp_roll_joint3_weight_ =
+	      declare_parameter<double>("pregrasp_roll_joint3_weight", 1.0);
+	    pregrasp_roll_joint4_weight_ =
+	      declare_parameter<double>("pregrasp_roll_joint4_weight", 1.0);
 	    joint_pregrasp_reverse_joint3_delta_ =
 	      declare_parameter<bool>("pregrasp_reverse_joint3_delta", true);
 	    joint_pregrasp_hold_current_duration_s_ =
@@ -503,6 +509,9 @@ private:
       clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
     if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
       eef_forward_roll_joint4_weight_ = 1.0;
+    }
+    if (std::abs(pregrasp_roll_joint4_weight_) < 1.0e-6) {
+      pregrasp_roll_joint4_weight_ = 1.0;
     }
     eef_forward_joint4_rpy_roll_gain_ = std::max(0.0, eef_forward_joint4_rpy_roll_gain_);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
