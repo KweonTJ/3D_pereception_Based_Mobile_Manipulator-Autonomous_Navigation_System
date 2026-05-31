@@ -2771,6 +2771,46 @@ private:
     return state.front_fresh && eef_bbox_seen_after_close_ && !state.eef_fresh;
   }
 
+  double bboxArea(const Bbox & bbox) const
+  {
+    return std::max(0.0, bbox.width) * std::max(0.0, bbox.height);
+  }
+
+  std::optional<double> latestFreshFrontBboxArea() const
+  {
+    const auto stamp = now();
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    if (!latest_bbox_) {
+      return std::nullopt;
+    }
+    if ((stamp - latest_bbox_->stamp).seconds() > grasp_completion_front_max_age_s_) {
+      return std::nullopt;
+    }
+    return bboxArea(*latest_bbox_);
+  }
+
+  std::optional<double> frontBboxAreaRatioFromForwardStart() const
+  {
+    if (!front_bbox_area_at_eef_forward_start_ ||
+        *front_bbox_area_at_eef_forward_start_ <= 1.0) {
+      return std::nullopt;
+    }
+    const auto area = latestFreshFrontBboxArea();
+    if (!area) {
+      return std::nullopt;
+    }
+    return *area / *front_bbox_area_at_eef_forward_start_;
+  }
+
+  bool shouldCloseOnFrontBboxShrink() const
+  {
+    if (!close_on_front_bbox_shrink_ || close_sent_) {
+      return false;
+    }
+    const auto ratio = frontBboxAreaRatioFromForwardStart();
+    return ratio && *ratio <= front_bbox_close_area_ratio_;
+  }
+
   void completeGrasp(const std::string & status_text)
   {
     publishCargoEvent("picked", true);
