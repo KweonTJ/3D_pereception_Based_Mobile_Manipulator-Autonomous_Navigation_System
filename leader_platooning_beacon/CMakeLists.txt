@@ -16,6 +16,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(control_msgs REQUIRED)
+find_package(turtlebot3_msgs REQUIRED)
 
 add_executable(leader_platooning_beacon_node src/leader_platooning_beacon_node.cpp)
 ament_target_dependencies(
@@ -37,9 +38,21 @@ ament_target_dependencies(
   control_msgs
 )
 
+add_executable(
+  sensor_state_from_dynamic_joint_state_node
+  src/sensor_state_from_dynamic_joint_state_node.cpp
+)
+ament_target_dependencies(
+  sensor_state_from_dynamic_joint_state_node
+  rclcpp
+  control_msgs
+  turtlebot3_msgs
+)
+
 install(TARGETS
   leader_platooning_beacon_node
   battery_state_from_dynamic_joint_state_node
+  sensor_state_from_dynamic_joint_state_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

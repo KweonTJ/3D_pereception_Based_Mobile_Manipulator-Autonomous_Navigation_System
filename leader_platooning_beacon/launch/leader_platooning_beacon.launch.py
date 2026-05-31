@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+import os
 
 
 def generate_launch_description():
@@ -30,17 +29,5 @@ def generate_launch_description():
             name="leader_platooning_beacon",
             output="screen",
             parameters=[params_file],
-        ),
-        Node(
-            package="leader_platooning_beacon",
-            executable="battery_state_from_dynamic_joint_state_node",
-            name="leader_battery_state_relay",
-            output="screen",
-            parameters=[{
-                "dynamic_joint_states_topic": "/dynamic_joint_states",
-                "battery_state_topic": "/battery_state",
-                "battery_sensor_name": "battery",
-                "publish_period_s": 1.0,
-            }],
         ),
     ])
