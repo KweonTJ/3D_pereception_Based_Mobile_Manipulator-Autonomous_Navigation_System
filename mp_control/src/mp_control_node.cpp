@@ -1961,6 +1961,7 @@ private:
            << " pregrasp_roll_weights=(" << pregrasp_roll_joint2_weight_ << ", "
            << pregrasp_roll_joint3_weight_ << ", "
            << pregrasp_roll_joint4_weight_ << ")"
+           << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
            << " sync_steps=" << joint_pregrasp_sync_steps_
            << " joint3_reverse_delta="
            << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false");
