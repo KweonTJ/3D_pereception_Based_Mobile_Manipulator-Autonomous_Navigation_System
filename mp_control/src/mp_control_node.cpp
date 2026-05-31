@@ -3274,6 +3274,15 @@ private:
     twist_pub_->publish(stop);
   }
 
+  void publishBaseStop()
+  {
+    if (!base_cmd_vel_pub_) {
+      return;
+    }
+    geometry_msgs::msg::Twist stop;
+    base_cmd_vel_pub_->publish(stop);
+  }
+
   void publishEefAutoInitEnable(bool enabled)
   {
     if (!eef_auto_init_enable_pub_) {
