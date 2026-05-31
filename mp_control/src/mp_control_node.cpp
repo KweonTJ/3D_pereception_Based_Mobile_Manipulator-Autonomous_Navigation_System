@@ -1834,6 +1834,7 @@ private:
       -eef_forward_joint4_rpy_roll_max_delta_rad_,
       eef_forward_joint4_rpy_roll_max_delta_rad_);
     controller_target[3] += joint4_roll_feedback;
+    controller_target[3] += gripper_down_joint4_offset_rad_;
     joint3_first_target[0] =
       clampValue(joint3_first_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
     joint3_first_target[1] =
@@ -1876,6 +1877,7 @@ private:
            << eef_forward_roll_joint3_weight_ << ", "
            << eef_forward_roll_joint4_weight_ << ")"
            << " joint4_roll_feedback=" << joint4_roll_feedback
+           << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
            << " rpy_roll_err=" << rpy_error.roll
            << " duration=" << eef_forward_joint_nudge_duration_s_;
     publishStatus(status.str());
