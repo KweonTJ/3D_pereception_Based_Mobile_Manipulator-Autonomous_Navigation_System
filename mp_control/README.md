@@ -70,6 +70,9 @@ eef_forward_roll_joint3_weight: 1.0
 eef_forward_roll_joint4_weight: 1.0
 eef_forward_joint4_rpy_roll_gain: 0.6
 eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
+gripper_down_joint4_offset_rad: -0.10
+close_on_front_bbox_shrink: true
+front_bbox_close_area_ratio: 0.60
 gripper_grasp_clearance_m: 0.004
 gripper_grasp_width_scale: 1.50
 position_tolerance_m: 0.035
@@ -105,6 +108,8 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint3_first_duration_ratio`: 전체 nudge 시간 중 첫 joint3-only point에 배정하는 비율이다. 기본 `0.65`라서 joint3이 먼저 움직일 시간을 확보한 뒤 joint2/joint4 보정 point로 넘어간다.
 - `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 실제 로봇 close-range stretch에서는 `joint3 + joint4`를 기준으로 잡아서 joint3 전개를 joint4가 보상하게 한다. 그래서 joint2 이동 때문에 joint4가 고정되는 것이 아니라, 그리퍼 roll 유지에 필요한 만큼 joint4가 같이 돈다.
 - `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: `/tf`에서 계산한 EE roll 오차를 joint4 목표에 추가로 반영하는 값이다. joint trajectory nudge가 Servo twist를 우회하더라도 gripper roll feedback을 잃지 않게 한다.
+- `gripper_down_joint4_offset_rad`: pregrasp와 EEF forward joint nudge의 roll 보정 이후 joint4에 더하는 하향 오프셋이다. 현재 실제 리더는 `-0.10 rad`를 더해 그리퍼가 위를 향하지 않고 물체 쪽으로 조금 더 내려가게 한다.
+- `close_on_front_bbox_shrink / front_bbox_close_area_ratio`: EEF fixed-pose forward 시작 시점의 전면 bbox 면적을 기준으로 저장하고, 이후 전면 bbox 면적이 그 기준의 `0.60` 이하로 줄면 그리퍼 close를 시작한다. 실제 목표는 기존 bbox 크기의 50-60% 구간에서 닫는 것이므로, 샘플링 지연으로 50%보다 작아져도 close되도록 `<= 0.60` 조건을 사용한다.
 
 ## 실제 로봇 joint3 trajectory 변환
 
@@ -198,6 +203,8 @@ EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전�
 즉 전면 카메라에서는 물체 bbox가 계속 보이고, EEF 카메라에서는 close 이후 물체 bbox가 보이다가 더 이상 생성되지 않을 때 물체가 그리퍼 안으로 들어왔다고 판단한다. 이 조건을 만족해야 `/cargo/events`에 `picked`가 발행되고 `/leader/cargo_state`가 `GRASPED`로 넘어간다. close 직후 EEF bbox를 한 번도 보지 못한 상태에서는 EEF bbox가 없더라도 파지 완료로 처리하지 않는다.
 
 그리퍼 close 이후에도 EEF bbox가 계속 보이면 `mp_control`은 완료로 빠지지 않고 stay roll/current pitch/yaw를 유지한 채 EEF fixed-pose 전진 명령을 계속 보낸다. EEF bbox가 점점 작아지거나 그리퍼/물체 접촉으로 더 이상 검출되지 않고, 전면 bbox가 유지되는 순간 파지 완료로 확정한다.
+
+그리퍼 close 자체는 EEF forward 거리만으로 기다리지 않는다. EEF forward 시작 시점의 전면 bbox 면적을 기준으로 현재 전면 bbox 면적이 `front_bbox_close_area_ratio` 이하가 되면 물체가 그리퍼 안쪽으로 충분히 들어왔다고 보고 close 명령을 보낸다. 현재 실제 설정은 `0.60`이며, 이는 기존 크기의 약 50-60%가 되는 순간 닫기 시작하기 위한 값이다.
 
 실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다. status에는 `controller_joint3_first`, `controller_target`, `controller_joint3_delta`, `raw_joint3_delta`, `joint3_first_time`, `roll_proxy_weights`, `joint4_roll_feedback`, `rpy_roll_err`가 같이 나온다. 정상이라면 `controller_joint3_delta`가 0이 아니고, transformer 입력인 `raw_joint3_delta`는 부호가 반대로 보인다. joint3 first point 이후 최종 target에서 joint2와 joint4가 움직이고, joint4는 gripper roll feedback까지 반영한다.
 

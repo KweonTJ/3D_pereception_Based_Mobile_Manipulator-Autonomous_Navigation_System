@@ -2799,7 +2799,7 @@ private:
     return std::max(0.0, bbox.width) * std::max(0.0, bbox.height);
   }
 
-  std::optional<double> latestFreshFrontBboxArea() const
+  std::optional<double> latestFreshFrontBboxArea()
   {
     const auto stamp = now();
     std::lock_guard<std::mutex> lock(data_mutex_);
@@ -2812,7 +2812,7 @@ private:
     return bboxArea(*latest_bbox_);
   }
 
-  std::optional<double> frontBboxAreaRatioFromForwardStart() const
+  std::optional<double> frontBboxAreaRatioFromForwardStart()
   {
     if (!front_bbox_area_at_eef_forward_start_ ||
         *front_bbox_area_at_eef_forward_start_ <= 1.0) {
@@ -2825,7 +2825,7 @@ private:
     return *area / *front_bbox_area_at_eef_forward_start_;
   }
 
-  bool shouldCloseOnFrontBboxShrink() const
+  bool shouldCloseOnFrontBboxShrink()
   {
     if (!close_on_front_bbox_shrink_ || close_sent_) {
       return false;
