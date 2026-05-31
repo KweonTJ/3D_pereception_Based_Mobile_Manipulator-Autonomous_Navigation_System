@@ -1296,14 +1296,20 @@ private:
 
     const double center_tolerance_px = scaledEefTolerancePx(eef_center_tolerance_px_, info);
     const double close_tolerance_px = scaledEefTolerancePx(eef_close_tolerance_px_, info);
+    const double forward_start_tolerance_px =
+      scaledEefTolerancePx(eef_forward_start_tolerance_px_, info);
     const bool centered =
       std::abs(err_u_px) <= center_tolerance_px &&
       std::abs(err_v_px) <= center_tolerance_px;
     const bool close_ready =
       std::abs(err_u_px) <= close_tolerance_px &&
       std::abs(err_v_px) <= close_tolerance_px;
+    const bool forward_ready =
+      std::abs(err_u_px) <= forward_start_tolerance_px &&
+      std::abs(err_v_px) <= forward_start_tolerance_px;
     const RpyError rpy_error = computeEefRpyError(eef_tf);
     const bool pose_ready = close_ready && rpy_error.ready;
+    const bool forward_pose_ready = forward_ready && rpy_error.ready;
 
     if (eef_forward_advance_active_) {
       const double advanced_x = std::max(
@@ -1339,7 +1345,7 @@ private:
       return;
     }
 
-    if (pose_ready) {
+    if (forward_pose_ready) {
       if (eef_forward_after_align_ &&
           eef_forward_distance_m_ > 0.0 &&
           eef_forward_speed_mps_ > 0.0 &&
@@ -1353,11 +1359,19 @@ private:
         status << "eef pixel+rpy aligned; starting fixed-pose forward advance before grasp"
                << " distance=" << eef_forward_distance_m_
                << " speed=" << eef_forward_speed_mps_
+               << " forward_tol_px=" << forward_start_tolerance_px
+               << " close_tol_px=" << close_tolerance_px
                << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
                << ", " << rpy_error.yaw << ")"
                << " roll_ref=" << rpyReferenceMode(rpy_error)
                << " cmd_frame=" << target_frame_;
         publishStatus(status.str(), true);
+        return;
+      }
+
+      if (!pose_ready) {
+        stable_cycles_ = 0;
+        publishStatus("eef forward-ready but not close-ready; waiting for fixed-pose advance path");
         return;
       }
 
@@ -1418,6 +1432,7 @@ private:
            << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
            << " range_cmd=disabled"
            << " close_tol_px=" << close_tolerance_px
+           << " forward_tol_px=" << forward_start_tolerance_px
            << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
            << ", " << rpy_error.yaw << ")"
            << " roll_ref=" << rpyReferenceMode(rpy_error)
