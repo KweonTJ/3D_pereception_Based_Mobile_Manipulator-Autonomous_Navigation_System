@@ -314,11 +314,11 @@ private:
 	    joint_pregrasp_reverse_joint3_delta_ =
 	      declare_parameter<bool>("pregrasp_reverse_joint3_delta", true);
 	    joint_pregrasp_hold_current_duration_s_ =
-	      declare_parameter<double>("pregrasp_hold_current_duration_s", 0.15);
+	      declare_parameter<double>("pregrasp_hold_current_duration_s", 0.0);
 	    joint_pregrasp_move_duration_s_ =
 	      declare_parameter<double>("pregrasp_move_duration_s", 1.2);
 	    joint_pregrasp_sync_steps_ =
-	      declare_parameter<int>("pregrasp_sync_steps", 12);
+	      declare_parameter<int>("pregrasp_sync_steps", 1);
 	    joint_pregrasp_settle_s_ =
 	      declare_parameter<double>("pregrasp_settle_s", 0.5);
 	    joint_pregrasp_tolerance_rad_ =
@@ -2749,9 +2749,9 @@ private:
 	  std::vector<double> joint_pregrasp_ready_positions_{0.0, 0.65, -0.85, -1.20};
 	  bool joint_pregrasp_preserve_gripper_roll_{true};
 	  bool joint_pregrasp_reverse_joint3_delta_{true};
-	  double joint_pregrasp_hold_current_duration_s_{0.15};
+	  double joint_pregrasp_hold_current_duration_s_{0.0};
 	  double joint_pregrasp_move_duration_s_{1.2};
-	  int joint_pregrasp_sync_steps_{12};
+	  int joint_pregrasp_sync_steps_{1};
 	  double joint_pregrasp_settle_s_{0.5};
 	  double joint_pregrasp_tolerance_rad_{0.04};
 	  double joint_pregrasp_republish_period_s_{1.0};
