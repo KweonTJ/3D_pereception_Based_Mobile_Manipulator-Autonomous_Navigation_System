@@ -38,6 +38,9 @@ mp_control_node:
     start_servo_on_start: false
     open_gripper_on_start: true
     close_gripper_on_arrival: true
+    # Grasp is complete only when the front camera still sees the object and
+    # the EEF camera no longer sees a fresh object bbox.
+    require_visual_grasp_confirmation: true
     use_eef_refinement: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: false
@@ -53,6 +56,8 @@ mp_control_node:
     max_linear_speed: 0.025
     position_tolerance_m: 0.035
     close_after_stable_cycles: 4
+    grasp_completion_front_max_age_s: 2.0
+    grasp_completion_eef_lost_timeout_s: 0.8
 
     depth_roi_radius_px: 5
     depth_unit_scale: 0.001
