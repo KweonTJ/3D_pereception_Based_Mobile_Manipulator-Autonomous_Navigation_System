@@ -17,6 +17,7 @@
 #include <builtin_interfaces/msg/duration.hpp>
 #include <control_msgs/action/gripper_command.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -119,6 +120,7 @@ public:
       });
 
     twist_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(twist_topic_, default_qos);
+    base_cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(base_cmd_vel_topic_, default_qos);
     joint_trajectory_pub_ =
       create_publisher<trajectory_msgs::msg::JointTrajectory>(
       joint_trajectory_topic_, default_qos);
@@ -162,7 +164,11 @@ private:
   {
     DEPTH_APPROACH,
     TRIANGULATION_EXTEND,
-    EEF_REFINE
+    EEF_REFINE,
+    HANDOFF_LIFT,
+    HANDOFF_ROTATE,
+    HANDOFF_PLACE,
+    HANDOFF_RELEASE
   };
 
   struct Bbox
