@@ -387,6 +387,8 @@ private:
       declare_parameter<double>("gripper_grasp_compression_m", 0.002);
     gripper_grasp_clearance_m_ =
       declare_parameter<double>("gripper_grasp_clearance_m", 0.0);
+    gripper_grasp_width_scale_ =
+      declare_parameter<double>("gripper_grasp_width_scale", 1.0);
     gripper_min_position_ = declare_parameter<double>("gripper_min_position", -0.010);
     gripper_max_position_ = declare_parameter<double>("gripper_max_position", 0.019);
     gripper_min_measured_object_width_m_ =
@@ -487,6 +489,7 @@ private:
     gripper_pre_grasp_clearance_m_ = std::max(0.0, gripper_pre_grasp_clearance_m_);
     gripper_grasp_compression_m_ = std::max(0.0, gripper_grasp_compression_m_);
     gripper_grasp_clearance_m_ = std::max(0.0, gripper_grasp_clearance_m_);
+    gripper_grasp_width_scale_ = std::max(0.0, gripper_grasp_width_scale_);
   }
 
   void onBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
@@ -2517,10 +2520,11 @@ private:
 
   double finalGraspGapForObjectWidth(double object_width_m) const
   {
+    const double scaled_width = object_width_m * gripper_grasp_width_scale_;
     if (gripper_grasp_clearance_m_ > 0.0) {
-      return object_width_m + gripper_grasp_clearance_m_;
+      return scaled_width + gripper_grasp_clearance_m_;
     }
-    return std::max(0.0, object_width_m - gripper_grasp_compression_m_);
+    return std::max(0.0, scaled_width - gripper_grasp_compression_m_);
   }
 
   void sendGripperOpenForObject()
@@ -2821,6 +2825,7 @@ private:
   double gripper_pre_grasp_clearance_m_{0.012};
   double gripper_grasp_compression_m_{0.002};
   double gripper_grasp_clearance_m_{0.0};
+  double gripper_grasp_width_scale_{1.0};
   double gripper_min_position_{-0.010};
   double gripper_max_position_{0.019};
   double gripper_min_measured_object_width_m_{0.01};
@@ -2878,6 +2883,7 @@ private:
 	  bool min_depth_reached_{false};
   bool servo_start_requested_{false};
   std::optional<std::array<double, 4>> joint_pregrasp_target_;
+  std::optional<std::array<double, 4>> joint_pregrasp_controller_target_;
   std::optional<std::array<double, 3>> eef_rpy_reference_;
   std::optional<double> eef_stay_roll_reference_;
 	  GraspStage stage_{GraspStage::DEPTH_APPROACH};
