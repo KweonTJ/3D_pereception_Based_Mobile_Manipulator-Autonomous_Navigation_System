@@ -1558,6 +1558,26 @@ private:
     return gripperRollProxyFromJoints(reference) - target[1];
   }
 
+  double eefForwardGripperRollProxyFromJoints(const std::array<double, 4> & joints) const
+  {
+    return
+      eef_forward_roll_joint2_weight_ * joints[1] +
+      eef_forward_roll_joint3_weight_ * joints[2] +
+      eef_forward_roll_joint4_weight_ * joints[3];
+  }
+
+  double joint4ForPreservedEefForwardRoll(
+    const std::array<double, 4> & reference,
+    const std::array<double, 4> & target) const
+  {
+    const double reference_roll_proxy = eefForwardGripperRollProxyFromJoints(reference);
+    return (
+      reference_roll_proxy -
+      eef_forward_roll_joint2_weight_ * target[1] -
+      eef_forward_roll_joint3_weight_ * target[2]) /
+      eef_forward_roll_joint4_weight_;
+  }
+
   std::array<double, 4> jointPregraspControllerTargetFromCurrent(
     const std::array<double, 4> & current) const
   {
@@ -1746,7 +1766,7 @@ private:
 
   void publishEefForwardAdvanceCommand(const RpyError & rpy_error)
   {
-    if (eef_forward_use_joint_nudge_ && publishEefForwardJointNudge()) {
+    if (eef_forward_use_joint_nudge_ && publishEefForwardJointNudge(rpy_error)) {
       return;
     }
 
@@ -1760,7 +1780,7 @@ private:
     twist_pub_->publish(cmd);
   }
 
-  bool publishEefForwardJointNudge()
+  bool publishEefForwardJointNudge(const RpyError & rpy_error)
   {
     const auto stamp = now();
     if (eef_forward_last_joint_nudge_stamp_.nanoseconds() != 0 &&
@@ -1780,8 +1800,13 @@ private:
     std::array<double, 4> controller_target = joint3_first_target;
     controller_target[1] += eef_forward_joint2_delta_rad_;
     if (joint_pregrasp_preserve_gripper_roll_) {
-      controller_target[3] = joint4ForPreservedGripperRoll(*current, controller_target);
+      controller_target[3] = joint4ForPreservedEefForwardRoll(*current, controller_target);
     }
+    const double joint4_roll_feedback = clampValue(
+      eef_forward_joint4_rpy_roll_gain_ * rpy_error.roll,
+      -eef_forward_joint4_rpy_roll_max_delta_rad_,
+      eef_forward_joint4_rpy_roll_max_delta_rad_);
+    controller_target[3] += joint4_roll_feedback;
     joint3_first_target[0] =
       clampValue(joint3_first_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
     joint3_first_target[1] =
@@ -1814,6 +1839,11 @@ private:
            << " raw_target=" << formatJointArray(raw_target)
            << " controller_joint3_first=" << formatJointArray(joint3_first_target)
            << " controller_target=" << formatJointArray(controller_target)
+           << " roll_proxy_weights=(" << eef_forward_roll_joint2_weight_ << ", "
+           << eef_forward_roll_joint3_weight_ << ", "
+           << eef_forward_roll_joint4_weight_ << ")"
+           << " joint4_roll_feedback=" << joint4_roll_feedback
+           << " rpy_roll_err=" << rpy_error.roll
            << " duration=" << eef_forward_joint_nudge_duration_s_;
     publishStatus(status.str());
     return true;
