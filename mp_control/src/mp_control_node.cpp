@@ -552,6 +552,11 @@ private:
       clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
     eef_bbox_close_area_ratio_ =
       clampValue(eef_bbox_close_area_ratio_, 0.05, 1.0);
+    handoff_joint_move_duration_s_ = std::max(0.1, handoff_joint_move_duration_s_);
+    handoff_joint_settle_s_ = std::max(0.0, handoff_joint_settle_s_);
+    handoff_rotate_angular_speed_rad_s_ =
+      std::max(0.05, std::abs(handoff_rotate_angular_speed_rad_s_));
+    handoff_release_settle_s_ = std::max(0.0, handoff_release_settle_s_);
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
