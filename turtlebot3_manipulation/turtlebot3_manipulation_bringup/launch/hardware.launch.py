@@ -104,6 +104,7 @@ def generate_launch_description():
     use_camera_driver_tf = LaunchConfiguration('use_camera_driver_tf')
     start_camera = LaunchConfiguration('start_camera')
     move_to_stay_pose = LaunchConfiguration('move_to_stay_pose')
+    start_state_relays = LaunchConfiguration('start_state_relays')
     use_eef_usb_camera = LaunchConfiguration('use_eef_usb_camera')
     eef_usb_camera_parent = LaunchConfiguration('eef_usb_camera_parent')
     eef_usb_camera_xyz = LaunchConfiguration('eef_usb_camera_xyz')
@@ -217,6 +218,11 @@ def generate_launch_description():
             description='Move the manipulator to the saved stay pose after the arm controller starts.'),
 
         DeclareLaunchArgument(
+            'start_state_relays',
+            default_value='true',
+            description='Publish /battery_state and /sensor_state from ros2_control /dynamic_joint_states.'),
+
+        DeclareLaunchArgument(
             'start_lidar',
             default_value='false',
             description='Whether to launch a lidar driver alongside the robot bringup.'),
@@ -244,6 +250,36 @@ def generate_launch_description():
                 'eef_usb_camera_rpy': eef_usb_camera_rpy,
                 'move_to_stay_pose': move_to_stay_pose,
             }.items(),
+        ),
+
+        Node(
+            package='leader_platooning_beacon',
+            executable='battery_state_from_dynamic_joint_state_node',
+            name='leader_battery_state_relay',
+            output='screen',
+            parameters=[{
+                'dynamic_joint_states_topic': '/dynamic_joint_states',
+                'battery_state_topic': '/battery_state',
+                'battery_sensor_name': 'battery',
+                'publish_period_s': 1.0,
+            }],
+            condition=IfCondition(start_state_relays),
+        ),
+
+        Node(
+            package='leader_platooning_beacon',
+            executable='sensor_state_from_dynamic_joint_state_node',
+            name='leader_sensor_state_relay',
+            output='screen',
+            parameters=[{
+                'dynamic_joint_states_topic': '/dynamic_joint_states',
+                'sensor_state_topic': '/sensor_state',
+                'battery_sensor_name': 'battery',
+                'left_wheel_name': 'wheel_left_joint',
+                'right_wheel_name': 'wheel_right_joint',
+                'publish_period_s': 0.1,
+            }],
+            condition=IfCondition(start_state_relays),
         ),
 
         IncludeLaunchDescription(
