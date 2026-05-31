@@ -806,6 +806,11 @@ private:
       return;
     }
 
+    if (isHandoffStage(stage_)) {
+      updateHandoff();
+      return;
+    }
+
     geometry_msgs::msg::TransformStamped eef_tf;
     try {
       eef_tf = tf_buffer_.lookupTransform(target_frame_, end_effector_frame_, tf2::TimePointZero);
