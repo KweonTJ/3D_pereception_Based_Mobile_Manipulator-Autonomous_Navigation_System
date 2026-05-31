@@ -1483,7 +1483,7 @@ private:
     return clamped;
   }
 
-  std::array<double, 4> jointPregraspTargetFromCurrent(
+  std::array<double, 4> jointPregraspControllerTargetFromCurrent(
     const std::array<double, 4> & current) const
   {
     std::array<double, 4> target{};
@@ -1496,21 +1496,18 @@ private:
       const double current_roll_proxy = current[1] + current[2] + current[3];
       target[3] = current_roll_proxy - target[1] - target[2];
     }
-    if (joint_pregrasp_reverse_joint3_delta_) {
-      target[2] = current[2] - (target[2] - current[2]);
-    }
     return clampJointPregraspTarget(target);
   }
 
-  std::array<double, 4> expectedJointPregraspControllerTarget(
+  std::array<double, 4> jointPregraspRawTargetFromControllerTarget(
     const std::array<double, 4> & current,
-    const std::array<double, 4> & raw_target) const
+    const std::array<double, 4> & controller_target) const
   {
-    std::array<double, 4> target = raw_target;
+    std::array<double, 4> target = controller_target;
     if (joint_pregrasp_reverse_joint3_delta_) {
-      target[2] = current[2] - (raw_target[2] - current[2]);
+      target[2] = current[2] - (controller_target[2] - current[2]);
     }
-    return target;
+    return clampJointPregraspTarget(target);
   }
 
   void appendJointTrajectoryPoint(
@@ -1687,9 +1684,9 @@ private:
         joint_pregrasp_move_duration_s_ +
         joint_pregrasp_settle_s_;
       const auto current = latestArmJointPositions();
-      const bool can_check_reached = current && joint_pregrasp_target_;
+      const bool can_check_reached = current && joint_pregrasp_controller_target_;
       const double max_error = can_check_reached ?
-        maxJointError(*current, *joint_pregrasp_target_) : -1.0;
+        maxJointError(*current, *joint_pregrasp_controller_target_) : -1.0;
       if (elapsed_s >= wait_s && can_check_reached &&
           max_error <= joint_pregrasp_tolerance_rad_) {
         joint_pregrasp_done_ = true;
@@ -1704,7 +1701,10 @@ private:
       if (elapsed_s >= wait_s && can_check_reached &&
           (stamp - joint_pregrasp_last_publish_stamp_).seconds() >=
           joint_pregrasp_republish_period_s_) {
-        publishJointPregraspTrajectory(*current, *joint_pregrasp_target_);
+        const auto raw_target =
+          jointPregraspRawTargetFromControllerTarget(*current, *joint_pregrasp_controller_target_);
+        publishJointPregraspTrajectory(*current, raw_target);
+        joint_pregrasp_target_ = raw_target;
         joint_pregrasp_last_publish_stamp_ = stamp;
       }
 
@@ -1727,20 +1727,21 @@ private:
       return false;
     }
 
-    const auto target = jointPregraspTargetFromCurrent(*current);
-    const auto expected_controller_target =
-      expectedJointPregraspControllerTarget(*current, target);
-    publishJointPregraspTrajectory(*current, target);
+    const auto controller_target = jointPregraspControllerTargetFromCurrent(*current);
+    const auto raw_target =
+      jointPregraspRawTargetFromControllerTarget(*current, controller_target);
+    publishJointPregraspTrajectory(*current, raw_target);
     joint_pregrasp_sent_ = true;
-    joint_pregrasp_target_ = target;
+    joint_pregrasp_target_ = raw_target;
+    joint_pregrasp_controller_target_ = controller_target;
     joint_pregrasp_start_stamp_ = stamp;
     joint_pregrasp_last_publish_stamp_ = stamp;
     object_pregrasp_horizontal_done_ = true;
 
     std::ostringstream status;
     status << "moving arm to joint pregrasp: current=" << formatJointArray(*current)
-           << " raw_target=" << formatJointArray(target)
-           << " expected_controller_target=" << formatJointArray(expected_controller_target)
+           << " raw_target=" << formatJointArray(raw_target)
+           << " controller_target=" << formatJointArray(controller_target)
            << " preserve_gripper_roll="
            << (joint_pregrasp_preserve_gripper_roll_ ? "true" : "false")
            << " sync_steps=" << joint_pregrasp_sync_steps_
