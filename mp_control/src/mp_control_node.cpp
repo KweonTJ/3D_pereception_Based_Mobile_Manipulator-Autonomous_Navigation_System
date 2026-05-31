@@ -422,7 +422,7 @@ private:
     handoff_joint_settle_s_ =
       declare_parameter<double>("handoff_joint_settle_s", 0.4);
     handoff_rotate_angle_rad_ =
-      declare_parameter<double>("handoff_rotate_angle_rad", M_PI);
+      declare_parameter<double>("handoff_rotate_angle_rad", 3.14159265358979323846);
     handoff_rotate_angular_speed_rad_s_ =
       declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
     handoff_release_settle_s_ =
