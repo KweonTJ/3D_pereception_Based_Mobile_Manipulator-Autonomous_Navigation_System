@@ -1947,6 +1947,9 @@ private:
            << " controller_target=" << formatJointArray(controller_target)
            << " preserve_gripper_roll="
            << (joint_pregrasp_preserve_gripper_roll_ ? "true" : "false")
+           << " pregrasp_roll_weights=(" << pregrasp_roll_joint2_weight_ << ", "
+           << pregrasp_roll_joint3_weight_ << ", "
+           << pregrasp_roll_joint4_weight_ << ")"
            << " sync_steps=" << joint_pregrasp_sync_steps_
            << " joint3_reverse_delta="
            << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false");
