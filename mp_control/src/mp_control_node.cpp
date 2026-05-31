@@ -2977,6 +2977,11 @@ private:
   bool eef_forward_after_align_{true};
   double eef_forward_distance_m_{0.05};
   double eef_forward_speed_mps_{0.012};
+  bool eef_forward_use_joint_nudge_{false};
+  double eef_forward_joint2_delta_rad_{0.025};
+  double eef_forward_joint3_delta_rad_{-0.025};
+  double eef_forward_joint_nudge_duration_s_{0.45};
+  double eef_forward_joint_nudge_period_s_{0.35};
   double triangulation_extend_x_m_{0.25};
   double triangulation_extend_y_m_{0.0};
   double triangulation_extend_z_m_{0.12};
@@ -3071,8 +3076,9 @@ private:
 	  int stable_cycles_{0};
 	  rclcpp::Time last_status_stamp_;
 	  rclcpp::Time last_eef_init_bbox_stamp_;
-	  rclcpp::Time joint_pregrasp_start_stamp_;
+  rclcpp::Time joint_pregrasp_start_stamp_;
   rclcpp::Time joint_pregrasp_last_publish_stamp_;
+  rclcpp::Time eef_forward_last_joint_nudge_stamp_;
   rclcpp::Time eef_forward_start_stamp_;
   double eef_forward_start_x_m_{0.0};
 	};
