@@ -50,7 +50,7 @@ def generate_launch_description():
             "output_topic": joint_trajectory_output_topic,
             "joint_state_topic": "/joint_states",
             "reverse_joint_names": ["joint3"],
-            "preserve_roll_sum": True,
+            "preserve_roll_sum": False,
             "roll_parent_joint": "joint2",
             "roll_reversed_joint": "joint3",
             "roll_compensation_joint": "joint4",
