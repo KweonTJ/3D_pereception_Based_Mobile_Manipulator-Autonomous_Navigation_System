@@ -1758,14 +1758,13 @@ private:
       return false;
     }
 
-    const double roll_proxy = (*current)[1] + (*current)[2] + (*current)[3];
     std::array<double, 4> joint3_first_target = *current;
     joint3_first_target[2] += eef_forward_joint3_delta_rad_;
 
     std::array<double, 4> controller_target = joint3_first_target;
     controller_target[1] += eef_forward_joint2_delta_rad_;
     if (joint_pregrasp_preserve_gripper_roll_) {
-      controller_target[3] = roll_proxy - controller_target[1] - controller_target[2];
+      controller_target[3] = joint4ForPreservedGripperRoll(*current, controller_target);
     }
     joint3_first_target[0] =
       clampValue(joint3_first_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
