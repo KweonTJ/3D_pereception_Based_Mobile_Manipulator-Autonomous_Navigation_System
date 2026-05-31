@@ -43,6 +43,9 @@ use_joint_pregrasp: true
 joint_trajectory_topic: /arm_controller/joint_trajectory_raw
 pregrasp_ready_joint_positions: [0.0, 0.50, -0.85, -1.05]
 pregrasp_preserve_gripper_roll: true
+pregrasp_roll_joint2_weight: 1.0
+pregrasp_roll_joint3_weight: 1.0
+pregrasp_roll_joint4_weight: 1.0
 pregrasp_reverse_joint3_delta: true
 pregrasp_hold_current_duration_s: 0.0
 pregrasp_sync_steps: 1
@@ -87,7 +90,8 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
 - `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 joint trajectory로 보낸다. 이 trajectory도 `/arm_controller/joint_trajectory_raw`로 나가며, 최종 arm controller에는 transformer를 거친 `/arm_controller/joint_trajectory`만 들어간다.
-- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇 구조에서는 joint2와 joint4가 그리퍼 쪽 roll 보정 축이고, joint3은 팔 전개 축이므로 joint4 보정에서 joint3을 상쇄항으로 넣지 않는다. 실제 로봇에서는 joint3 이동량 반전만 raw trajectory transformer에서 처리한다. joint4 roll 보정은 `mp_control` 한 곳에서만 계산해서 중복 보정으로 joint4가 크게 꺾이는 상황을 막는다.
+- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` orientation proxy를 유지하도록 `joint4`를 계산한다. 실제 로봇에서 joint3을 크게 펴면 그리퍼 방향도 같이 바뀌므로, joint3을 제외하면 그리퍼가 로봇 베이스와 수평을 유지하지 못하고 위를 향한다. 실제 로봇에서는 joint3 이동량 반전만 raw trajectory transformer에서 처리한다. joint4 roll 보정은 `mp_control` 한 곳에서만 계산해서 중복 보정으로 joint4가 크게 꺾이는 상황을 막는다.
+- `pregrasp_roll_joint*_weight`: pregrasp에서 그리퍼가 베이스/몸체와 수평에 가깝게 유지되도록 쓰는 조인트 orientation proxy 가중치다. 현재 실제 리더는 `joint2=1.0`, `joint3=1.0`, `joint4=1.0`을 사용한다.
 - `pregrasp_ready_joint_positions`: 실제 리더에서는 전면 Astra bbox가 파지 완료 판정에도 필요하므로, pregrasp 자세가 팔을 너무 아래로 떨어뜨려 Astra 시야를 가리지 않게 둔다. 현재 값은 이전 `joint2=0.65`, `joint4=-1.20`보다 높은 `joint2=0.50`, `joint4=-1.05`를 사용한다.
 - `pregrasp_hold_current_duration_s`: 기본값은 `0.0`이다. pregrasp 시작 전에 현재 자세 hold point를 추가하지 않아서 시작 지연을 만들지 않는다.
 - `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있으므로 실제 로봇에서는 1을 유지한다.
