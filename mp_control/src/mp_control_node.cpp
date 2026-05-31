@@ -365,6 +365,16 @@ private:
     eef_forward_after_align_ = declare_parameter<bool>("eef_forward_after_align", true);
     eef_forward_distance_m_ = declare_parameter<double>("eef_forward_distance_m", 0.05);
     eef_forward_speed_mps_ = declare_parameter<double>("eef_forward_speed_mps", 0.012);
+    eef_forward_use_joint_nudge_ =
+      declare_parameter<bool>("eef_forward_use_joint_nudge", false);
+    eef_forward_joint2_delta_rad_ =
+      declare_parameter<double>("eef_forward_joint2_delta_rad", 0.025);
+    eef_forward_joint3_delta_rad_ =
+      declare_parameter<double>("eef_forward_joint3_delta_rad", -0.025);
+    eef_forward_joint_nudge_duration_s_ =
+      declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.45);
+    eef_forward_joint_nudge_period_s_ =
+      declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.35);
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
@@ -469,6 +479,10 @@ private:
     eef_refine_max_angular_speed_ = std::max(0.0, eef_refine_max_angular_speed_);
     eef_forward_distance_m_ = std::max(0.0, eef_forward_distance_m_);
     eef_forward_speed_mps_ = std::max(0.0, eef_forward_speed_mps_);
+    eef_forward_joint_nudge_duration_s_ =
+      std::max(0.1, eef_forward_joint_nudge_duration_s_);
+    eef_forward_joint_nudge_period_s_ =
+      std::max(0.05, eef_forward_joint_nudge_period_s_);
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
