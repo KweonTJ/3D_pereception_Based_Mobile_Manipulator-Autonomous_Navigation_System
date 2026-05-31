@@ -372,7 +372,7 @@ private:
     eef_forward_joint2_delta_rad_ =
       declare_parameter<double>("eef_forward_joint2_delta_rad", 0.025);
     eef_forward_joint3_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint3_delta_rad", -0.025);
+      declare_parameter<double>("eef_forward_joint3_delta_rad", -0.050);
     eef_forward_joint_nudge_duration_s_ =
       declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.45);
     eef_forward_joint_nudge_period_s_ =
@@ -3098,7 +3098,7 @@ private:
   double eef_forward_start_tolerance_px_{18.0};
   bool eef_forward_use_joint_nudge_{false};
   double eef_forward_joint2_delta_rad_{0.025};
-  double eef_forward_joint3_delta_rad_{-0.025};
+  double eef_forward_joint3_delta_rad_{-0.050};
   double eef_forward_joint_nudge_duration_s_{0.45};
   double eef_forward_joint_nudge_period_s_{0.35};
   double eef_forward_joint3_first_duration_ratio_{0.65};
