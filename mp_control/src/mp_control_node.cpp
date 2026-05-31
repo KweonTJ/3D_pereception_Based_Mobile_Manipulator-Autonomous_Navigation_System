@@ -2819,6 +2819,19 @@ private:
     return bboxArea(*latest_bbox_);
   }
 
+  std::optional<double> latestFreshEefBboxArea()
+  {
+    const auto stamp = now();
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    if (!latest_eef_bbox_) {
+      return std::nullopt;
+    }
+    if ((stamp - latest_eef_bbox_->stamp).seconds() > grasp_completion_eef_lost_timeout_s_) {
+      return std::nullopt;
+    }
+    return bboxArea(*latest_eef_bbox_);
+  }
+
   std::optional<double> frontBboxAreaRatioFromForwardStart()
   {
     if (!front_bbox_area_at_eef_forward_start_ ||
@@ -2832,6 +2845,19 @@ private:
     return *area / *front_bbox_area_at_eef_forward_start_;
   }
 
+  std::optional<double> eefBboxAreaRatioFromForwardStart()
+  {
+    if (!eef_bbox_area_at_eef_forward_start_ ||
+        *eef_bbox_area_at_eef_forward_start_ <= 1.0) {
+      return std::nullopt;
+    }
+    const auto area = latestFreshEefBboxArea();
+    if (!area) {
+      return std::nullopt;
+    }
+    return *area / *eef_bbox_area_at_eef_forward_start_;
+  }
+
   bool shouldCloseOnFrontBboxShrink()
   {
     if (!close_on_front_bbox_shrink_ || close_sent_) {
@@ -2839,6 +2865,15 @@ private:
     }
     const auto ratio = frontBboxAreaRatioFromForwardStart();
     return ratio && *ratio <= front_bbox_close_area_ratio_;
+  }
+
+  bool shouldCloseOnEefBboxShrink()
+  {
+    if (!close_on_eef_bbox_shrink_ || close_sent_) {
+      return false;
+    }
+    const auto ratio = eefBboxAreaRatioFromForwardStart();
+    return ratio && *ratio <= eef_bbox_close_area_ratio_;
   }
 
   void completeGrasp(const std::string & status_text)
