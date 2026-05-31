@@ -401,6 +401,10 @@ private:
       declare_parameter<bool>("close_on_front_bbox_shrink", false);
     front_bbox_close_area_ratio_ =
       declare_parameter<double>("front_bbox_close_area_ratio", 0.60);
+    close_on_eef_bbox_shrink_ =
+      declare_parameter<bool>("close_on_eef_bbox_shrink", false);
+    eef_bbox_close_area_ratio_ =
+      declare_parameter<double>("eef_bbox_close_area_ratio", 0.60);
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
@@ -524,6 +528,8 @@ private:
       std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
     front_bbox_close_area_ratio_ =
       clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
+    eef_bbox_close_area_ratio_ =
+      clampValue(eef_bbox_close_area_ratio_, 0.05, 1.0);
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
