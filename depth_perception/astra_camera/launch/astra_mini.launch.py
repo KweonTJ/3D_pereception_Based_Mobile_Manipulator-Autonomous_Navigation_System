@@ -38,6 +38,8 @@ def generate_launch_description():
                            name='point_cloud_xyzrgb')
         ],
         output='screen',
+        sigterm_timeout='1.0',
+        sigkill_timeout='1.0',
         condition=UnlessCondition(use_sim))
 
     sim_bridge = Node(
@@ -50,6 +52,8 @@ def generate_launch_description():
             'camera/depth/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
         ],
         output='screen',
+        sigterm_timeout='1.0',
+        sigkill_timeout='1.0',
         condition=IfCondition(use_sim))
 
     sim_container = ComposableNodeContainer(
