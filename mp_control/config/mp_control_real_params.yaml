@@ -106,12 +106,15 @@ mp_control_node:
     # Keep the shoulder higher than the old pregrasp pose so the arm does not
     # drop into the front Astra camera view before close-range EEF alignment.
     pregrasp_ready_joint_positions: [0.0, 0.50, -0.85, -1.05]
-    # Keep the wrist roll from the current stay pose in the raw command.
-    # The real arm's gripper-side roll compensation is based on joint2+joint4.
-    # joint3 is the extension joint and must not cancel joint4 motion.
+    # Keep the gripper parallel to the base/body in the pregrasp command.
+    # The real arm's gripper-side orientation changes with joint2+joint3+joint4;
+    # excluding joint3 makes the gripper point upward when the arm extends.
     # The real trajectory transformer must only mirror joint3; joint4 roll
     # compensation is intentionally kept here to avoid applying it twice.
     pregrasp_preserve_gripper_roll: true
+    pregrasp_roll_joint2_weight: 1.0
+    pregrasp_roll_joint3_weight: 1.0
+    pregrasp_roll_joint4_weight: 1.0
     # pregrasp_ready_joint_positions is the desired final controller pose.
     # mp_control pre-inverts joint3 on the raw topic, then
     # joint_trajectory_transformer.py mirrors it back on the controller topic.
