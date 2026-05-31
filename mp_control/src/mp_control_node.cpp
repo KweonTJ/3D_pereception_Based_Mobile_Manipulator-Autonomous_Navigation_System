@@ -1713,6 +1713,7 @@ private:
     eef_forward_advance_active_ = false;
     eef_forward_start_x_m_ = 0.0;
     eef_forward_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    front_bbox_area_at_eef_forward_start_.reset();
   }
 
   void captureEefStayRollReference(const geometry_msgs::msg::TransformStamped & eef_tf)
