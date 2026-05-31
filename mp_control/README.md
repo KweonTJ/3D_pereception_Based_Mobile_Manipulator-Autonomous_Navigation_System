@@ -47,13 +47,13 @@ pregrasp_hold_current_duration_s: 0.0
 pregrasp_sync_steps: 1
 pregrasp_joint_tolerance_rad: 0.04
 pregrasp_republish_period_s: 1.0
-object_pregrasp_standoff_m: 0.08
+object_pregrasp_standoff_m: 0.06
 use_eef_rpy_refinement: true
 eef_hold_current_rpy: true
 eef_hold_stay_roll: true
 eef_forward_after_align: true
-eef_forward_distance_m: 0.05
-eef_forward_speed_mps: 0.012
+eef_forward_distance_m: 0.08
+eef_forward_speed_mps: 0.018
 gripper_grasp_clearance_m: 0.004
 gripper_grasp_width_scale: 1.04
 position_tolerance_m: 0.035
@@ -75,7 +75,7 @@ close_after_stable_cycles: 4
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
 - `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 켜져 있다. `pregrasp_ready_joint_positions`는 최종 controller 기준 목표이고, `mp_control`은 raw 토픽으로 보내기 전에 joint3만 미리 반전한다. 이후 `joint_trajectory_transformer.py`가 다시 반전해서 arm controller에는 의도한 최종 joint3 방향으로 들어간다. 이때 도달 판정은 raw 목표가 아니라 controller 목표와 `/joint_states`를 비교한다.
-- `0.08 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다.
+- `0.06 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다. 실제 파지 직전에는 EEF 고정자세 전진을 별도로 수행하므로, 이 값은 물체 앞에서 너무 일찍 멈추지 않게 작게 둔다.
 
 ## 실제 로봇 joint3 trajectory 변환
 
@@ -144,11 +144,11 @@ eef_rpy_tolerance_rad: 0.12
 eef_rpy_gain: 0.8
 eef_refine_max_angular_speed: 0.25
 eef_forward_after_align: true
-eef_forward_distance_m: 0.05
-eef_forward_speed_mps: 0.012
+eef_forward_distance_m: 0.08
+eef_forward_speed_mps: 0.018
 ```
 
-이 단계에서 `/mp_control/status`에는 `rpy_err=(roll, pitch, yaw)`, `roll_ref=stay_roll`, `rpy_ready`, forward advance 진행 상태가 표시된다.
+이 단계에서 `/mp_control/status`에는 `rpy_err=(roll, pitch, yaw)`, `roll_ref=stay_roll`, `rpy_ready`, forward advance 진행 상태가 표시된다. 실제 로봇은 EEF bbox와 stay roll이 맞은 뒤 8 cm를 0.018 m/s로 더 전진한 다음 그리퍼를 닫는다.
 
 EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전면 depth에서 얻은 물체 폭만 사용한다. 유효한 전면 depth 폭이 없으면 fallback 폭을 쓴다. EEF RGB는 EE가 약간 틀어진 경우 최종 위치 보정에만 사용한다.
 
