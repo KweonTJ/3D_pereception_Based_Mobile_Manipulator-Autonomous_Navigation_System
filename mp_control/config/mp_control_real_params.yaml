@@ -12,7 +12,10 @@ mp_control_node:
 
     twist_topic: /servo_node/delta_twist_cmds
     joint_state_topic: /joint_states
-    joint_trajectory_topic: /arm_controller/joint_trajectory
+    # Send pregrasp trajectories through the same joint3 delta-mirror
+    # transformer as MoveIt Servo. The transformer publishes to the real
+    # /arm_controller/joint_trajectory topic.
+    joint_trajectory_topic: /arm_controller/joint_trajectory_raw
     gripper_action_name: /gripper_controller/gripper_cmd
     start_topic: /mp_control/start
     cancel_topic: /mp_control/cancel
@@ -99,7 +102,10 @@ mp_control_node:
     # Keep the wrist roll from the current stay pose by solving joint4 after
     # applying the real joint3 delta mirror, in the final hardware command basis.
     pregrasp_preserve_gripper_roll: true
-    pregrasp_reverse_joint3_delta: true
+    # The real joint3 direction correction is handled by
+    # joint_trajectory_transformer.py on /arm_controller/joint_trajectory_raw.
+    # Keep this false to avoid mirroring joint3 twice.
+    pregrasp_reverse_joint3_delta: false
     pregrasp_hold_current_duration_s: 0.0
     pregrasp_move_duration_s: 1.2
     # Keep one synchronized target point so joint2, joint3, and joint4 start
