@@ -377,6 +377,16 @@ private:
       declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.45);
     eef_forward_joint_nudge_period_s_ =
       declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.35);
+    eef_forward_roll_joint2_weight_ =
+      declare_parameter<double>("eef_forward_roll_joint2_weight", 0.0);
+    eef_forward_roll_joint3_weight_ =
+      declare_parameter<double>("eef_forward_roll_joint3_weight", 1.0);
+    eef_forward_roll_joint4_weight_ =
+      declare_parameter<double>("eef_forward_roll_joint4_weight", 1.0);
+    eef_forward_joint4_rpy_roll_gain_ =
+      declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.6);
+    eef_forward_joint4_rpy_roll_max_delta_rad_ =
+      declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.04);
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
@@ -487,6 +497,12 @@ private:
       std::max(0.1, eef_forward_joint_nudge_duration_s_);
     eef_forward_joint_nudge_period_s_ =
       std::max(0.05, eef_forward_joint_nudge_period_s_);
+    if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
+      eef_forward_roll_joint4_weight_ = 1.0;
+    }
+    eef_forward_joint4_rpy_roll_gain_ = std::max(0.0, eef_forward_joint4_rpy_roll_gain_);
+    eef_forward_joint4_rpy_roll_max_delta_rad_ =
+      std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
