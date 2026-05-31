@@ -1358,18 +1358,21 @@ private:
       const double advanced_x = std::max(
         0.0, eef_tf.transform.translation.x - eef_forward_start_x_m_);
       const auto front_area_ratio = frontBboxAreaRatioFromForwardStart();
-      if (shouldCloseOnFrontBboxShrink()) {
+      const auto eef_area_ratio = eefBboxAreaRatioFromForwardStart();
+      if (shouldCloseOnFrontBboxShrink() || shouldCloseOnEefBboxShrink()) {
         stable_cycles_ += 1;
         publishStop();
         if (stable_cycles_ >= close_after_stable_cycles_) {
           closeAndCompleteWhenVisualReady(
-            "front bbox shrank to close threshold; width-aware gripper command sent",
-            "gripper close commanded after front bbox shrink; waiting for visual confirmation");
+            "bbox shrank to close threshold; width-aware gripper command sent",
+            "gripper close commanded after bbox shrink; waiting for visual confirmation");
         } else {
           std::ostringstream status;
-          status << "front bbox shrink close-ready; holding before closing"
-                 << " ratio=" << front_area_ratio.value_or(-1.0)
-                 << " threshold=" << front_bbox_close_area_ratio_;
+          status << "bbox shrink close-ready; holding before closing"
+                 << " front_ratio=" << front_area_ratio.value_or(-1.0)
+                 << " front_threshold=" << front_bbox_close_area_ratio_
+                 << " eef_ratio=" << eef_area_ratio.value_or(-1.0)
+                 << " eef_threshold=" << eef_bbox_close_area_ratio_;
           publishStatus(status.str());
         }
         return;
@@ -1380,7 +1383,9 @@ private:
         status << "eef aligned; advancing forward before grasp: advanced_x="
                << advanced_x << "/" << eef_forward_distance_m_
                << " front_bbox_area_ratio=" << front_area_ratio.value_or(-1.0)
-               << " close_ratio_threshold=" << front_bbox_close_area_ratio_
+               << " front_close_ratio_threshold=" << front_bbox_close_area_ratio_
+               << " eef_bbox_area_ratio=" << eef_area_ratio.value_or(-1.0)
+               << " eef_close_ratio_threshold=" << eef_bbox_close_area_ratio_
                << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
                << ", " << rpy_error.yaw << ")"
                << " roll_ref=" << rpyReferenceMode(rpy_error)
@@ -1416,6 +1421,7 @@ private:
         eef_forward_start_stamp_ = now();
         eef_forward_start_x_m_ = eef_tf.transform.translation.x;
         front_bbox_area_at_eef_forward_start_ = latestFreshFrontBboxArea();
+        eef_bbox_area_at_eef_forward_start_ = latestFreshEefBboxArea();
         stable_cycles_ = 0;
         publishEefForwardAdvanceCommand(rpy_error);
         std::ostringstream status;
@@ -1423,7 +1429,9 @@ private:
                << " distance=" << eef_forward_distance_m_
                << " speed=" << eef_forward_speed_mps_
                << " front_bbox_start_area=" << front_bbox_area_at_eef_forward_start_.value_or(-1.0)
-               << " close_area_ratio=" << front_bbox_close_area_ratio_
+               << " eef_bbox_start_area=" << eef_bbox_area_at_eef_forward_start_.value_or(-1.0)
+               << " front_close_area_ratio=" << front_bbox_close_area_ratio_
+               << " eef_close_area_ratio=" << eef_bbox_close_area_ratio_
                << " forward_tol_px=" << forward_start_tolerance_px
                << " close_tol_px=" << close_tolerance_px
                << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
@@ -3332,6 +3340,7 @@ private:
 	  bool joint_pregrasp_done_{false};
   bool eef_forward_advance_active_{false};
   std::optional<double> front_bbox_area_at_eef_forward_start_;
+  std::optional<double> eef_bbox_area_at_eef_forward_start_;
 	  bool min_depth_reached_{false};
   bool servo_start_requested_{false};
   std::optional<std::array<double, 4>> joint_pregrasp_target_;
