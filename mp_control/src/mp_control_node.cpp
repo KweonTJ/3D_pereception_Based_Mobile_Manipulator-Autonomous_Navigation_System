@@ -365,6 +365,8 @@ private:
     eef_forward_after_align_ = declare_parameter<bool>("eef_forward_after_align", true);
     eef_forward_distance_m_ = declare_parameter<double>("eef_forward_distance_m", 0.05);
     eef_forward_speed_mps_ = declare_parameter<double>("eef_forward_speed_mps", 0.012);
+    eef_forward_start_tolerance_px_ =
+      declare_parameter<double>("eef_forward_start_tolerance_px", eef_close_tolerance_px_);
     eef_forward_use_joint_nudge_ =
       declare_parameter<bool>("eef_forward_use_joint_nudge", false);
     eef_forward_joint2_delta_rad_ =
@@ -479,6 +481,8 @@ private:
     eef_refine_max_angular_speed_ = std::max(0.0, eef_refine_max_angular_speed_);
     eef_forward_distance_m_ = std::max(0.0, eef_forward_distance_m_);
     eef_forward_speed_mps_ = std::max(0.0, eef_forward_speed_mps_);
+    eef_forward_start_tolerance_px_ =
+      std::max(eef_close_tolerance_px_, eef_forward_start_tolerance_px_);
     eef_forward_joint_nudge_duration_s_ =
       std::max(0.1, eef_forward_joint_nudge_duration_s_);
     eef_forward_joint_nudge_period_s_ =
