@@ -71,7 +71,7 @@ eef_forward_roll_joint4_weight: 1.0
 eef_forward_joint4_rpy_roll_gain: 0.6
 eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
 gripper_grasp_clearance_m: 0.004
-gripper_grasp_width_scale: 1.25
+gripper_grasp_width_scale: 1.50
 position_tolerance_m: 0.035
 close_after_stable_cycles: 4
 grasp_completion_front_max_age_s: 2.0
@@ -181,7 +181,7 @@ eef_forward_speed_mps: 0.018
 
 EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전면 depth에서 얻은 물체 폭만 사용한다. 유효한 전면 depth 폭이 없으면 fallback 폭을 쓴다. EEF RGB는 EE가 약간 틀어진 경우 최종 위치 보정에만 사용한다.
 
-최종 그리퍼 명령은 `object_width * gripper_grasp_width_scale + gripper_grasp_clearance_m`를 사용한다. 실제 설정은 `1.25`라서 전면 depth로 측정된 물체 폭보다 약 25% 크게 잡고, 여기에 작은 여유폭을 더한다. `gripper_grasp_clearance_m: 0.0`이면 같은 25% scale을 적용한 뒤 기존 `gripper_grasp_compression_m` 방식으로 돌아간다.
+최종 그리퍼 명령은 `object_width * gripper_grasp_width_scale + gripper_grasp_clearance_m`를 사용한다. 실제 설정은 `1.50`이라서 전면 depth로 측정된 물체 폭보다 약 50% 크게 잡고, 여기에 작은 여유폭을 더한다. `gripper_grasp_clearance_m: 0.0`이면 같은 50% scale을 적용한 뒤 기존 `gripper_grasp_compression_m` 방식으로 돌아간다.
 
 ## 파지 완료 판정
 
