@@ -68,9 +68,9 @@ close_after_stable_cycles: 4
 - `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
 - `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 joint trajectory로 보낸다. 이 trajectory도 `/arm_controller/joint_trajectory_raw`로 나가며, 최종 arm controller에는 transformer를 거친 `/arm_controller/joint_trajectory`만 들어간다.
-- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇에서는 joint3 이동량 반전을 raw trajectory transformer에서 처리하므로, `mp_control` 내부 목표는 소프트웨어 기준 roll만 유지한다.
+- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇에서는 joint3 이동량 반전을 raw trajectory transformer에서 처리하고, transformer가 joint3 반전량만큼 joint4를 동시에 보정한다. 따라서 최종 하드웨어 명령 기준에서도 stay 자세의 그리퍼 roll 합이 유지된다.
 - `pregrasp_hold_current_duration_s`: 기본값은 `0.0`이다. pregrasp 시작 전에 현재 자세 hold point를 추가하지 않아서 시작 지연을 만들지 않는다.
-- `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있다.
+- `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있으므로 실제 로봇에서는 1을 유지한다.
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
 - `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 꺼져 있다. joint3 방향 반전은 `joint_trajectory_transformer.py` 한 곳에서만 처리한다. 이 값을 다시 켜면 `mp_control` 내부 반전과 transformer 반전이 겹쳐 joint3가 원래 방향으로 돌아갈 수 있다.
@@ -95,6 +95,14 @@ MoveIt Servo
 ```text
 joint3_out = current_joint3 - (joint3_in - current_joint3)
 ```
+
+joint3를 반전하면 그리퍼 roll proxy인 `joint2 + joint3 + joint4`가 깨질 수 있으므로, 변환 노드는 같은 trajectory point 안에서 joint4도 동시에 보정한다.
+
+```text
+joint4_out = joint4_in - (joint3_out - joint3_in)
+```
+
+이 보정은 joint3 반전과 같은 point에서 처리되므로 joint2, joint3, joint4는 순차 명령이 아니라 하나의 동시 trajectory 명령으로 arm controller에 들어간다.
 
 Servo가 런치 종료나 cancel 과정에서 현재 위치 hold 명령을 보내면, 입력 목표와 `/joint_states` 기준점이 같아서 출력도 현재 위치 그대로 유지된다. 단순히 절대각을 `-joint3`으로 바꾸지 않기 때문에 취소 시 반대 절대각으로 튀지 않는다.
 
