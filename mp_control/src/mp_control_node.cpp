@@ -2996,6 +2996,7 @@ private:
   bool eef_forward_after_align_{true};
   double eef_forward_distance_m_{0.05};
   double eef_forward_speed_mps_{0.012};
+  double eef_forward_start_tolerance_px_{18.0};
   bool eef_forward_use_joint_nudge_{false};
   double eef_forward_joint2_delta_rad_{0.025};
   double eef_forward_joint3_delta_rad_{-0.025};
