@@ -21,6 +21,14 @@ class JointTrajectoryTransformer(Node):
             "joint_state_topic", "/joint_states").value
         self.reverse_joint_names = set(
             self.declare_parameter("reverse_joint_names", ["joint3"]).value)
+        self.preserve_roll_sum = bool(
+            self.declare_parameter("preserve_roll_sum", True).value)
+        self.roll_parent_joint = self.declare_parameter(
+            "roll_parent_joint", "joint2").value
+        self.roll_reversed_joint = self.declare_parameter(
+            "roll_reversed_joint", "joint3").value
+        self.roll_compensation_joint = self.declare_parameter(
+            "roll_compensation_joint", "joint4").value)
 
         if self.input_topic == self.output_topic:
             raise RuntimeError("input_topic and output_topic must be different")
@@ -36,11 +44,13 @@ class JointTrajectoryTransformer(Node):
             JointTrajectory, self.input_topic, self.on_trajectory, 10)
 
         self.get_logger().info(
-            "joint trajectory transformer: %s -> %s, reverse delta joints=%s"
+            "joint trajectory transformer: %s -> %s, reverse delta joints=%s, "
+            "preserve_roll_sum=%s"
             % (
                 self.input_topic,
                 self.output_topic,
                 sorted(self.reverse_joint_names),
+                self.preserve_roll_sum,
             )
         )
 
@@ -64,16 +74,42 @@ class JointTrajectoryTransformer(Node):
             index for index, name in enumerate(msg.joint_names)
             if name in self.reverse_joint_names
         ]
+        roll_indices = self._roll_indices(msg) if self.preserve_roll_sum else None
         for point in transformed.points:
+            original_positions = list(point.positions)
+            original_velocities = list(point.velocities)
+            original_accelerations = list(point.accelerations)
             for index in reverse_indices:
                 joint_name = msg.joint_names[index]
                 reference = references[joint_name]
                 if len(point.positions) > index:
-                    point.positions[index] = 2.0 * reference - point.positions[index]
+                    original_value = point.positions[index]
+                    mirrored_value = 2.0 * reference - original_value
+                    point.positions[index] = mirrored_value
+                    self._preserve_roll_value(
+                        point.positions,
+                        original_positions,
+                        index,
+                        mirrored_value - original_value,
+                        roll_indices)
                 if len(point.velocities) > index:
+                    original_value = point.velocities[index]
                     point.velocities[index] = -point.velocities[index]
+                    self._preserve_roll_value(
+                        point.velocities,
+                        original_velocities,
+                        index,
+                        point.velocities[index] - original_value,
+                        roll_indices)
                 if len(point.accelerations) > index:
+                    original_value = point.accelerations[index]
                     point.accelerations[index] = -point.accelerations[index]
+                    self._preserve_roll_value(
+                        point.accelerations,
+                        original_accelerations,
+                        index,
+                        point.accelerations[index] - original_value,
+                        roll_indices)
                 if len(point.effort) > index:
                     point.effort[index] = -point.effort[index]
 
@@ -99,6 +135,33 @@ class JointTrajectoryTransformer(Node):
         if any(position is None for position in references.values()):
             return None
         return references
+
+    def _roll_indices(self, msg):
+        try:
+            return {
+                "parent": msg.joint_names.index(self.roll_parent_joint),
+                "reversed": msg.joint_names.index(self.roll_reversed_joint),
+                "compensation": msg.joint_names.index(self.roll_compensation_joint),
+            }
+        except ValueError:
+            return None
+
+    def _preserve_roll_value(
+        self,
+        values,
+        original_values,
+        reversed_index,
+        reversed_delta,
+        roll_indices,
+    ):
+        if roll_indices is None:
+            return
+        if reversed_index != roll_indices["reversed"]:
+            return
+        compensation_index = roll_indices["compensation"]
+        if len(values) <= compensation_index or len(original_values) <= compensation_index:
+            return
+        values[compensation_index] = original_values[compensation_index] - reversed_delta
 
 
 def main(args=None):

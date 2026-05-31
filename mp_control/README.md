@@ -39,10 +39,10 @@ arm_start_max_object_x_m: 0.30
 use_fallback_bbox_for_control: true
 start_servo_on_start: false
 use_joint_pregrasp: true
-joint_trajectory_topic: /arm_controller/joint_trajectory
+joint_trajectory_topic: /arm_controller/joint_trajectory_raw
 pregrasp_ready_joint_positions: [0.0, 0.65, -0.85, -1.20]
 pregrasp_preserve_gripper_roll: true
-pregrasp_reverse_joint3_delta: true
+pregrasp_reverse_joint3_delta: false
 pregrasp_hold_current_duration_s: 0.0
 pregrasp_sync_steps: 1
 pregrasp_joint_tolerance_rad: 0.04
@@ -67,13 +67,13 @@ close_after_stable_cycles: 4
 - `0.30 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다.
 - `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
-- `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 `/arm_controller/joint_trajectory`로 직접 보낸다.
-- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇에서는 joint3 이동량을 먼저 현재 `/joint_states` 기준으로 반전한 뒤, 최종 하드웨어 명령 기준에서 joint4를 다시 계산한다. 그래서 joint2/3/4가 같은 trajectory point에서 동시에 움직이면서 그리퍼 roll이 무너지지 않게 한다.
+- `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 joint trajectory로 보낸다. 이 trajectory도 `/arm_controller/joint_trajectory_raw`로 나가며, 최종 arm controller에는 transformer를 거친 `/arm_controller/joint_trajectory`만 들어간다.
+- `pregrasp_preserve_gripper_roll`: pregrasp 목표를 만들 때 현재 stay 자세의 `joint2 + joint3 + joint4` 합을 유지하도록 `joint4`를 계산한다. 실제 로봇에서는 joint3 이동량 반전을 raw trajectory transformer에서 처리하므로, `mp_control` 내부 목표는 소프트웨어 기준 roll만 유지한다.
 - `pregrasp_hold_current_duration_s`: 기본값은 `0.0`이다. pregrasp 시작 전에 현재 자세 hold point를 추가하지 않아서 시작 지연을 만들지 않는다.
 - `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있다.
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
-- `pregrasp_reverse_joint3_delta`: 실제 로봇에서는 켜져 있다. 소프트웨어 grasp 표의 ready 목표는 `joint3=-0.85 rad`로 유지하지만, 실제 명령은 현재 joint3 기준 이동량만 반대로 보낸다.
+- `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 꺼져 있다. joint3 방향 반전은 `joint_trajectory_transformer.py` 한 곳에서만 처리한다. 이 값을 다시 켜면 `mp_control` 내부 반전과 transformer 반전이 겹쳐 joint3가 원래 방향으로 돌아갈 수 있다.
 - `0.08 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다.
 
 ## 실제 로봇 joint3 trajectory 변환
@@ -107,7 +107,7 @@ ros2 topic echo /arm_controller/joint_trajectory_raw --once
 ros2 topic echo /arm_controller/joint_trajectory --once
 ```
 
-실제 런치에서는 `/servo_node`가 raw 토픽을 발행하고, `joint_trajectory_transformer`가 실제 arm controller 토픽을 발행해야 한다. `mp_control`의 1회 pregrasp 명령은 기존처럼 controller 토픽으로 직접 나가지만, 내부의 `pregrasp_reverse_joint3_delta` 로직이 같은 현재 위치 기준 delta 반전을 수행한다. 이때 joint4 roll 보존 계산은 joint3 반전 이후에 수행한다.
+실제 런치에서는 `/servo_node`와 `mp_control_node`가 모두 raw 토픽을 발행하고, `joint_trajectory_transformer`만 실제 arm controller 토픽을 발행해야 한다. 따라서 `/arm_controller/joint_trajectory`의 publisher는 transformer 하나만 보이는 것이 정상이다. `mp_control` 내부의 `pregrasp_reverse_joint3_delta`는 실제 로봇 설정에서 꺼 둔다.
 
 ## EEF 카메라 경로
 
