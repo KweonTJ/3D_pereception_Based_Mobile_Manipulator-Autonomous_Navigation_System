@@ -3082,6 +3082,9 @@ private:
 	  std::array<std::string, 4> arm_joint_names_{{"joint1", "joint2", "joint3", "joint4"}};
 	  std::vector<double> joint_pregrasp_ready_positions_{0.0, 0.65, -0.85, -1.20};
 	  bool joint_pregrasp_preserve_gripper_roll_{true};
+  double pregrasp_roll_joint2_weight_{1.0};
+  double pregrasp_roll_joint3_weight_{1.0};
+  double pregrasp_roll_joint4_weight_{1.0};
 	  bool joint_pregrasp_reverse_joint3_delta_{true};
 	  double joint_pregrasp_hold_current_duration_s_{0.0};
 	  double joint_pregrasp_move_duration_s_{1.2};
