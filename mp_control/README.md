@@ -168,12 +168,13 @@ EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전�
 
 ```text
 전면 카메라 /target/tracked_bbox 가 fresh 상태
-EEF 카메라 /target/eef_init_bbox 가 lost/stale 상태
+그리퍼 close 이후 EEF 카메라 /target/eef_init_bbox 를 한 번 이상 관측
+이후 EEF 카메라 /target/eef_init_bbox 가 lost/stale 상태
 ```
 
-즉 전면 카메라에서는 물체 bbox가 계속 보이지만, EEF 카메라에서는 물체 bbox가 더 이상 생성되지 않을 때 물체가 그리퍼 안으로 들어왔다고 판단한다. 이 조건을 만족해야 `/cargo/events`에 `picked`가 발행되고 `/leader/cargo_state`가 `GRASPED`로 넘어간다.
+즉 전면 카메라에서는 물체 bbox가 계속 보이고, EEF 카메라에서는 close 이후 물체 bbox가 보이다가 더 이상 생성되지 않을 때 물체가 그리퍼 안으로 들어왔다고 판단한다. 이 조건을 만족해야 `/cargo/events`에 `picked`가 발행되고 `/leader/cargo_state`가 `GRASPED`로 넘어간다. close 직후 EEF bbox를 한 번도 보지 못한 상태에서는 EEF bbox가 없더라도 파지 완료로 처리하지 않는다.
 
-그리퍼 close 이후에도 EEF bbox가 계속 보이면 `mp_control`은 완료로 빠지지 않고 stay roll/current pitch/yaw를 유지한 채 EEF fixed-pose 전진 명령을 계속 보낸다. EEF bbox가 사라지고 전면 bbox가 유지되는 순간 파지 완료로 확정한다.
+그리퍼 close 이후에도 EEF bbox가 계속 보이면 `mp_control`은 완료로 빠지지 않고 stay roll/current pitch/yaw를 유지한 채 EEF fixed-pose 전진 명령을 계속 보낸다. EEF bbox가 점점 작아지거나 그리퍼/물체 접촉으로 더 이상 검출되지 않고, 전면 bbox가 유지되는 순간 파지 완료로 확정한다.
 
 ## 전면-EEF RGB 삼각 측량
 
