@@ -55,6 +55,7 @@ eef_hold_stay_roll: true
 eef_forward_after_align: true
 eef_forward_distance_m: 0.08
 eef_forward_speed_mps: 0.018
+eef_forward_start_tolerance_px: 90.0
 eef_forward_use_joint_nudge: true
 eef_forward_joint2_delta_rad: 0.025
 eef_forward_joint3_delta_rad: -0.025
@@ -88,6 +89,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 켜져 있다. `pregrasp_ready_joint_positions`는 최종 controller 기준 목표이고, `mp_control`은 raw 토픽으로 보내기 전에 joint3만 미리 반전한다. 이후 `joint_trajectory_transformer.py`가 다시 반전해서 arm controller에는 의도한 최종 joint3 방향으로 들어간다. 이때 도달 판정은 raw 목표가 아니라 controller 목표와 `/joint_states`를 비교한다.
 - `0.06 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다. 실제 파지 직전에는 EEF 고정자세 전진을 별도로 수행하므로, 이 값은 물체 앞에서 너무 일찍 멈추지 않게 작게 둔다.
 - `eef_forward_use_joint_nudge`: 실제 로봇에서는 최종 전진을 MoveIt Servo twist에만 맡기지 않는다. Servo가 singularity/collision scaling으로 멈추는 경우가 있어서, joint2/joint3/joint4를 같은 trajectory point로 아주 조금씩 동시에 밀어준다.
+- `eef_forward_start_tolerance_px`: final forward 시작 기준이다. `eef_close_tolerance_px`보다 넓게 잡아, Servo가 마지막 픽셀 오차를 줄이다가 멈추는 경우에도 조인트 nudge 전진 단계로 넘어가게 한다.
 - `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. joint4는 stay roll을 유지하도록 `joint2 + joint3 + joint4` 합에서 자동 계산한다. raw 토픽으로 나가기 전 joint3 delta는 기존 transformer 경로와 맞게 pre-invert된다.
 
 ## 실제 로봇 joint3 trajectory 변환
@@ -145,7 +147,7 @@ EEF 보정은 픽셀 정렬과 stay-roll/current-pitch-yaw 유지를 같이 쓴�
 eef_close_tolerance_px: 70.0
 ```
 
-이 tolerance는 설정된 EEF 카메라 해상도를 기준으로 스케일된다. 따라서 320x240 EEF 카메라와 640x480 전면 카메라의 픽셀 오차를 같은 기준으로 보지 않는다. 현재 실제 EEF 카메라에서는 bbox가 물체에 딱 맞으면 물체 중심이 optical center보다 약 60 px 아래로 보일 수 있으므로, `70 px`를 close-ready 기준으로 사용한다.
+이 tolerance는 설정된 EEF 카메라 해상도를 기준으로 스케일된다. 따라서 320x240 EEF 카메라와 640x480 전면 카메라의 픽셀 오차를 같은 기준으로 보지 않는다. 현재 실제 EEF 카메라에서는 bbox가 물체에 딱 맞으면 물체 중심이 optical center보다 약 60 px 아래로 보일 수 있으므로, `70 px`를 close-ready 기준으로 사용한다. 다만 실제 로봇에서 Servo가 마지막 lateral 오차 보정 중 singularity/collision scaling으로 멈출 수 있어, final forward 시작은 `eef_forward_start_tolerance_px: 90.0`으로 더 넓게 허용한다.
 
 EEF bbox 정렬이 완료되면 `mp_control`은 초기 stay 자세에서 캡처한 EE roll을 유지하고, refinement 진입 시점의 pitch/yaw를 유지한다. 그 상태에서 `base_link` 기준으로 짧게 전진한 뒤 그리퍼를 닫는다.
 
