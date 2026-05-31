@@ -208,6 +208,14 @@ private:
     bool using_stay_roll{false};
   };
 
+  struct VisualGraspState
+  {
+    bool front_fresh{false};
+    bool eef_fresh{false};
+    double front_age_s{std::numeric_limits<double>::infinity()};
+    double eef_age_s{std::numeric_limits<double>::infinity()};
+  };
+
   void readParameters()
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
@@ -254,6 +262,8 @@ private:
     start_servo_on_start_ = declare_parameter<bool>("start_servo_on_start", true);
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
+    require_visual_grasp_confirmation_ =
+      declare_parameter<bool>("require_visual_grasp_confirmation", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
     auto_init_eef_tracker_from_object_ =
@@ -269,6 +279,10 @@ private:
     max_linear_speed_ = declare_parameter<double>("max_linear_speed", 0.025);
     position_tolerance_m_ = declare_parameter<double>("position_tolerance_m", 0.035);
     close_after_stable_cycles_ = declare_parameter<int>("close_after_stable_cycles", 8);
+    grasp_completion_front_max_age_s_ =
+      declare_parameter<double>("grasp_completion_front_max_age_s", max_target_age_s_);
+    grasp_completion_eef_lost_timeout_s_ =
+      declare_parameter<double>("grasp_completion_eef_lost_timeout_s", max_target_age_s_);
     depth_roi_radius_px_ = declare_parameter<int>("depth_roi_radius_px", 5);
     depth_unit_scale_ = declare_parameter<double>("depth_unit_scale", 0.001);
     min_valid_depth_m_ = declare_parameter<double>("min_valid_depth_m", 0.12);
@@ -400,6 +414,10 @@ private:
     max_linear_speed_ = std::max(0.0, max_linear_speed_);
     position_tolerance_m_ = std::max(0.005, position_tolerance_m_);
     close_after_stable_cycles_ = std::max(1, close_after_stable_cycles_);
+    grasp_completion_front_max_age_s_ =
+      std::max(0.1, grasp_completion_front_max_age_s_);
+    grasp_completion_eef_lost_timeout_s_ =
+      std::max(0.1, grasp_completion_eef_lost_timeout_s_);
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
     eef_refinement_start_depth_m_ = std::max(min_valid_depth_m_, eef_refinement_start_depth_m_);
