@@ -1559,16 +1559,21 @@ private:
 
   double gripperRollProxyFromJoints(const std::array<double, 4> & joints) const
   {
-    // On the real leader arm, joint2 and joint4 define the gripper-side roll compensation.
-    // joint3 is the extension joint and must not cancel joint4 motion during forward nudges.
-    return joints[1] + joints[3];
+    return
+      pregrasp_roll_joint2_weight_ * joints[1] +
+      pregrasp_roll_joint3_weight_ * joints[2] +
+      pregrasp_roll_joint4_weight_ * joints[3];
   }
 
   double joint4ForPreservedGripperRoll(
     const std::array<double, 4> & reference,
     const std::array<double, 4> & target) const
   {
-    return gripperRollProxyFromJoints(reference) - target[1];
+    return (
+      gripperRollProxyFromJoints(reference) -
+      pregrasp_roll_joint2_weight_ * target[1] -
+      pregrasp_roll_joint3_weight_ * target[2]) /
+      pregrasp_roll_joint4_weight_;
   }
 
   double eefForwardGripperRollProxyFromJoints(const std::array<double, 4> & joints) const
