@@ -166,11 +166,12 @@ mp_control_node:
     # before joint2/joint4 compensation starts.
     eef_forward_joint3_first_duration_ratio: 0.65
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
-    # The real EEF roll proxy uses the opposite joint3 sign during the final
-    # close-range stretch. If joint3 extension is compensated with the same sign,
-    # joint4 rotates the gripper/EEF camera upward.
+    # The real EEF roll proxy must make joint4 compensate opposite to the
+    # observed skyward rotation. In the latest hardware log, joint3 extension
+    # with joint4 moving further negative made the gripper/EEF camera face up,
+    # so joint4 must move positive while joint3 extends negative.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: -1.0
+    eef_forward_roll_joint3_weight: 1.0
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.6
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
