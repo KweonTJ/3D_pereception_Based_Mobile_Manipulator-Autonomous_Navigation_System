@@ -1389,6 +1389,11 @@ private:
 
     const double bbox_u = bbox.x + 0.5 * bbox.width;
     const double bbox_v = bbox.y + 0.5 * bbox.height;
+    const bool bbox_center_valid =
+      bbox.width > 0.0 && bbox.height > 0.0 &&
+      std::isfinite(bbox_u) && std::isfinite(bbox_v) &&
+      bbox_u >= 0.0 && bbox_u < static_cast<double>(info.width) &&
+      bbox_v >= 0.0 && bbox_v < static_cast<double>(info.height);
     const bool projected_object_range_valid =
       std::isfinite(object_in_eef_camera.point.z) &&
       object_in_eef_camera.point.z > 0.0;
@@ -1402,10 +1407,14 @@ private:
       std::isfinite(projected_u) && std::isfinite(projected_v) &&
       projected_u >= 0.0 && projected_u < static_cast<double>(info.width) &&
       projected_v >= 0.0 && projected_v < static_cast<double>(info.height);
-    const double u = projected_center_valid ? projected_u : bbox_u;
-    const double v = projected_center_valid ? projected_v : bbox_v;
-    const double err_u_px = u - info.cx;
-    const double err_v_px = v - info.cy;
+    const bool use_bbox_center =
+      bbox_center_valid && (eef_refinement_prefer_eef_bbox_ || !projected_center_valid);
+    const double u = use_bbox_center ? bbox_u : projected_u;
+    const double v = use_bbox_center ? bbox_v : projected_v;
+    const double target_u = info.cx + eef_grasp_center_offset_u_px_;
+    const double target_v = info.cy + eef_grasp_center_offset_v_px_;
+    const double err_u_px = u - target_u;
+    const double err_v_px = v - target_v;
     const double z_m = projected_center_valid ?
       clampValue(
         object_in_eef_camera.point.z,
