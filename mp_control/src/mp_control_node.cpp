@@ -402,6 +402,10 @@ private:
       declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.6);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
       declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.04);
+    eef_forward_joint4_ground_parallel_limit_rad_ =
+      declare_parameter<double>("eef_forward_joint4_ground_parallel_limit_rad", -1.05);
+    eef_forward_joint4_down_positive_ =
+      declare_parameter<bool>("eef_forward_joint4_down_positive", true);
     gripper_down_joint4_offset_rad_ =
       declare_parameter<double>("gripper_down_joint4_offset_rad", 0.0);
     close_on_front_bbox_shrink_ =
@@ -548,6 +552,10 @@ private:
     eef_forward_joint4_rpy_roll_gain_ = std::max(0.0, eef_forward_joint4_rpy_roll_gain_);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
       std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
+    eef_forward_joint4_ground_parallel_limit_rad_ = clampValue(
+      eef_forward_joint4_ground_parallel_limit_rad_,
+      joint_pregrasp_min_positions_[3],
+      joint_pregrasp_max_positions_[3]);
     front_bbox_close_area_ratio_ =
       clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
     eef_bbox_close_area_ratio_ =
@@ -1979,6 +1987,26 @@ private:
       eef_forward_joint4_rpy_roll_max_delta_rad_);
     controller_target[3] += joint4_roll_feedback;
     controller_target[3] += gripper_down_joint4_offset_rad_;
+    const double unclamped_joint4_target = controller_target[3];
+    const bool joint4_ground_limit_active =
+      eef_forward_joint4_down_positive_ ?
+      ((*current)[3] >= eef_forward_joint4_ground_parallel_limit_rad_ ||
+      controller_target[3] > eef_forward_joint4_ground_parallel_limit_rad_) :
+      ((*current)[3] <= eef_forward_joint4_ground_parallel_limit_rad_ ||
+      controller_target[3] < eef_forward_joint4_ground_parallel_limit_rad_);
+    if (joint4_ground_limit_active) {
+      if (eef_forward_joint4_down_positive_) {
+        controller_target[3] = std::min(
+          std::max((*current)[3], eef_forward_joint4_ground_parallel_limit_rad_),
+          controller_target[3]);
+        controller_target[3] = std::min(controller_target[3], eef_forward_joint4_ground_parallel_limit_rad_);
+      } else {
+        controller_target[3] = std::max(
+          std::min((*current)[3], eef_forward_joint4_ground_parallel_limit_rad_),
+          controller_target[3]);
+        controller_target[3] = std::max(controller_target[3], eef_forward_joint4_ground_parallel_limit_rad_);
+      }
+    }
     controller_target[0] =
       clampValue(controller_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
     controller_target[1] =
@@ -2013,6 +2041,9 @@ private:
            << eef_forward_roll_joint4_weight_ << ")"
            << " joint4_roll_feedback=" << joint4_roll_feedback
            << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
+           << " joint4_ground_parallel_limit=" << eef_forward_joint4_ground_parallel_limit_rad_
+           << " joint4_ground_limit_active=" << (joint4_ground_limit_active ? "true" : "false")
+           << " joint4_unclamped_target=" << unclamped_joint4_target
            << " rpy_roll_err=" << rpy_error.roll
            << " duration=" << eef_forward_joint_nudge_duration_s_;
     publishStatus(status.str());
@@ -3547,6 +3578,8 @@ private:
   double eef_forward_roll_joint4_weight_{1.0};
   double eef_forward_joint4_rpy_roll_gain_{0.6};
   double eef_forward_joint4_rpy_roll_max_delta_rad_{0.04};
+  double eef_forward_joint4_ground_parallel_limit_rad_{-1.05};
+  bool eef_forward_joint4_down_positive_{true};
   double gripper_down_joint4_offset_rad_{0.0};
   bool close_on_front_bbox_shrink_{false};
   double front_bbox_close_area_ratio_{0.60};
