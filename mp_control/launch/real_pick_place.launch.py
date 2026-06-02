@@ -665,7 +665,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_box_area_weight",
-            default_value="0.30",
+            default_value="0.20",
             description="Weight for box candidate image area.",
         ),
         DeclareLaunchArgument(
