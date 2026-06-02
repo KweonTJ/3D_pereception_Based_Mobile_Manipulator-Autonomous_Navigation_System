@@ -74,6 +74,15 @@ mp_control_node:
     # Real EEF refinement/triangulation requires calibrated camera_info from v4l2_camera.
     # Keep fallback disabled so a missing calibration file is visible during real tests.
     allow_eef_camera_info_fallback: false
+    # During final EEF refinement, trust the EEF camera bbox center first.
+    # Front-camera projection is only a fallback because extrinsic/projection error
+    # can place the object beside the gripper even when the projection says aligned.
+    eef_refinement_prefer_eef_bbox: true
+    # Pixel offset from EEF optical center to the actual gripper grasp center.
+    # Tune only if the object is consistently centered in the EEF image but still
+    # lands beside the gripper.
+    eef_grasp_center_offset_u_px: 0.0
+    eef_grasp_center_offset_v_px: 0.0
     eef_camera_fallback_width_px: 320
     eef_camera_fallback_height_px: 240
     eef_camera_fallback_fx: 554.0
