@@ -101,6 +101,17 @@ mp_control_node:
     # depth is ignored and front RGB + EEF RGB triangulation keeps the base
     # approaching until color_triangulation_base_stop_object_x_m.
     eef_refinement_start_object_x_m: 0.20
+    # Before switching from base approach to manipulator pregrasp, rotate the
+    # leader until the front bbox center is close to the calibrated image center.
+    # This prevents the arm from extending while the object is still left/right
+    # of the gripper path.
+    require_front_center_for_eef: true
+    front_center_tolerance_px: 20.0
+    front_center_angular_gain: 0.9
+    front_center_max_angular_speed: 0.16
+    # Positive bbox error means object is on the image right; on the real base
+    # that needs clockwise yaw, i.e. negative ROS angular.z.
+    front_center_angular_sign: -1.0
     arm_start_max_error_m: 0.50
     arm_start_max_object_x_m: 0.20
     object_height_m: 0.10
