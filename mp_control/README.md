@@ -103,7 +103,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
 - `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
 - `0.20 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. 실제 전면 카메라는 `base_link`보다 앞에 있으므로, `base_link` 변환 x가 20cm를 넘더라도 전면 bbox 크기 기반 camera-range가 20cm 이하이면 close-range로 보고 팔 pregrasp를 시작한다.
-- `require_front_center_for_eef`: 팔 pregrasp로 넘어가기 직전에 전면 카메라 bbox 중심을 다시 검사한다. 베이스 회전 정렬은 EEF 카메라를 쓰지 않는다. EEF 카메라는 렌즈 왜곡과 장착 위치 영향이 커서 팔 끝단 보정 전용으로만 사용한다. 물체 중심이 전면 카메라 중심에서 `front_center_tolerance_px` 이상 벗어나면 `/target/base_hold`를 켜서 외부 tracker를 막고, `mp_control`이 직접 `/cmd_vel.angular.z`를 발행해 리더를 제자리 회전시킨다. 실제 리더는 물체가 이미지 오른쪽에 있을 때 ROS 기준 음수 yaw가 필요하므로 `front_center_angular_sign: -1.0`을 사용한다.
+- `require_front_center_for_eef`: 팔 pregrasp로 넘어가기 전에 전면 카메라 bbox 중심을 다시 검사한다. 베이스 회전 정렬은 EEF 카메라를 쓰지 않는다. EEF 카메라는 렌즈 왜곡과 장착 위치 영향이 커서 팔 끝단 보정 전용으로만 사용한다. 물체 중심이 전면 카메라 중심에서 `front_center_tolerance_px` 이상 벗어나면 `/target/base_hold`를 켜서 외부 tracker를 막고, `mp_control`이 직접 `/cmd_vel.angular.z`를 발행해 리더를 제자리 회전시킨다. 실제 리더는 물체가 이미지 오른쪽에 있을 때 ROS 기준 음수 yaw가 필요하므로 `front_center_angular_sign: -1.0`을 사용한다. 컬러 삼각 측량이 불안정해서 전면 bbox 크기 기반 close-range fallback을 쓰는 경우에도 이 정렬을 먼저 통과해야 팔 pregrasp로 넘어간다.
 - `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
 - `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
 - `grasp_completion_eef_lost_timeout_s`: 이 시간 동안 EEF bbox가 새로 들어오지 않으면 EEF에서 물체가 사라진 것으로 본다.
