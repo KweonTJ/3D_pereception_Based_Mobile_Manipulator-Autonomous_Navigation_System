@@ -3547,6 +3547,11 @@ private:
 	  bool use_depthless_triangulation_{false};
 	  bool use_color_triangulation_after_min_depth_{false};
 	  bool use_joint_pregrasp_{true};
+  bool require_front_center_for_eef_{false};
+  double front_center_tolerance_px_{24.0};
+  double front_center_angular_gain_{0.8};
+  double front_center_max_angular_speed_{0.18};
+  double front_center_angular_sign_{-1.0};
 	  double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
