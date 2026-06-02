@@ -44,7 +44,7 @@ csrt_ibvs_node:
     # from small bbox-center errors. Close-range yaw makes the leader drift
     # left/right during manipulator work and destabilizes the follower because
     # /leader/cmd_vel relays that angular command.
-    force_straight_approach: true
+    force_straight_approach: false
     loss_frame_limit: 20
     watchdog_timeout_s: 1.5
     min_bbox_size_px: 12
