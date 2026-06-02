@@ -100,6 +100,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 의미:
 
 - `0.60 m`: 전면 depth가 아직 유효할 때 EEF YOLO를 미리 켠다.
+- `eef_auto_init_on_start`: 실제 리더에서는 grasp sequence 시작부터 EEF YOLO를 켠다. 기존처럼 depth handoff 근처에서 처음 켜면 EEF bbox가 늦게 잡혀 리더 방향 정렬이 흔들릴 수 있기 때문이다. `real_pick_place.launch.py`의 `auto_eef_init_bbox_start_delay` 기본값도 `0.0`으로 두어 런치 직후 EEF bbox가 준비되게 한다.
 - `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
 - `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
 - `0.20 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. 실제 전면 카메라는 `base_link`보다 앞에 있으므로, `base_link` 변환 x가 20cm를 넘더라도 전면 bbox 크기 기반 camera-range가 20cm 이하이면 close-range로 보고 팔 pregrasp를 시작한다.
