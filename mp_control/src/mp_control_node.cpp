@@ -286,7 +286,17 @@ private:
       declare_parameter<bool>("use_depthless_triangulation", false);
 	    use_color_triangulation_after_min_depth_ =
 	      declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
-	    use_joint_pregrasp_ = declare_parameter<bool>("use_joint_pregrasp", true);
+    use_joint_pregrasp_ = declare_parameter<bool>("use_joint_pregrasp", true);
+    require_front_center_for_eef_ =
+      declare_parameter<bool>("require_front_center_for_eef", false);
+    front_center_tolerance_px_ =
+      declare_parameter<double>("front_center_tolerance_px", 24.0);
+    front_center_angular_gain_ =
+      declare_parameter<double>("front_center_angular_gain", 0.8);
+    front_center_max_angular_speed_ =
+      declare_parameter<double>("front_center_max_angular_speed", 0.18);
+    front_center_angular_sign_ =
+      declare_parameter<double>("front_center_angular_sign", -1.0);
 	    command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -502,6 +512,10 @@ private:
     eef_refinement_start_object_x_m_ = std::max(0.01, eef_refinement_start_object_x_m_);
     arm_start_max_error_m_ = std::max(0.05, arm_start_max_error_m_);
     arm_start_max_object_x_m_ = std::max(0.05, arm_start_max_object_x_m_);
+    front_center_tolerance_px_ = std::max(1.0, front_center_tolerance_px_);
+    front_center_angular_gain_ = std::max(0.0, front_center_angular_gain_);
+    front_center_max_angular_speed_ = std::max(0.0, front_center_max_angular_speed_);
+    front_center_angular_sign_ = front_center_angular_sign_ < 0.0 ? -1.0 : 1.0;
     object_height_m_ = std::max(0.01, object_height_m_);
     eef_init_bbox_min_size_px_ = std::max(2.0, eef_init_bbox_min_size_px_);
     eef_init_bbox_max_size_px_ = std::max(eef_init_bbox_min_size_px_, eef_init_bbox_max_size_px_);

@@ -54,8 +54,8 @@ pregrasp_republish_period_s: 1.0
 object_pregrasp_standoff_m: 0.06
 use_eef_rpy_refinement: true
 eef_refinement_prefer_eef_bbox: true
-eef_grasp_center_offset_u_px: 0.0
-eef_grasp_center_offset_v_px: 0.0
+eef_grasp_center_offset_u_px: -90.0
+eef_grasp_center_offset_v_px: 45.0
 eef_hold_current_rpy: true
 eef_hold_stay_roll: true
 eef_forward_after_align: true
@@ -179,12 +179,12 @@ EEF 보정은 픽셀 정렬과 stay-roll/current-pitch-yaw 유지를 같이 쓴�
 
 ```yaml
 eef_refinement_prefer_eef_bbox: true
-eef_grasp_center_offset_u_px: 0.0
-eef_grasp_center_offset_v_px: 0.0
+eef_grasp_center_offset_u_px: -90.0
+eef_grasp_center_offset_v_px: 45.0
 eef_close_tolerance_px: 35.0
 ```
 
-실제 리더의 최종 EEF 보정은 EEF 카메라 YOLO bbox 중심을 우선 사용한다. 전면 카메라 투영점은 EEF bbox가 없거나 유효하지 않을 때만 fallback으로 사용한다. 전면-EEF extrinsic/projection 오차가 조금만 있어도 그리퍼 안쪽이 아니라 옆으로 정렬되는 문제가 생길 수 있기 때문이다. 만약 EEF 화면에서는 물체가 정확히 중앙인데 실제 그리퍼 안쪽 중심과 계속 어긋나면 `eef_grasp_center_offset_u_px`, `eef_grasp_center_offset_v_px`만 작게 조정한다.
+실제 리더의 최종 EEF 보정은 EEF 카메라 YOLO bbox 중심을 우선 사용한다. 전면 카메라 투영점은 EEF bbox가 없거나 유효하지 않을 때만 fallback으로 사용한다. 전면-EEF extrinsic/projection 오차가 조금만 있어도 그리퍼 안쪽이 아니라 옆으로 정렬되는 문제가 생길 수 있기 때문이다. 최근 실제 로그에서는 EEF bbox 중심이 약 `(85, 159)`에 안정적으로 있는데, 보정 전 목표 중심은 캘리브레이션 광학 중심 `(178, 114)`라서 `pixel_err`가 `(-93, 44)` 근처에 계속 머물렀다. 이 상태에서는 final forward 조건 `forward_tol_px=35`를 만족하지 못하고, Servo도 singularity/collision 감속으로 오차를 줄이지 못했다. 따라서 실제 그리퍼 중심을 기준으로 `eef_grasp_center_offset_u_px: -90.0`, `eef_grasp_center_offset_v_px: 45.0`을 적용한다.
 
 `eef_close_tolerance_px`는 설정된 EEF 카메라 해상도를 기준으로 스케일된다. 따라서 320x240 EEF 카메라와 640x480 전면 카메라의 픽셀 오차를 같은 기준으로 보지 않는다. 실제 로그에서 EEF bbox 중심이 약 `30-40 px` 벗어난 상태에서도 전진 단계로 넘어가 그리퍼 안쪽 중심을 놓치는 문제가 확인되어, 현재 실제 리더는 `35 px`를 close-ready 기준으로 사용한다. final forward 시작은 `eef_forward_start_tolerance_px: 25.0`으로 더 줄여, EEF bbox가 실제 중앙에 가까워진 뒤에만 추가 전진한다.
 
