@@ -147,6 +147,38 @@ turtlebot3_ws/src
 └── DynamixelSDK
 ```
 # RUN
+
+## 실행 런치 파일 요약
+
+| 실행 목적 | 실행 위치 | 런치 파일 | 비고 |
+| --- | --- | --- | --- |
+| 실제 리더 Pick & Place | 리더 로봇 | `mp_control real_pick_place.launch.py` | 물체 인식, 근접, 파지, 180도 회전 후 팔로워 적재까지 수행 |
+| 실제 리더 키보드 텔레옵 플래투닝 | 리더 로봇 | `leader_platooning_beacon leader_teleop_platooning.launch.py` | Pick & Place 없이 키보드 텔레옵 `/cmd_vel`을 `/leader/cmd_vel`로 중계 |
+| 리더 기본 하드웨어 bringup | 리더 로봇 | `turtlebot3_manipulation_bringup hardware.launch.py` | 매니퓰레이터 하드웨어, 전면/EEF 카메라, `/battery_state`, `/sensor_state` 확인용 |
+| 리더 플래투닝 상태 beacon만 실행 | 리더 로봇 | `leader_platooning_beacon leader_platooning_beacon.launch.py` | `/odom`, `/cmd_vel`을 `/leader/odom`, `/leader/cmd_vel`로 relay |
+| 리더 작업 상태 manager만 실행 | 리더 로봇 | `leader_task_manager leader_task_manager.launch.py` | `/leader/task_state`, `/leader/cargo_state`, `/leader/follower_enable`, `/leader/platoon_mode` 발행 |
+| 리더-팔로워 도메인 브릿지 | 리더 또는 호스트 | `platooning_bridge_config bridge.launch.py` | 리더 domain `25`의 `/leader/*` 토픽을 팔로워 domain `73`으로 전달 |
+| 시뮬레이션 Pick & Place | 호스트 PC | `turtlebot3_manipulation_gazebo sim_pick_place_demo.launch.py` | Gazebo/RViz 기반 정제 환경 데모 |
+
+실제 리더 Pick & Place:
+
+```bash
+ros2 launch mp_control real_pick_place.launch.py
+```
+
+리더 키보드 텔레옵으로 팔로워를 추종시키는 경우:
+
+```bash
+ros2 launch leader_platooning_beacon leader_teleop_platooning.launch.py
+```
+
+별도 터미널에서 키보드 텔레옵:
+
+```bash
+export TURTLEBOT3_MODEL=waffle_pi
+ros2 run turtlebot3_teleop teleop_keyboard
+```
+
 ## Simulation
 - 시뮬레이션은 아래 런치 파일 사용한다.
 ```
