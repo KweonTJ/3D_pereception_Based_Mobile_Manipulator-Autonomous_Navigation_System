@@ -66,7 +66,7 @@ eef_forward_joint_nudge_duration_s: 0.80
 eef_forward_joint_nudge_period_s: 0.35
 eef_forward_joint3_first_duration_ratio: 0.65
 eef_forward_roll_joint2_weight: 0.0
-eef_forward_roll_joint3_weight: -1.5
+eef_forward_roll_joint3_weight: 1.5
 eef_forward_roll_joint4_weight: 1.0
 eef_forward_joint4_rpy_roll_gain: 0.6
 eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
@@ -117,7 +117,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 실제 설정은 `joint2=0.015 rad`, `joint3=-0.050 rad`이며, joint4는 같은 목표 point에서 그리퍼 roll 유지값으로 계산된다. raw 토픽으로 나가기 전 joint3 delta는 기존 transformer 경로와 맞게 pre-invert된다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
 - `eef_forward_joint3_first_duration_ratio`: 기존 순차 전개 호환용 파라미터다. 현재 실제 리더의 final nudge는 단일 목표 point를 사용하므로 joint3-only 선행 point를 만들지 않는다.
 - `eef_forward_joint_nudge_duration_s`: 추가 전진 trajectory 시간이다. joint4 방향 반전 후 토크 충격을 줄이기 위해 실제 설정은 `0.80 s`로 늦춘다.
-- `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 현재 실제 설정은 `eef_forward_roll_joint3_weight: -1.5`, `eef_forward_roll_joint4_weight: 1.0`으로 두어 joint3이 음수 방향으로 펴질 때 joint4 보정 방향이 기존과 반대로 나오게 한다.
+- `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 현재 실제 설정은 `eef_forward_roll_joint3_weight: 1.5`, `eef_forward_roll_joint4_weight: 1.0`이다. 실제 리더에서 음수 weight는 그리퍼와 EEF 카메라가 하늘을 보는 방향으로 joint4를 돌렸기 때문에, joint4 보정 방향을 반대로 만들기 위해 양수 weight를 사용한다.
 - `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: `/tf`에서 계산한 EE roll 오차를 joint4 목표에 추가로 반영하는 값이다. joint trajectory nudge가 Servo twist를 우회하더라도 gripper roll feedback을 잃지 않게 한다.
 - `gripper_down_joint4_offset_rad`: pregrasp와 EEF forward joint nudge의 roll 보정 이후 joint4에 더하는 추가 오프셋이다. 현재 실제 리더는 `0.0 rad`로 둔다. 로그에서 `-0.10 rad` 오프셋이 joint4 하한 근처에서 clamp를 만들고 `eef_usb_camera_link`와 `link3` 충돌을 유발했기 때문에, 방향 보정은 roll proxy 부호로 처리하고 별도 하향 오프셋은 끈다.
 - `close_on_front_bbox_shrink / front_bbox_close_area_ratio`: EEF fixed-pose forward 시작 시점의 전면 bbox 면적을 기준으로 저장하고, 이후 전면 bbox 면적이 그 기준의 `0.60` 이하로 줄면 그리퍼 close를 시작한다.
@@ -218,7 +218,7 @@ EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전�
 
 그리퍼 close 자체는 EEF forward 거리만으로 기다리지 않는다. EEF forward 시작 시점의 전면 bbox와 EEF bbox 면적을 각각 저장하고, 현재 전면 bbox 면적이 `front_bbox_close_area_ratio` 이하이거나 현재 EEF bbox 면적이 `eef_bbox_close_area_ratio` 이하가 되면 물체가 그리퍼 안쪽으로 충분히 들어왔다고 보고 close 명령을 보낸다. 현재 실제 설정은 둘 다 `0.60`이다. 실제 로그에서는 전면 bbox ratio가 약 `1.0`으로 유지되어 전면 조건만으로는 close되지 않았고, EEF bbox가 약 `9000 px`대에서 `1700 px`대로 줄어드는 현상이 확인되어 EEF bbox shrink 조건을 같이 사용한다.
 
-실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다. status에는 `controller_target`, `simultaneous_joints=joint2,joint3,joint4`, `controller_joint2_delta`, `controller_joint3_delta`, `controller_joint4_delta`, `raw_joint3_delta`, `roll_proxy_weights`, `joint4_roll_feedback`, `rpy_roll_err`가 같이 나온다. 정상이라면 trajectory point가 하나이고, joint2/joint3/joint4가 같은 `time_from_start`로 동시에 움직인다. transformer 입력인 `raw_joint3_delta`는 controller 기준 joint3 delta와 부호가 반대로 보인다. joint4는 gripper roll feedback까지 반영한다. 실제 리더에서 joint4가 음수 방향으로 보정될 때 그리퍼와 EEF 카메라가 공중을 보는 문제가 확인되었으므로, 추가 전진 roll proxy는 joint3 음수 전개에 대해 joint4가 양수 방향으로 보상되도록 둔다.
+실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다. status에는 `controller_target`, `simultaneous_joints=joint2,joint3,joint4`, `controller_joint2_delta`, `controller_joint3_delta`, `controller_joint4_delta`, `raw_joint3_delta`, `roll_proxy_weights`, `joint4_roll_feedback`, `rpy_roll_err`가 같이 나온다. 정상이라면 trajectory point가 하나이고, joint2/joint3/joint4가 같은 `time_from_start`로 동시에 움직인다. transformer 입력인 `raw_joint3_delta`는 controller 기준 joint3 delta와 부호가 반대로 보인다. joint4는 gripper roll feedback까지 반영한다. 실제 리더에서 `eef_forward_roll_joint3_weight: -1.5`일 때 그리퍼와 EEF 카메라가 하늘을 보는 문제가 확인되었으므로, 현재는 joint4 보정 방향을 반대로 만들기 위해 `eef_forward_roll_joint3_weight: 1.5`를 사용한다.
 
 파지가 시각적으로 확인되면 `handoff_after_grasp: true` 설정에 따라 후속 적재 동작으로 넘어간다. 순서는 `picked` 이벤트 발행, joint2 상대 상승, `/cmd_vel` 180도 회전, joint2 상대 하강, 그리퍼 open, `placed`/`loaded` 이벤트 발행이다. 회전 중에는 `/target/base_hold`를 켜서 전면 tracker가 `/cmd_vel`을 덮어쓰지 않게 한다.
 
