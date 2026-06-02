@@ -152,14 +152,13 @@ mp_control_node:
     # Start final forward before the stricter close-ready threshold because
     # Servo can stall while trying to remove the last few pixels of lateral error.
     eef_forward_start_tolerance_px: 90.0
-    # Final EEF advance uses staged joint nudges on real hardware.
-    # joint3 extends first, then joint4 preserves the stay-pose gripper roll.
-    # joint2 is not lowered further here because that can cover the front Astra
-    # camera while the visual grasp confirmation still depends on the front bbox.
+    # Final EEF advance uses a simultaneous joint nudge on real hardware.
+    # joint2 moves slightly with joint3/joint4 so the arm actually reaches forward,
+    # while the amount stays small enough to avoid covering the front Astra early.
     # This bypasses MoveIt Servo collision/singularity scaling that can stall
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
-    eef_forward_joint2_delta_rad: 0.0
+    eef_forward_joint2_delta_rad: 0.020
     eef_forward_joint3_delta_rad: -0.050
     eef_forward_joint_nudge_duration_s: 0.45
     eef_forward_joint_nudge_period_s: 0.35
@@ -171,10 +170,11 @@ mp_control_node:
     # negative the gripper/EEF camera still faces up, so joint4 must move
     # positive while joint3 extends negative.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: 1.2
+    eef_forward_roll_joint3_weight: 0.6
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.6
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
+    eef_forward_joint4_max_delta_rad: 0.030
     # Extra offset is disabled; forcing joint4 past its URDF lower limit causes
     # eef_usb_camera_link/link3 collision while the real fix is joint4 direction.
     gripper_down_joint4_offset_rad: 0.0
