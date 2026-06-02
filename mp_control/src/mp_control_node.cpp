@@ -1409,8 +1409,9 @@ private:
       projected_v >= 0.0 && projected_v < static_cast<double>(info.height);
     const bool use_bbox_center =
       bbox_center_valid && (eef_refinement_prefer_eef_bbox_ || !projected_center_valid);
-    const double u = use_bbox_center ? bbox_u : projected_u;
-    const double v = use_bbox_center ? bbox_v : projected_v;
+    const bool use_projected_center = !use_bbox_center && projected_center_valid;
+    const double u = use_bbox_center ? bbox_u : (use_projected_center ? projected_u : bbox_u);
+    const double v = use_bbox_center ? bbox_v : (use_projected_center ? projected_v : bbox_v);
     const double target_u = info.cx + eef_grasp_center_offset_u_px_;
     const double target_v = info.cy + eef_grasp_center_offset_v_px_;
     const double err_u_px = u - target_u;

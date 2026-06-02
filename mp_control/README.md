@@ -53,6 +53,9 @@ pregrasp_joint_tolerance_rad: 0.04
 pregrasp_republish_period_s: 1.0
 object_pregrasp_standoff_m: 0.06
 use_eef_rpy_refinement: true
+eef_refinement_prefer_eef_bbox: true
+eef_grasp_center_offset_u_px: 0.0
+eef_grasp_center_offset_v_px: 0.0
 eef_hold_current_rpy: true
 eef_hold_stay_roll: true
 eef_forward_after_align: true
@@ -175,10 +178,15 @@ eef_bbox_topic: /target/eef_init_bbox
 EEF 보정은 픽셀 정렬과 stay-roll/current-pitch-yaw 유지를 같이 쓴다.
 
 ```yaml
+eef_refinement_prefer_eef_bbox: true
+eef_grasp_center_offset_u_px: 0.0
+eef_grasp_center_offset_v_px: 0.0
 eef_close_tolerance_px: 70.0
 ```
 
-이 tolerance는 설정된 EEF 카메라 해상도를 기준으로 스케일된다. 따라서 320x240 EEF 카메라와 640x480 전면 카메라의 픽셀 오차를 같은 기준으로 보지 않는다. 현재 실제 EEF 카메라에서는 bbox가 물체에 딱 맞으면 물체 중심이 optical center보다 약 60 px 아래로 보일 수 있으므로, `70 px`를 close-ready 기준으로 사용한다. 다만 실제 로봇에서 Servo가 마지막 lateral 오차 보정 중 singularity/collision scaling으로 멈출 수 있어, final forward 시작은 `eef_forward_start_tolerance_px: 90.0`으로 더 넓게 허용한다.
+실제 리더의 최종 EEF 보정은 EEF 카메라 YOLO bbox 중심을 우선 사용한다. 전면 카메라 투영점은 EEF bbox가 없거나 유효하지 않을 때만 fallback으로 사용한다. 전면-EEF extrinsic/projection 오차가 조금만 있어도 그리퍼 안쪽이 아니라 옆으로 정렬되는 문제가 생길 수 있기 때문이다. 만약 EEF 화면에서는 물체가 정확히 중앙인데 실제 그리퍼 안쪽 중심과 계속 어긋나면 `eef_grasp_center_offset_u_px`, `eef_grasp_center_offset_v_px`만 작게 조정한다.
+
+`eef_close_tolerance_px`는 설정된 EEF 카메라 해상도를 기준으로 스케일된다. 따라서 320x240 EEF 카메라와 640x480 전면 카메라의 픽셀 오차를 같은 기준으로 보지 않는다. 현재 실제 EEF 카메라에서는 bbox가 물체에 딱 맞으면 물체 중심이 optical center보다 약 60 px 아래로 보일 수 있으므로, `70 px`를 close-ready 기준으로 사용한다. 다만 실제 로봇에서 Servo가 마지막 lateral 오차 보정 중 singularity/collision scaling으로 멈출 수 있어, final forward 시작은 `eef_forward_start_tolerance_px: 90.0`으로 더 넓게 허용한다.
 
 EEF bbox 정렬이 완료되면 `mp_control`은 초기 stay 자세에서 캡처한 EE roll을 유지하고, refinement 진입 시점의 pitch/yaw를 유지한다. 그 상태에서 `base_link` 기준으로 짧게 전진한 뒤 그리퍼를 닫는다.
 
