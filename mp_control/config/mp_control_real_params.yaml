@@ -167,11 +167,11 @@ mp_control_node:
     # one synchronized trajectory point so joint2/joint3/joint4 move together.
     eef_forward_joint3_first_duration_ratio: 0.65
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
-    # Hardware observation takes priority over the model sign. Reverse the
-    # joint4 compensation direction during the final forward nudge so the
-    # gripper/EEF camera does not pitch upward.
+    # Hardware observation takes priority over the model sign. With the
+    # negative joint3 weight the gripper/EEF camera still pitches upward, so
+    # joint4 compensation must use the opposite sign on the real robot.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: -1.5
+    eef_forward_roll_joint3_weight: 1.5
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.6
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
