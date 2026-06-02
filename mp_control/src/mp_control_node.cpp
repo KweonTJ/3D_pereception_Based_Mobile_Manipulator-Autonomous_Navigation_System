@@ -402,6 +402,8 @@ private:
       declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.6);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
       declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.04);
+    eef_forward_joint4_max_delta_rad_ =
+      declare_parameter<double>("eef_forward_joint4_max_delta_rad", 0.0);
     gripper_down_joint4_offset_rad_ =
       declare_parameter<double>("gripper_down_joint4_offset_rad", 0.0);
     close_on_front_bbox_shrink_ =
@@ -548,6 +550,7 @@ private:
     eef_forward_joint4_rpy_roll_gain_ = std::max(0.0, eef_forward_joint4_rpy_roll_gain_);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
       std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
+    eef_forward_joint4_max_delta_rad_ = std::max(0.0, eef_forward_joint4_max_delta_rad_);
     front_bbox_close_area_ratio_ =
       clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
     eef_bbox_close_area_ratio_ =
@@ -1936,6 +1939,12 @@ private:
       eef_forward_joint4_rpy_roll_max_delta_rad_);
     controller_target[3] += joint4_roll_feedback;
     controller_target[3] += gripper_down_joint4_offset_rad_;
+    if (eef_forward_joint4_max_delta_rad_ > 1.0e-6) {
+      controller_target[3] = clampValue(
+        controller_target[3],
+        (*current)[3] - eef_forward_joint4_max_delta_rad_,
+        (*current)[3] + eef_forward_joint4_max_delta_rad_);
+    }
     joint3_first_target[0] =
       clampValue(joint3_first_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
     joint3_first_target[1] =
@@ -1980,6 +1989,7 @@ private:
            << eef_forward_roll_joint3_weight_ << ", "
            << eef_forward_roll_joint4_weight_ << ")"
            << " joint4_roll_feedback=" << joint4_roll_feedback
+           << " joint4_max_delta=" << eef_forward_joint4_max_delta_rad_
            << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
            << " rpy_roll_err=" << rpy_error.roll
            << " duration=" << eef_forward_joint_nudge_duration_s_;
@@ -3511,6 +3521,7 @@ private:
   double eef_forward_roll_joint4_weight_{1.0};
   double eef_forward_joint4_rpy_roll_gain_{0.6};
   double eef_forward_joint4_rpy_roll_max_delta_rad_{0.04};
+  double eef_forward_joint4_max_delta_rad_{0.0};
   double gripper_down_joint4_offset_rad_{0.0};
   bool close_on_front_bbox_shrink_{false};
   double front_bbox_close_area_ratio_{0.60};
