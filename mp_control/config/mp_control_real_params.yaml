@@ -161,17 +161,17 @@ mp_control_node:
     eef_forward_use_joint_nudge: true
     eef_forward_joint2_delta_rad: 0.0
     eef_forward_joint3_delta_rad: -0.050
-    eef_forward_joint_nudge_duration_s: 0.45
+    eef_forward_joint_nudge_duration_s: 0.80
     eef_forward_joint_nudge_period_s: 0.35
     # Give the first trajectory point enough time so joint3 visibly extends
     # before joint2/joint4 compensation starts.
     eef_forward_joint3_first_duration_ratio: 0.65
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
-    # Hardware observation takes priority over the model sign: with joint4 moving
-    # negative the gripper/EEF camera still faces up, so joint4 must move
-    # positive while joint3 extends negative.
+    # Hardware observation takes priority over the model sign. Reverse the
+    # joint4 compensation direction during the final forward nudge so the
+    # gripper/EEF camera does not pitch upward.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: 1.5
+    eef_forward_roll_joint3_weight: -1.5
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.6
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
@@ -211,7 +211,7 @@ mp_control_node:
     eef_front_camera_offset_x_m: -0.05
     eef_front_camera_offset_y_m: 0.0
     eef_front_camera_offset_z_m: 0.15
-    color_triangulation_base_stop_object_x_m: 0.30
+    color_triangulation_base_stop_object_x_m: 0.25
     color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019
