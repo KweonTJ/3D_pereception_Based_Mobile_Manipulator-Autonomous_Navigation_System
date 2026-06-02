@@ -665,7 +665,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_box_area_weight",
-            default_value="0.20",
+            default_value="0.30",
             description="Weight for box candidate image area.",
         ),
         DeclareLaunchArgument(
@@ -709,7 +709,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_bbox_start_delay",
-            default_value="0.0",
+            default_value="12.0",
             description="Seconds to wait before EEF camera auto bbox detection starts.",
         ),
         DeclareLaunchArgument(

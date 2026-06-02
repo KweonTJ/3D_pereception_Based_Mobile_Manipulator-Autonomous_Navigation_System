@@ -43,10 +43,6 @@ mp_control_node:
     # the EEF camera no longer sees a fresh object bbox.
     require_visual_grasp_confirmation: true
     use_eef_refinement: true
-    # Keep EEF YOLO enabled from the beginning of the grasp sequence.
-    # Early EEF bbox history makes front/EFF color alignment more stable than
-    # enabling it only after the depth handoff.
-    eef_auto_init_on_start: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: false
     use_depthless_triangulation: false
@@ -78,17 +74,6 @@ mp_control_node:
     # Real EEF refinement/triangulation requires calibrated camera_info from v4l2_camera.
     # Keep fallback disabled so a missing calibration file is visible during real tests.
     allow_eef_camera_info_fallback: false
-    # During final EEF refinement, trust the EEF camera bbox center first.
-    # Front-camera projection is only a fallback because extrinsic/projection error
-    # can place the object beside the gripper even when the projection says aligned.
-    eef_refinement_prefer_eef_bbox: true
-    # Pixel offset from EEF optical center to the actual gripper grasp center.
-    # With EEF YOLO enabled from launch start, current real logs show the
-    # stable EEF bbox center near (196, 159). Keep the target near that point
-    # so the final forward joint nudge can start instead of chasing the old
-    # late-handoff left-shift target.
-    eef_grasp_center_offset_u_px: 15.0
-    eef_grasp_center_offset_v_px: 45.0
     eef_camera_fallback_width_px: 320
     eef_camera_fallback_height_px: 240
     eef_camera_fallback_fx: 554.0
@@ -105,20 +90,9 @@ mp_control_node:
     # Front depth is trusted only until 0.47 m. Once that near limit is reached,
     # depth is ignored and front RGB + EEF RGB triangulation keeps the base
     # approaching until color_triangulation_base_stop_object_x_m.
-    eef_refinement_start_object_x_m: 0.20
-    # Before switching from base approach to manipulator pregrasp, rotate the
-    # leader until the front bbox center is close to the calibrated image center.
-    # This prevents the arm from extending while the object is still left/right
-    # of the gripper path.
-    require_front_center_for_eef: true
-    front_center_tolerance_px: 20.0
-    front_center_angular_gain: 0.9
-    front_center_max_angular_speed: 0.16
-    # Positive bbox error means object is on the image right; on the real base
-    # that needs clockwise yaw, i.e. negative ROS angular.z.
-    front_center_angular_sign: -1.0
+    eef_refinement_start_object_x_m: 0.30
     arm_start_max_error_m: 0.50
-    arm_start_max_object_x_m: 0.20
+    arm_start_max_object_x_m: 0.30
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
@@ -157,7 +131,7 @@ mp_control_node:
     pregrasp_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
     pregrasp_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
     eef_center_tolerance_px: 18.0
-    eef_close_tolerance_px: 35.0
+    eef_close_tolerance_px: 70.0
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
@@ -177,30 +151,30 @@ mp_control_node:
     eef_forward_speed_mps: 0.018
     # Start final forward before the stricter close-ready threshold because
     # Servo can stall while trying to remove the last few pixels of lateral error.
-    eef_forward_start_tolerance_px: 25.0
-    # Final EEF advance uses a simultaneous joint nudge on real hardware.
-    # joint2 moves slightly with joint3/joint4 so the arm actually reaches forward,
-    # while the amount stays small enough to avoid covering the front Astra early.
+    eef_forward_start_tolerance_px: 90.0
+    # Final EEF advance uses staged joint nudges on real hardware.
+    # joint3 extends first, then joint4 preserves the stay-pose gripper roll.
+    # joint2 is not lowered further here because that can cover the front Astra
+    # camera while the visual grasp confirmation still depends on the front bbox.
     # This bypasses MoveIt Servo collision/singularity scaling that can stall
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
-    eef_forward_joint2_delta_rad: 0.020
+    eef_forward_joint2_delta_rad: 0.0
     eef_forward_joint3_delta_rad: -0.050
     eef_forward_joint_nudge_duration_s: 0.45
     eef_forward_joint_nudge_period_s: 0.35
     # Give the first trajectory point enough time so joint3 visibly extends
     # before joint2/joint4 compensation starts.
-    eef_forward_joint3_first_duration_ratio: 0.0
+    eef_forward_joint3_first_duration_ratio: 0.65
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # Hardware observation takes priority over the model sign: with joint4 moving
     # negative the gripper/EEF camera still faces up, so joint4 must move
     # positive while joint3 extends negative.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: 0.6
+    eef_forward_roll_joint3_weight: 1.5
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.6
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
-    eef_forward_joint4_max_delta_rad: 0.030
     # Extra offset is disabled; forcing joint4 past its URDF lower limit causes
     # eef_usb_camera_link/link3 collision while the real fix is joint4 direction.
     gripper_down_joint4_offset_rad: 0.0
@@ -237,7 +211,7 @@ mp_control_node:
     eef_front_camera_offset_x_m: -0.05
     eef_front_camera_offset_y_m: 0.0
     eef_front_camera_offset_z_m: 0.15
-    color_triangulation_base_stop_object_x_m: 0.20
+    color_triangulation_base_stop_object_x_m: 0.30
     color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019

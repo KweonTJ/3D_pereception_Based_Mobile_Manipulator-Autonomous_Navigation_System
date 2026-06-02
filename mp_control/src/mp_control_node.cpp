@@ -256,12 +256,6 @@ private:
       declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
     allow_eef_camera_info_fallback_ =
       declare_parameter<bool>("allow_eef_camera_info_fallback", true);
-    eef_refinement_prefer_eef_bbox_ =
-      declare_parameter<bool>("eef_refinement_prefer_eef_bbox", true);
-    eef_grasp_center_offset_u_px_ =
-      declare_parameter<double>("eef_grasp_center_offset_u_px", 0.0);
-    eef_grasp_center_offset_v_px_ =
-      declare_parameter<double>("eef_grasp_center_offset_v_px", 0.0);
     eef_camera_fallback_width_px_ =
       declare_parameter<int>("eef_camera_fallback_width_px", 640);
     eef_camera_fallback_height_px_ =
@@ -279,8 +273,6 @@ private:
     require_visual_grasp_confirmation_ =
       declare_parameter<bool>("require_visual_grasp_confirmation", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
-    eef_auto_init_on_start_ =
-      declare_parameter<bool>("eef_auto_init_on_start", false);
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
     auto_init_eef_tracker_from_object_ =
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
@@ -288,17 +280,7 @@ private:
       declare_parameter<bool>("use_depthless_triangulation", false);
 	    use_color_triangulation_after_min_depth_ =
 	      declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
-    use_joint_pregrasp_ = declare_parameter<bool>("use_joint_pregrasp", true);
-    require_front_center_for_eef_ =
-      declare_parameter<bool>("require_front_center_for_eef", false);
-    front_center_tolerance_px_ =
-      declare_parameter<double>("front_center_tolerance_px", 24.0);
-    front_center_angular_gain_ =
-      declare_parameter<double>("front_center_angular_gain", 0.8);
-    front_center_max_angular_speed_ =
-      declare_parameter<double>("front_center_max_angular_speed", 0.18);
-    front_center_angular_sign_ =
-      declare_parameter<double>("front_center_angular_sign", -1.0);
+	    use_joint_pregrasp_ = declare_parameter<bool>("use_joint_pregrasp", true);
 	    command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
@@ -420,8 +402,6 @@ private:
       declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.6);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
       declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.04);
-    eef_forward_joint4_max_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint4_max_delta_rad", 0.0);
     gripper_down_joint4_offset_rad_ =
       declare_parameter<double>("gripper_down_joint4_offset_rad", 0.0);
     close_on_front_bbox_shrink_ =
@@ -514,10 +494,6 @@ private:
     eef_refinement_start_object_x_m_ = std::max(0.01, eef_refinement_start_object_x_m_);
     arm_start_max_error_m_ = std::max(0.05, arm_start_max_error_m_);
     arm_start_max_object_x_m_ = std::max(0.05, arm_start_max_object_x_m_);
-    front_center_tolerance_px_ = std::max(1.0, front_center_tolerance_px_);
-    front_center_angular_gain_ = std::max(0.0, front_center_angular_gain_);
-    front_center_max_angular_speed_ = std::max(0.0, front_center_max_angular_speed_);
-    front_center_angular_sign_ = front_center_angular_sign_ < 0.0 ? -1.0 : 1.0;
     object_height_m_ = std::max(0.01, object_height_m_);
     eef_init_bbox_min_size_px_ = std::max(2.0, eef_init_bbox_min_size_px_);
     eef_init_bbox_max_size_px_ = std::max(eef_init_bbox_min_size_px_, eef_init_bbox_max_size_px_);
@@ -562,7 +538,7 @@ private:
     eef_forward_joint_nudge_period_s_ =
       std::max(0.05, eef_forward_joint_nudge_period_s_);
     eef_forward_joint3_first_duration_ratio_ =
-      clampValue(eef_forward_joint3_first_duration_ratio_, 0.0, 0.9);
+      clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
     if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
       eef_forward_roll_joint4_weight_ = 1.0;
     }
@@ -572,7 +548,6 @@ private:
     eef_forward_joint4_rpy_roll_gain_ = std::max(0.0, eef_forward_joint4_rpy_roll_gain_);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
       std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
-    eef_forward_joint4_max_delta_rad_ = std::max(0.0, eef_forward_joint4_max_delta_rad_);
     front_bbox_close_area_ratio_ =
       clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
     eef_bbox_close_area_ratio_ =
@@ -596,12 +571,6 @@ private:
     }
     if (!std::isfinite(eef_front_camera_offset_z_m_)) {
       eef_front_camera_offset_z_m_ = 0.0;
-    }
-    if (!std::isfinite(eef_grasp_center_offset_u_px_)) {
-      eef_grasp_center_offset_u_px_ = 0.0;
-    }
-    if (!std::isfinite(eef_grasp_center_offset_v_px_)) {
-      eef_grasp_center_offset_v_px_ = 0.0;
     }
     color_triangulation_base_stop_object_x_m_ =
       std::max(0.01, color_triangulation_base_stop_object_x_m_);
@@ -778,7 +747,7 @@ private:
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     servo_start_requested_ = false;
-    publishEefAutoInitEnable(eef_auto_init_on_start_);
+    publishEefAutoInitEnable(false);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
@@ -881,12 +850,8 @@ private:
       if (!maybe_color_object) {
         const bool front_size_close_ready =
           front_size_object &&
-          ((front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_ ||
-          isFrontBboxRangeCloseForPregrasp());
+          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
         if (front_size_close_ready) {
-          if (!ensureFrontCenteredBeforeEef()) {
-            return;
-          }
           maybe_object = front_size_object;
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
@@ -910,12 +875,8 @@ private:
         const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
         const bool front_size_close_ready =
           front_size_object &&
-          ((front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_ ||
-          isFrontBboxRangeCloseForPregrasp());
+          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
-          if (!ensureFrontCenteredBeforeEef()) {
-            return;
-          }
           maybe_object = front_size_object;
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
@@ -1015,9 +976,6 @@ private:
       (!use_color_triangulation_after_min_depth_ || object_x_ready_for_eef) &&
       eef_candidate;
 	    if (use_eef_now) {
-	      if (!ensureFrontCenteredBeforeEef()) {
-	        return;
-	      }
 	      publishBaseHold(true);
 	      const bool joint_pregrasp_ready =
 	        !use_joint_pregrasp_ || updateJointPregrasp();
@@ -1148,85 +1106,6 @@ private:
         "front bbox size object TF transform failed: %s", ex.what());
       return std::nullopt;
     }
-  }
-
-  bool isFrontBboxRangeCloseForPregrasp()
-  {
-    Bbox bbox;
-    CameraInfo info;
-    {
-      std::lock_guard<std::mutex> lock(data_mutex_);
-      if (!latest_bbox_ || !latest_camera_info_) {
-        return false;
-      }
-      bbox = *latest_bbox_;
-      info = *latest_camera_info_;
-    }
-
-    if ((now() - bbox.stamp).seconds() > max_target_age_s_ ||
-        !shouldHandoffByBboxSize(bbox, info)) {
-      return false;
-    }
-
-    const auto range_m = estimateRangeFromBboxSize(bbox, info);
-    return range_m && *range_m <= color_triangulation_base_stop_object_x_m_;
-  }
-
-  bool ensureFrontCenteredBeforeEef()
-  {
-    if (!require_front_center_for_eef_) {
-      return true;
-    }
-
-    Bbox bbox;
-    CameraInfo info;
-    {
-      std::lock_guard<std::mutex> lock(data_mutex_);
-      if (!latest_bbox_ || !latest_camera_info_) {
-        publishBaseHold(false);
-        publishBaseStop();
-        publishStatus("waiting for front bbox/camera_info before EEF pregrasp centering");
-        return false;
-      }
-      bbox = *latest_bbox_;
-      info = *latest_camera_info_;
-    }
-
-    if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
-      publishBaseHold(false);
-      publishBaseStop();
-      publishStatus("waiting for fresh front bbox before EEF pregrasp centering");
-      return false;
-    }
-
-    const double image_width = std::max(1.0, static_cast<double>(info.width));
-    const double target_u = info.cx;
-    const double bbox_u = bbox.x + 0.5 * bbox.width;
-    const double err_u_px = bbox_u - target_u;
-    if (std::abs(err_u_px) <= front_center_tolerance_px_) {
-      publishBaseStop();
-      return true;
-    }
-
-    publishBaseHold(true);
-    publishStop();
-
-    geometry_msgs::msg::Twist cmd;
-    const double normalized_error = err_u_px / image_width;
-    cmd.angular.z = clampValue(
-      front_center_angular_sign_ * front_center_angular_gain_ * normalized_error,
-      -front_center_max_angular_speed_,
-      front_center_max_angular_speed_);
-    base_cmd_vel_pub_->publish(cmd);
-
-    std::ostringstream status;
-    status << "front bbox centering before EEF pregrasp: pixel_err_u=" << err_u_px
-           << " tolerance=" << front_center_tolerance_px_
-           << " bbox_center_u=" << bbox_u
-           << " target_u=" << target_u
-           << " angular_z=" << cmd.angular.z;
-    publishStatus(status.str());
-    return false;
   }
 
   bool prepareEefColorTriangulation(
@@ -1471,11 +1350,6 @@ private:
 
     const double bbox_u = bbox.x + 0.5 * bbox.width;
     const double bbox_v = bbox.y + 0.5 * bbox.height;
-    const bool bbox_center_valid =
-      bbox.width > 0.0 && bbox.height > 0.0 &&
-      std::isfinite(bbox_u) && std::isfinite(bbox_v) &&
-      bbox_u >= 0.0 && bbox_u < static_cast<double>(info.width) &&
-      bbox_v >= 0.0 && bbox_v < static_cast<double>(info.height);
     const bool projected_object_range_valid =
       std::isfinite(object_in_eef_camera.point.z) &&
       object_in_eef_camera.point.z > 0.0;
@@ -1489,15 +1363,10 @@ private:
       std::isfinite(projected_u) && std::isfinite(projected_v) &&
       projected_u >= 0.0 && projected_u < static_cast<double>(info.width) &&
       projected_v >= 0.0 && projected_v < static_cast<double>(info.height);
-    const bool use_bbox_center =
-      bbox_center_valid && (eef_refinement_prefer_eef_bbox_ || !projected_center_valid);
-    const bool use_projected_center = !use_bbox_center && projected_center_valid;
-    const double u = use_bbox_center ? bbox_u : (use_projected_center ? projected_u : bbox_u);
-    const double v = use_bbox_center ? bbox_v : (use_projected_center ? projected_v : bbox_v);
-    const double target_u = info.cx + eef_grasp_center_offset_u_px_;
-    const double target_v = info.cy + eef_grasp_center_offset_v_px_;
-    const double err_u_px = u - target_u;
-    const double err_v_px = v - target_v;
+    const double u = projected_center_valid ? projected_u : bbox_u;
+    const double v = projected_center_valid ? projected_v : bbox_v;
+    const double err_u_px = u - info.cx;
+    const double err_v_px = v - info.cy;
     const double z_m = projected_center_valid ?
       clampValue(
         object_in_eef_camera.point.z,
@@ -1552,9 +1421,6 @@ private:
         std::ostringstream status;
         status << "eef aligned; advancing forward before grasp: advanced_x="
                << advanced_x << "/" << eef_forward_distance_m_
-               << " pixel_err=(" << err_u_px << ", " << err_v_px << ")"
-               << " feature_source=" << (use_bbox_center ? "eef_bbox" : "front_projection")
-               << " target_center=(" << target_u << ", " << target_v << ")"
                << " front_bbox_area_ratio=" << front_area_ratio.value_or(-1.0)
                << " front_close_ratio_threshold=" << front_bbox_close_area_ratio_
                << " eef_bbox_area_ratio=" << eef_area_ratio.value_or(-1.0)
@@ -1601,9 +1467,6 @@ private:
         status << "eef pixel+rpy aligned; starting fixed-pose forward advance before grasp"
                << " distance=" << eef_forward_distance_m_
                << " speed=" << eef_forward_speed_mps_
-               << " pixel_err=(" << err_u_px << ", " << err_v_px << ")"
-               << " feature_source=" << (use_bbox_center ? "eef_bbox" : "front_projection")
-               << " target_center=(" << target_u << ", " << target_v << ")"
                << " front_bbox_start_area=" << front_bbox_area_at_eef_forward_start_.value_or(-1.0)
                << " eef_bbox_start_area=" << eef_bbox_area_at_eef_forward_start_.value_or(-1.0)
                << " front_close_area_ratio=" << front_bbox_close_area_ratio_
@@ -1678,8 +1541,7 @@ private:
     std::ostringstream status;
     status << "eef refine pixel_err=(" << err_u_px << ", " << err_v_px << ")"
            << " feature_err=(" << (bbox_u - u) << ", " << (bbox_v - v) << ")"
-           << " feature_source=" << (use_bbox_center ? "eef_bbox" : "front_projection")
-           << " target_center=(" << target_u << ", " << target_v << ")"
+           << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
            << " range_cmd=disabled"
            << " close_tol_px=" << close_tolerance_px
            << " forward_tol_px=" << forward_start_tolerance_px
@@ -2050,12 +1912,6 @@ private:
       eef_forward_joint4_rpy_roll_max_delta_rad_);
     controller_target[3] += joint4_roll_feedback;
     controller_target[3] += gripper_down_joint4_offset_rad_;
-    if (eef_forward_joint4_max_delta_rad_ > 1.0e-6) {
-      controller_target[3] = clampValue(
-        controller_target[3],
-        (*current)[3] - eef_forward_joint4_max_delta_rad_,
-        (*current)[3] + eef_forward_joint4_max_delta_rad_);
-    }
     joint3_first_target[0] =
       clampValue(joint3_first_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
     joint3_first_target[1] =
@@ -2080,9 +1936,7 @@ private:
     trajectory_msgs::msg::JointTrajectory msg;
     msg.header.stamp = stamp;
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
-    if (joint3_first_time_s > 1.0e-6) {
-      appendJointTrajectoryPoint(msg, raw_joint3_first, joint3_first_time_s);
-    }
+    appendJointTrajectoryPoint(msg, raw_joint3_first, joint3_first_time_s);
     appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
     joint_trajectory_pub_->publish(msg);
     eef_forward_last_joint_nudge_stamp_ = stamp;
@@ -2100,7 +1954,6 @@ private:
            << eef_forward_roll_joint3_weight_ << ", "
            << eef_forward_roll_joint4_weight_ << ")"
            << " joint4_roll_feedback=" << joint4_roll_feedback
-           << " joint4_max_delta=" << eef_forward_joint4_max_delta_rad_
            << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
            << " rpy_roll_err=" << rpy_error.roll
            << " duration=" << eef_forward_joint_nudge_duration_s_;
@@ -3546,21 +3399,12 @@ private:
   bool close_gripper_on_arrival_{true};
   bool require_visual_grasp_confirmation_{true};
   bool use_eef_refinement_{true};
-  bool eef_auto_init_on_start_{false};
   bool wait_for_base_approach_{false};
   bool auto_init_eef_tracker_from_object_{true};
 	  bool allow_eef_camera_info_fallback_{true};
-  bool eef_refinement_prefer_eef_bbox_{true};
-  double eef_grasp_center_offset_u_px_{0.0};
-  double eef_grasp_center_offset_v_px_{0.0};
 	  bool use_depthless_triangulation_{false};
 	  bool use_color_triangulation_after_min_depth_{false};
 	  bool use_joint_pregrasp_{true};
-  bool require_front_center_for_eef_{false};
-  double front_center_tolerance_px_{24.0};
-  double front_center_angular_gain_{0.8};
-  double front_center_max_angular_speed_{0.18};
-  double front_center_angular_sign_{-1.0};
 	  double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
   double linear_gain_{0.9};
@@ -3641,7 +3485,6 @@ private:
   double eef_forward_roll_joint4_weight_{1.0};
   double eef_forward_joint4_rpy_roll_gain_{0.6};
   double eef_forward_joint4_rpy_roll_max_delta_rad_{0.04};
-  double eef_forward_joint4_max_delta_rad_{0.0};
   double gripper_down_joint4_offset_rad_{0.0};
   bool close_on_front_bbox_shrink_{false};
   double front_bbox_close_area_ratio_{0.60};
