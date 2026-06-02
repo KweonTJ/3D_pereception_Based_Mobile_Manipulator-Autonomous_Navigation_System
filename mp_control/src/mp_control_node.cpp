@@ -1007,6 +1007,9 @@ private:
       (!use_color_triangulation_after_min_depth_ || object_x_ready_for_eef) &&
       eef_candidate;
 	    if (use_eef_now) {
+	      if (!ensureFrontCenteredBeforeEef()) {
+	        return;
+	      }
 	      publishBaseHold(true);
 	      const bool joint_pregrasp_ready =
 	        !use_joint_pregrasp_ || updateJointPregrasp();
@@ -1159,6 +1162,63 @@ private:
 
     const auto range_m = estimateRangeFromBboxSize(bbox, info);
     return range_m && *range_m <= color_triangulation_base_stop_object_x_m_;
+  }
+
+  bool ensureFrontCenteredBeforeEef()
+  {
+    if (!require_front_center_for_eef_) {
+      return true;
+    }
+
+    Bbox bbox;
+    CameraInfo info;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_bbox_ || !latest_camera_info_) {
+        publishBaseHold(false);
+        publishBaseStop();
+        publishStatus("waiting for front bbox/camera_info before EEF pregrasp centering");
+        return false;
+      }
+      bbox = *latest_bbox_;
+      info = *latest_camera_info_;
+    }
+
+    if ((now() - bbox.stamp).seconds() > max_target_age_s_) {
+      publishBaseHold(false);
+      publishBaseStop();
+      publishStatus("waiting for fresh front bbox before EEF pregrasp centering");
+      return false;
+    }
+
+    const double image_width = std::max(1.0, static_cast<double>(info.width));
+    const double target_u = info.cx;
+    const double bbox_u = bbox.x + 0.5 * bbox.width;
+    const double err_u_px = bbox_u - target_u;
+    if (std::abs(err_u_px) <= front_center_tolerance_px_) {
+      publishBaseStop();
+      return true;
+    }
+
+    publishBaseHold(true);
+    publishStop();
+
+    geometry_msgs::msg::Twist cmd;
+    const double normalized_error = err_u_px / image_width;
+    cmd.angular.z = clampValue(
+      front_center_angular_sign_ * front_center_angular_gain_ * normalized_error,
+      -front_center_max_angular_speed_,
+      front_center_max_angular_speed_);
+    base_cmd_vel_pub_->publish(cmd);
+
+    std::ostringstream status;
+    status << "front bbox centering before EEF pregrasp: pixel_err_u=" << err_u_px
+           << " tolerance=" << front_center_tolerance_px_
+           << " bbox_center_u=" << bbox_u
+           << " target_u=" << target_u
+           << " angular_z=" << cmd.angular.z;
+    publishStatus(status.str());
+    return false;
   }
 
   bool prepareEefColorTriangulation(
