@@ -279,6 +279,8 @@ private:
     require_visual_grasp_confirmation_ =
       declare_parameter<bool>("require_visual_grasp_confirmation", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
+    eef_auto_init_on_start_ =
+      declare_parameter<bool>("eef_auto_init_on_start", false);
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
     auto_init_eef_tracker_from_object_ =
       declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
@@ -776,7 +778,7 @@ private:
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     servo_start_requested_ = false;
-    publishEefAutoInitEnable(false);
+    publishEefAutoInitEnable(eef_auto_init_on_start_);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
@@ -3544,6 +3546,7 @@ private:
   bool close_gripper_on_arrival_{true};
   bool require_visual_grasp_confirmation_{true};
   bool use_eef_refinement_{true};
+  bool eef_auto_init_on_start_{false};
   bool wait_for_base_approach_{false};
   bool auto_init_eef_tracker_from_object_{true};
 	  bool allow_eef_camera_info_fallback_{true};
