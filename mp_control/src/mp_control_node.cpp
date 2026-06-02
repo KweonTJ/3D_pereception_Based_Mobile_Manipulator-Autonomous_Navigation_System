@@ -1898,11 +1898,9 @@ private:
       return false;
     }
 
-    std::array<double, 4> joint3_first_target = *current;
-    joint3_first_target[2] += eef_forward_joint3_delta_rad_;
-
-    std::array<double, 4> controller_target = joint3_first_target;
+    std::array<double, 4> controller_target = *current;
     controller_target[1] += eef_forward_joint2_delta_rad_;
+    controller_target[2] += eef_forward_joint3_delta_rad_;
     if (joint_pregrasp_preserve_gripper_roll_) {
       controller_target[3] = joint4ForPreservedEefForwardRoll(*current, controller_target);
     }
@@ -1912,44 +1910,35 @@ private:
       eef_forward_joint4_rpy_roll_max_delta_rad_);
     controller_target[3] += joint4_roll_feedback;
     controller_target[3] += gripper_down_joint4_offset_rad_;
-    joint3_first_target[0] =
-      clampValue(joint3_first_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
-    joint3_first_target[1] =
-      clampValue(joint3_first_target[1], joint_pregrasp_min_positions_[1], joint_pregrasp_max_positions_[1]);
-    joint3_first_target[3] =
-      clampValue(joint3_first_target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
     controller_target[0] =
       clampValue(controller_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
     controller_target[1] =
       clampValue(controller_target[1], joint_pregrasp_min_positions_[1], joint_pregrasp_max_positions_[1]);
     controller_target[3] =
       clampValue(controller_target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
-    const auto raw_joint3_first =
-      jointNudgeRawTargetFromControllerTarget(*current, joint3_first_target);
     const auto raw_target =
       jointNudgeRawTargetFromControllerTarget(*current, controller_target);
-    const double joint3_first_time_s =
-      eef_forward_joint_nudge_duration_s_ * eef_forward_joint3_first_duration_ratio_;
-    const double controller_joint3_delta = joint3_first_target[2] - (*current)[2];
-    const double raw_joint3_delta = raw_joint3_first[2] - (*current)[2];
+    const double controller_joint2_delta = controller_target[1] - (*current)[1];
+    const double controller_joint3_delta = controller_target[2] - (*current)[2];
+    const double controller_joint4_delta = controller_target[3] - (*current)[3];
+    const double raw_joint3_delta = raw_target[2] - (*current)[2];
 
     trajectory_msgs::msg::JointTrajectory msg;
     msg.header.stamp = stamp;
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
-    appendJointTrajectoryPoint(msg, raw_joint3_first, joint3_first_time_s);
     appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
     joint_trajectory_pub_->publish(msg);
     eef_forward_last_joint_nudge_stamp_ = stamp;
 
     std::ostringstream status;
     status << "eef forward joint nudge: current=" << formatJointArray(*current)
-           << " raw_joint3_first=" << formatJointArray(raw_joint3_first)
            << " raw_target=" << formatJointArray(raw_target)
-           << " controller_joint3_first=" << formatJointArray(joint3_first_target)
            << " controller_target=" << formatJointArray(controller_target)
+           << " simultaneous_joints=joint2,joint3,joint4"
+           << " controller_joint2_delta=" << controller_joint2_delta
            << " controller_joint3_delta=" << controller_joint3_delta
+           << " controller_joint4_delta=" << controller_joint4_delta
            << " raw_joint3_delta=" << raw_joint3_delta
-           << " joint3_first_time=" << joint3_first_time_s
            << " roll_proxy_weights=(" << eef_forward_roll_joint2_weight_ << ", "
            << eef_forward_roll_joint3_weight_ << ", "
            << eef_forward_roll_joint4_weight_ << ")"
