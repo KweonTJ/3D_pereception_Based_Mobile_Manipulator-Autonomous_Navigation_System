@@ -850,7 +850,8 @@ private:
       if (!maybe_color_object) {
         const bool front_size_close_ready =
           front_size_object &&
-          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
+          ((front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_ ||
+          isFrontBboxRangeCloseForPregrasp());
         if (front_size_close_ready) {
           maybe_object = front_size_object;
           using_latched_depth_for_pregrasp = true;
@@ -875,7 +876,8 @@ private:
         const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
         const bool front_size_close_ready =
           front_size_object &&
-          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
+          ((front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_ ||
+          isFrontBboxRangeCloseForPregrasp());
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
           maybe_object = front_size_object;
           using_latched_depth_for_pregrasp = true;
