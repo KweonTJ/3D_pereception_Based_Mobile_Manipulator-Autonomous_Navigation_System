@@ -140,7 +140,7 @@ mp_control_node:
     pregrasp_joint_min_positions: [-3.14, -1.79, -0.94, -1.79]
     pregrasp_joint_max_positions: [3.14, 1.57, 1.38, 2.04]
     eef_center_tolerance_px: 18.0
-    eef_close_tolerance_px: 70.0
+    eef_close_tolerance_px: 35.0
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
@@ -160,7 +160,7 @@ mp_control_node:
     eef_forward_speed_mps: 0.018
     # Start final forward before the stricter close-ready threshold because
     # Servo can stall while trying to remove the last few pixels of lateral error.
-    eef_forward_start_tolerance_px: 90.0
+    eef_forward_start_tolerance_px: 25.0
     # Final EEF advance uses a simultaneous joint nudge on real hardware.
     # joint2 moves slightly with joint3/joint4 so the arm actually reaches forward,
     # while the amount stays small enough to avoid covering the front Astra early.
