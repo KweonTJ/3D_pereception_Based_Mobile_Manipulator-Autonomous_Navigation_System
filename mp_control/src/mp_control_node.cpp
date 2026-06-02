@@ -850,14 +850,19 @@ private:
       if (!maybe_color_object) {
         const bool front_size_close_ready =
           front_size_object &&
-          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
+          ((front_size_object->point.x + grasp_offset_x_) <=
+           color_triangulation_base_stop_object_x_m_ ||
+           shouldHoldForEefRefinement());
         if (front_size_close_ready) {
           maybe_object = front_size_object;
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
           std::ostringstream status;
-          status << "color triangulation unavailable; using close front bbox-size object for EEF pregrasp: "
-                 << color_reason;
+          status << "color triangulation unavailable; using close front bbox-size object for EEF pregrasp"
+                 << " object_x=" << (front_size_object->point.x + grasp_offset_x_)
+                 << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
+                 << " eef_bbox_ready=" << (shouldHoldForEefRefinement() ? "true" : "false")
+                 << ": " << color_reason;
           publishStatus(status.str());
         } else {
           stable_cycles_ = 0;
@@ -875,14 +880,19 @@ private:
         const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
         const bool front_size_close_ready =
           front_size_object &&
-          (front_size_object->point.x + grasp_offset_x_) <= color_triangulation_base_stop_object_x_m_;
+          ((front_size_object->point.x + grasp_offset_x_) <=
+           color_triangulation_base_stop_object_x_m_ ||
+           shouldHoldForEefRefinement());
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
           maybe_object = front_size_object;
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
           std::ostringstream status;
           status << "color triangulation still far object_x=" << color_goal_x
-                 << "; using close front bbox-size object for EEF pregrasp";
+                 << "; using close front bbox-size object for EEF pregrasp"
+                 << " front_size_object_x=" << (front_size_object->point.x + grasp_offset_x_)
+                 << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
+                 << " eef_bbox_ready=" << (shouldHoldForEefRefinement() ? "true" : "false");
           publishStatus(status.str());
         } else {
           maybe_object = maybe_color_object;
