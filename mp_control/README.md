@@ -70,6 +70,8 @@ eef_forward_roll_joint3_weight: 0.6
 eef_forward_roll_joint4_weight: 1.0
 eef_forward_joint4_rpy_roll_gain: 0.3
 eef_forward_joint4_rpy_roll_max_delta_rad: 0.015
+eef_forward_joint4_ground_parallel_limit_rad: -1.05
+eef_forward_joint4_down_positive: true
 gripper_down_joint4_offset_rad: 0.0
 close_on_front_bbox_shrink: true
 front_bbox_close_area_ratio: 0.60
@@ -120,6 +122,8 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint_nudge_duration_s`: 추가 전진 trajectory 시간이다. joint4 방향 반전 후 토크 충격을 줄이기 위해 실제 설정은 `0.80 s`로 늦춘다.
 - `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 현재 실제 설정은 `eef_forward_roll_joint3_weight: 0.6`, `eef_forward_roll_joint4_weight: 1.0`이다. 실제 리더에서 음수 weight는 그리퍼와 EEF 카메라가 하늘을 보는 방향으로 joint4를 돌렸기 때문에 양수 weight를 사용하되, joint3 `-0.050 rad` 전개 기준 joint4 기본 보정이 약 `0.030 rad`가 되도록 크기를 줄였다.
 - `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: `/tf`에서 계산한 EE roll 오차를 joint4 목표에 추가로 반영하는 값이다. joint trajectory nudge가 Servo twist를 우회하더라도 gripper roll feedback을 잃지 않게 한다. 현재 실제 설정은 gain `0.3`, max `0.015 rad`로 제한해서 joint4가 joint2/joint3보다 크게 먼저 꺾이지 않게 한다.
+- `eef_forward_joint4_ground_parallel_limit_rad`: 추가 전진 중 joint4가 이 값에 도달하면 그리퍼/EEF 카메라가 땅과 수평에 가까운 한계 자세로 본다. 실제 리더는 `-1.05 rad`를 기준으로 두고, 이 이후에는 joint4를 더 아래로 숙이는 방향으로 회전시키지 않는다.
+- `eef_forward_joint4_down_positive`: 실제 리더에서는 joint4 값이 증가하는 방향이 그리퍼와 EEF 카메라를 바닥으로 숙이는 방향이다. 따라서 `true`로 두고, `eef_forward_joint4_ground_parallel_limit_rad`보다 큰 joint4 목표를 막는다.
 - `gripper_down_joint4_offset_rad`: pregrasp와 EEF forward joint nudge의 roll 보정 이후 joint4에 더하는 추가 오프셋이다. 현재 실제 리더는 `0.0 rad`로 둔다. 로그에서 `-0.10 rad` 오프셋이 joint4 하한 근처에서 clamp를 만들고 `eef_usb_camera_link`와 `link3` 충돌을 유발했기 때문에, 방향 보정은 roll proxy 부호로 처리하고 별도 하향 오프셋은 끈다.
 - `close_on_front_bbox_shrink / front_bbox_close_area_ratio`: EEF fixed-pose forward 시작 시점의 전면 bbox 면적을 기준으로 저장하고, 이후 전면 bbox 면적이 그 기준의 `0.60` 이하로 줄면 그리퍼 close를 시작한다.
 - `close_on_eef_bbox_shrink / eef_bbox_close_area_ratio`: 전면 bbox가 계속 크게 유지되는 상황을 보완한다. 실제 로그에서 전면 bbox ratio는 약 `1.0`으로 유지되었지만 EEF bbox는 약 `9000 px`대에서 `1700 px`대로 줄었으므로, EEF bbox 면적도 시작 면적의 `0.60` 이하가 되면 물체가 그리퍼 안쪽으로 들어온 것으로 보고 close를 시작한다.
