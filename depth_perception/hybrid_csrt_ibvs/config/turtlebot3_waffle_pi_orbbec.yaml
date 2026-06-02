@@ -40,7 +40,11 @@ csrt_ibvs_node:
     reinit_min_iou: 0.10
     reinit_max_center_jump_ratio: 0.35
     enable_base_yaw: true
-    force_straight_approach: false
+    # Once the front depth is at the near reliable limit, do not keep yawing
+    # from small bbox-center errors. Close-range yaw makes the leader drift
+    # left/right during manipulator work and destabilizes the follower because
+    # /leader/cmd_vel relays that angular command.
+    force_straight_approach: true
     loss_frame_limit: 20
     watchdog_timeout_s: 1.5
     min_bbox_size_px: 12
@@ -62,7 +66,7 @@ csrt_ibvs_node:
     depth_deadband_m: 0.025
     area_deadband_ratio: 0.006
     approach_yaw_gate_norm: 0.35
-    straight_approach_depth_m: 1.20
+    straight_approach_depth_m: 0.50
     min_forward_approach_x: 0.06
     max_linear_x: 0.14
     max_angular_z: 0.35
