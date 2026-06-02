@@ -159,12 +159,12 @@ mp_control_node:
     # This bypasses MoveIt Servo collision/singularity scaling that can stall
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
-    eef_forward_joint2_delta_rad: 0.0
+    eef_forward_joint2_delta_rad: 0.015
     eef_forward_joint3_delta_rad: -0.050
     eef_forward_joint_nudge_duration_s: 0.80
     eef_forward_joint_nudge_period_s: 0.35
-    # Give the first trajectory point enough time so joint3 visibly extends
-    # before joint2/joint4 compensation starts.
+    # Keep this parameter for compatibility, but the real final nudge now uses
+    # one synchronized trajectory point so joint2/joint3/joint4 move together.
     eef_forward_joint3_first_duration_ratio: 0.65
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # Hardware observation takes priority over the model sign. Reverse the
