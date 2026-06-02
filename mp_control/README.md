@@ -34,8 +34,8 @@ eef_refinement_start_depth_m: 0.47
 eef_yolo_pre_enable_depth_m: 0.60
 min_depth_handoff_bbox_area_ratio: 0.08
 min_depth_handoff_bbox_height_ratio: 0.40
-color_triangulation_base_stop_object_x_m: 0.23
-arm_start_max_object_x_m: 0.23
+color_triangulation_base_stop_object_x_m: 0.21
+arm_start_max_object_x_m: 0.21
 use_fallback_bbox_for_control: true
 start_servo_on_start: false
 require_visual_grasp_confirmation: true
@@ -93,7 +93,8 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `0.60 m`: 전면 depth가 아직 유효할 때 EEF YOLO를 미리 켠다.
 - `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
 - `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
-- `0.23 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. `arm_start_max_object_x_m`도 같은 `0.23 m`로 맞춰 베이스가 충분히 가까워지기 전에는 팔 단계로 넘어가지 않게 한다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.23 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
+- `0.21 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. `arm_start_max_object_x_m`도 같은 `0.21 m`로 맞춰 베이스가 충분히 가까워지기 전에는 팔 단계로 넘어가지 않게 한다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.21 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
+- `EEF_REFINE`와 handoff 작업 단계에서는 `/target/base_hold=true`와 zero `/cmd_vel`을 반복 발행한다. 그리퍼가 전면 카메라를 가려 전면 bbox/depth가 왜곡되어도 베이스 접근 루프로 되돌아가 직진하지 않게 한다.
 - `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
 - `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
 - `grasp_completion_eef_lost_timeout_s`: 이 시간 동안 EEF bbox가 새로 들어오지 않으면 EEF에서 물체가 사라진 것으로 본다.
