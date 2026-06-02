@@ -743,6 +743,7 @@ private:
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
     resetEefRefinementMotionState();
+    eef_refinement_object_in_target_.reset();
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -786,6 +787,7 @@ private:
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
     resetEefRefinementMotionState();
+    eef_refinement_object_in_target_.reset();
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -820,6 +822,21 @@ private:
       return;
     }
     captureEefStayRollReference(eef_tf);
+
+    if (stage_ == GraspStage::EEF_REFINE) {
+      publishBaseHold(true);
+      publishBaseStop();
+      if (!eef_refinement_object_in_target_) {
+        eef_refinement_object_in_target_ = latestDepthObjectInTarget();
+      }
+      if (!eef_refinement_object_in_target_) {
+        publishStop();
+        publishStatus("EEF refinement active; holding base while waiting for stored object target");
+        return;
+      }
+      updateEefRefinement(*eef_refinement_object_in_target_, eef_tf);
+      return;
+    }
 
     std::string object_block_reason;
     auto maybe_object = estimateObjectPoint(&object_block_reason);
@@ -1007,6 +1024,7 @@ private:
       eef_candidate;
 	    if (use_eef_now) {
 	      publishBaseHold(true);
+	      publishBaseStop();
 	      const bool joint_pregrasp_ready =
 	        !use_joint_pregrasp_ || updateJointPregrasp();
 	      if (!joint_pregrasp_ready) {
@@ -1025,6 +1043,7 @@ private:
 	      if (!prepareEefRefinement(object)) {
 	        return;
       }
+      eef_refinement_object_in_target_ = object;
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
       captureEefRpyReference(eef_tf);
@@ -1337,6 +1356,9 @@ private:
     const geometry_msgs::msg::PointStamped & object_in_target,
     const geometry_msgs::msg::TransformStamped & eef_tf)
   {
+    publishBaseHold(true);
+    publishBaseStop();
+
     if (continueAfterCloseUntilEefBboxLost(
         eef_tf,
         "eef camera refined grasp reached; width-aware gripper command sent"))
@@ -3005,6 +3027,9 @@ private:
 
   void updateHandoff()
   {
+    publishBaseHold(true);
+    publishBaseStop();
+
     switch (stage_) {
       case GraspStage::HANDOFF_LIFT:
         updateHandoffLift();
@@ -3152,6 +3177,7 @@ private:
 
     done_ = true;
     active_ = false;
+    eef_refinement_object_in_target_.reset();
     publishBaseHold(false);
     publishCargoEvent("loaded", true);
     publishStatus("cargo_loaded: placed on follower side after 180deg turn", true);

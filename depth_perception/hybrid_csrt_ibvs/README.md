@@ -238,8 +238,6 @@ approach_yaw_gate_norm: 0.35
 min_forward_approach_x: 0.06
 max_linear_x: 0.14
 max_angular_z: 0.35
-force_straight_approach: true
-straight_approach_depth_m: 0.50
 ```
 
 The front tracker/base controller continues approaching to the 0.30 m target.
