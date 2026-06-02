@@ -581,6 +581,12 @@ private:
     if (!std::isfinite(eef_front_camera_offset_z_m_)) {
       eef_front_camera_offset_z_m_ = 0.0;
     }
+    if (!std::isfinite(eef_grasp_center_offset_u_px_)) {
+      eef_grasp_center_offset_u_px_ = 0.0;
+    }
+    if (!std::isfinite(eef_grasp_center_offset_v_px_)) {
+      eef_grasp_center_offset_v_px_ = 0.0;
+    }
     color_triangulation_base_stop_object_x_m_ =
       std::max(0.01, color_triangulation_base_stop_object_x_m_);
     color_triangulation_min_object_x_m_ =
