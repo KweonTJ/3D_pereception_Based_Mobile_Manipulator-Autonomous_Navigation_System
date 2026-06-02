@@ -830,6 +830,8 @@ private:
       auto front_size_object = estimateObjectPointFromFrontBboxSize();
       auto depth_reference = front_size_object ? front_size_object :
         (maybe_object ? maybe_object : latestDepthObjectInTarget());
+      const bool front_bbox_size_close_ready = isFrontBboxCloseBySize();
+      const bool eef_bbox_ready = shouldHoldForEefRefinement();
       if (depth_reference) {
         prepareEefColorTriangulation(*depth_reference, &color_reason);
       } else {
@@ -849,19 +851,28 @@ private:
 
       if (!maybe_color_object) {
         const bool front_size_close_ready =
-          front_size_object &&
+          (front_size_object &&
           ((front_size_object->point.x + grasp_offset_x_) <=
            color_triangulation_base_stop_object_x_m_ ||
-           shouldHoldForEefRefinement());
+           eef_bbox_ready)) ||
+          (front_bbox_size_close_ready && eef_bbox_ready);
         if (front_size_close_ready) {
-          maybe_object = front_size_object;
+          maybe_object = front_size_object ? front_size_object : depth_reference;
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
           std::ostringstream status;
-          status << "color triangulation unavailable; using close front bbox-size object for EEF pregrasp"
-                 << " object_x=" << (front_size_object->point.x + grasp_offset_x_)
+          status << "color triangulation unavailable; using close visual bbox for EEF pregrasp"
+                 << " object_x=";
+          if (front_size_object) {
+            status << (front_size_object->point.x + grasp_offset_x_);
+          } else if (maybe_object) {
+            status << (maybe_object->point.x + grasp_offset_x_);
+          } else {
+            status << "unavailable";
+          }
+          status << " front_bbox_size_ready=" << (front_bbox_size_close_ready ? "true" : "false")
                  << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
-                 << " eef_bbox_ready=" << (shouldHoldForEefRefinement() ? "true" : "false")
+                 << " eef_bbox_ready=" << (eef_bbox_ready ? "true" : "false")
                  << ": " << color_reason;
           publishStatus(status.str());
         } else {
@@ -879,20 +890,29 @@ private:
       } else {
         const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
         const bool front_size_close_ready =
-          front_size_object &&
+          (front_size_object &&
           ((front_size_object->point.x + grasp_offset_x_) <=
            color_triangulation_base_stop_object_x_m_ ||
-           shouldHoldForEefRefinement());
+           eef_bbox_ready)) ||
+          (front_bbox_size_close_ready && eef_bbox_ready);
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
-          maybe_object = front_size_object;
+          maybe_object = front_size_object ? front_size_object : depth_reference;
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
           std::ostringstream status;
           status << "color triangulation still far object_x=" << color_goal_x
-                 << "; using close front bbox-size object for EEF pregrasp"
-                 << " front_size_object_x=" << (front_size_object->point.x + grasp_offset_x_)
+                 << "; using close visual bbox for EEF pregrasp"
+                 << " front_size_object_x=";
+          if (front_size_object) {
+            status << (front_size_object->point.x + grasp_offset_x_);
+          } else if (maybe_object) {
+            status << (maybe_object->point.x + grasp_offset_x_);
+          } else {
+            status << "unavailable";
+          }
+          status << " front_bbox_size_ready=" << (front_bbox_size_close_ready ? "true" : "false")
                  << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
-                 << " eef_bbox_ready=" << (shouldHoldForEefRefinement() ? "true" : "false");
+                 << " eef_bbox_ready=" << (eef_bbox_ready ? "true" : "false");
           publishStatus(status.str());
         } else {
           maybe_object = maybe_color_object;
@@ -1116,6 +1136,23 @@ private:
         "front bbox size object TF transform failed: %s", ex.what());
       return std::nullopt;
     }
+  }
+
+  bool isFrontBboxCloseBySize()
+  {
+    Bbox bbox;
+    CameraInfo info;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_bbox_ || !latest_camera_info_) {
+        return false;
+      }
+      bbox = *latest_bbox_;
+      info = *latest_camera_info_;
+    }
+
+    return (now() - bbox.stamp).seconds() <= max_target_age_s_ &&
+      shouldHandoffByBboxSize(bbox, info);
   }
 
   bool prepareEefColorTriangulation(
