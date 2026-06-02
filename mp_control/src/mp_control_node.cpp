@@ -538,7 +538,7 @@ private:
     eef_forward_joint_nudge_period_s_ =
       std::max(0.05, eef_forward_joint_nudge_period_s_);
     eef_forward_joint3_first_duration_ratio_ =
-      clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
+      clampValue(eef_forward_joint3_first_duration_ratio_, 0.0, 0.9);
     if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
       eef_forward_roll_joint4_weight_ = 1.0;
     }
@@ -1960,7 +1960,9 @@ private:
     trajectory_msgs::msg::JointTrajectory msg;
     msg.header.stamp = stamp;
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
-    appendJointTrajectoryPoint(msg, raw_joint3_first, joint3_first_time_s);
+    if (joint3_first_time_s > 1.0e-6) {
+      appendJointTrajectoryPoint(msg, raw_joint3_first, joint3_first_time_s);
+    }
     appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
     joint_trajectory_pub_->publish(msg);
     eef_forward_last_joint_nudge_stamp_ = stamp;
