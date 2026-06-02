@@ -256,6 +256,12 @@ private:
       declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
     allow_eef_camera_info_fallback_ =
       declare_parameter<bool>("allow_eef_camera_info_fallback", true);
+    eef_refinement_prefer_eef_bbox_ =
+      declare_parameter<bool>("eef_refinement_prefer_eef_bbox", true);
+    eef_grasp_center_offset_u_px_ =
+      declare_parameter<double>("eef_grasp_center_offset_u_px", 0.0);
+    eef_grasp_center_offset_v_px_ =
+      declare_parameter<double>("eef_grasp_center_offset_v_px", 0.0);
     eef_camera_fallback_width_px_ =
       declare_parameter<int>("eef_camera_fallback_width_px", 640);
     eef_camera_fallback_height_px_ =
