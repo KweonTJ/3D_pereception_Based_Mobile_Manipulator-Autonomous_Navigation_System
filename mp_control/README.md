@@ -60,16 +60,17 @@ eef_forward_distance_m: 0.08
 eef_forward_speed_mps: 0.018
 eef_forward_start_tolerance_px: 90.0
 eef_forward_use_joint_nudge: true
-eef_forward_joint2_delta_rad: 0.0
+eef_forward_joint2_delta_rad: 0.020
 eef_forward_joint3_delta_rad: -0.050
 eef_forward_joint_nudge_duration_s: 0.45
 eef_forward_joint_nudge_period_s: 0.35
 eef_forward_joint3_first_duration_ratio: 0.0
 eef_forward_roll_joint2_weight: 0.0
-eef_forward_roll_joint3_weight: 1.2
+eef_forward_roll_joint3_weight: 0.6
 eef_forward_roll_joint4_weight: 1.0
 eef_forward_joint4_rpy_roll_gain: 0.6
 eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
+eef_forward_joint4_max_delta_rad: 0.030
 gripper_down_joint4_offset_rad: 0.0
 close_on_front_bbox_shrink: true
 front_bbox_close_area_ratio: 0.60
@@ -112,12 +113,12 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
 - `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 켜져 있다. `pregrasp_ready_joint_positions`는 최종 controller 기준 목표이고, `mp_control`은 raw 토픽으로 보내기 전에 joint3만 미리 반전한다. 이후 `joint_trajectory_transformer.py`가 다시 반전해서 arm controller에는 의도한 최종 joint3 방향으로 들어간다. 이때 도달 판정은 raw 목표가 아니라 controller 목표와 `/joint_states`를 비교한다.
 - `0.06 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다. 실제 파지 직전에는 EEF 고정자세 전진을 별도로 수행하므로, 이 값은 물체 앞에서 너무 일찍 멈추지 않게 작게 둔다.
-- `eef_forward_use_joint_nudge`: 실제 로봇에서는 최종 전진을 MoveIt Servo twist에만 맡기지 않는다. Servo가 singularity/collision scaling으로 멈추는 경우가 있어서, joint trajectory nudge로 EEF를 추가 전진시킨다. 실제 리더에서는 joint3과 joint4가 시간차를 두고 움직이면 팔이 최대로 펴지는 순간 베이스/그리퍼 방향이 튀므로, joint3과 joint4를 같은 trajectory point에서 동시에 움직인다. 이때 joint4 자체를 고정하는 것이 아니라, 그리퍼의 roll proxy와 TF roll 오차를 기준으로 joint4를 움직인다.
+- `eef_forward_use_joint_nudge`: 실제 로봇에서는 최종 전진을 MoveIt Servo twist에만 맡기지 않는다. Servo가 singularity/collision scaling으로 멈추는 경우가 있어서, joint trajectory nudge로 EEF를 추가 전진시킨다. 실제 리더에서는 조인트가 시간차를 두고 움직이면 팔이 최대로 펴지는 순간 베이스/그리퍼 방향이 튀므로, joint2, joint3, joint4 목표를 같은 trajectory point에 넣어 동시에 움직인다. 이때 joint4 자체를 고정하는 것이 아니라, 그리퍼의 roll proxy와 TF roll 오차를 기준으로 joint4를 움직인다.
 - `eef_forward_start_tolerance_px`: final forward 시작 기준이다. `eef_close_tolerance_px`보다 넓게 잡아, Servo가 마지막 픽셀 오차를 줄이다가 멈추는 경우에도 조인트 nudge 전진 단계로 넘어가게 한다.
-- `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 전면 Astra가 아직 파지 완료 판정에 필요하므로 추가 전진 단계에서는 joint2를 더 내리지 않는다. joint3 추가 전개가 실제 로봇에서 보이도록 실제 설정은 joint3 delta를 `-0.050 rad`로 둔다. raw 토픽으로 나가기 전 joint3 delta는 기존 transformer 경로와 맞게 pre-invert된다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
+- `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 추가 전진에서 joint2도 같이 움직여 팔이 앞으로 더 나가도록 실제 설정은 `joint2 +0.020 rad`, `joint3 -0.050 rad`로 둔다. raw 토픽으로 나가기 전 joint3 delta는 기존 transformer 경로와 맞게 pre-invert된다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
 - `eef_forward_joint3_first_duration_ratio`: 전체 nudge 시간 중 첫 joint3-only point에 배정하는 비율이다. 실제 리더 설정은 `0.0`이라 joint3-only 중간 point를 만들지 않고, joint3과 joint4 보정 목표를 같은 final point에 넣어 동시에 움직인다.
-- `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 최신 실제 리더 확인에서 joint3이 음수 방향으로 펴질 때 joint4도 음수 방향으로 움직이면 그리퍼와 EEF 카메라가 계속 공중을 보는 문제가 확인되었다. 이후 `1.5` 보정에서는 팔이 다 펴지기 전에 그리퍼와 EEF 카메라가 땅을 보는 문제가 생겨, 현재 실제 설정은 `eef_forward_roll_joint3_weight: 1.2`, `eef_forward_roll_joint4_weight: 1.0`으로 낮췄다. 로그 기준 `controller_joint3_delta=-0.05`이면 joint4 roll proxy 보정은 약 `+0.060 rad`가 된다.
-- `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: `/tf`에서 계산한 EE roll 오차를 joint4 목표에 추가로 반영하는 값이다. joint trajectory nudge가 Servo twist를 우회하더라도 gripper roll feedback을 잃지 않게 한다.
+- `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 최신 실제 리더 확인에서 joint3이 음수 방향으로 펴질 때 joint4도 음수 방향으로 움직이면 그리퍼와 EEF 카메라가 계속 공중을 보는 문제가 확인되었다. 이후 큰 보정에서는 팔이 다 펴지기 전에 그리퍼와 EEF 카메라가 땅을 보는 문제가 생겨, 현재 실제 설정은 `eef_forward_roll_joint3_weight: 0.6`, `eef_forward_roll_joint4_weight: 1.0`으로 낮췄다. 로그 기준 `controller_joint3_delta=-0.05`이면 joint4 roll proxy 보정은 약 `+0.030 rad`가 된다.
+- `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad / eef_forward_joint4_max_delta_rad`: `/tf`에서 계산한 EE roll 오차를 joint4 목표에 추가로 반영하는 값이다. `eef_forward_joint4_max_delta_rad`는 roll proxy와 TF feedback을 더한 뒤 현재 joint4 기준 최종 변화량을 `0.030 rad` 안으로 제한한다.
 - `gripper_down_joint4_offset_rad`: pregrasp와 EEF forward joint nudge의 roll 보정 이후 joint4에 더하는 추가 오프셋이다. 현재 실제 리더는 `0.0 rad`로 둔다. 로그에서 `-0.10 rad` 오프셋이 joint4 하한 근처에서 clamp를 만들고 `eef_usb_camera_link`와 `link3` 충돌을 유발했기 때문에, 방향 보정은 roll proxy 부호로 처리하고 별도 하향 오프셋은 끈다.
 - `close_on_front_bbox_shrink / front_bbox_close_area_ratio`: EEF fixed-pose forward 시작 시점의 전면 bbox 면적을 기준으로 저장하고, 이후 전면 bbox 면적이 그 기준의 `0.60` 이하로 줄면 그리퍼 close를 시작한다.
 - `close_on_eef_bbox_shrink / eef_bbox_close_area_ratio`: 전면 bbox가 계속 크게 유지되는 상황을 보완한다. 실제 로그에서 전면 bbox ratio는 약 `1.0`으로 유지되었지만 EEF bbox는 약 `9000 px`대에서 `1700 px`대로 줄었으므로, EEF bbox 면적도 시작 면적의 `0.60` 이하가 되면 물체가 그리퍼 안쪽으로 들어온 것으로 보고 close를 시작한다.
