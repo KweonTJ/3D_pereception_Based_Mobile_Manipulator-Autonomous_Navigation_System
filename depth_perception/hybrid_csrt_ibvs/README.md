@@ -238,6 +238,8 @@ approach_yaw_gate_norm: 0.35
 min_forward_approach_x: 0.06
 max_linear_x: 0.14
 max_angular_z: 0.35
+force_straight_approach: true
+straight_approach_depth_m: 0.50
 ```
 
 The front tracker/base controller continues approaching to the 0.30 m target.
@@ -247,6 +249,12 @@ the Astra near-depth limit; the previous `0.08` target could settle with
 `vx=0.000` while the grasp stack was still waiting for close-range handoff.
 `mp_control` stops trusting new front depth at 0.47 m and then narrows the
 remaining distance with front RGB + EEF RGB triangulation.
+At this close range the real configuration forces straight approach. Small
+front bbox-center errors no longer generate `angular.z` once the depth is near
+0.50 m or unavailable, so the leader does not keep yawing left/right while the
+manipulator is preparing to grasp. This also prevents the relayed
+`/leader/cmd_vel` angular command from making the follower unstable during the
+leader task phase.
 
 The active real-robot configuration is in:
 
