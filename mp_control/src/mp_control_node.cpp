@@ -3460,6 +3460,9 @@ private:
   bool wait_for_base_approach_{false};
   bool auto_init_eef_tracker_from_object_{true};
 	  bool allow_eef_camera_info_fallback_{true};
+  bool eef_refinement_prefer_eef_bbox_{true};
+  double eef_grasp_center_offset_u_px_{0.0};
+  double eef_grasp_center_offset_v_px_{0.0};
 	  bool use_depthless_triangulation_{false};
 	  bool use_color_triangulation_after_min_depth_{false};
 	  bool use_joint_pregrasp_{true};
