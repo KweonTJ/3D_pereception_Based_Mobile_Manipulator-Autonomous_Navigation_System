@@ -1470,6 +1470,9 @@ private:
         std::ostringstream status;
         status << "eef aligned; advancing forward before grasp: advanced_x="
                << advanced_x << "/" << eef_forward_distance_m_
+               << " pixel_err=(" << err_u_px << ", " << err_v_px << ")"
+               << " feature_source=" << (use_bbox_center ? "eef_bbox" : "front_projection")
+               << " target_center=(" << target_u << ", " << target_v << ")"
                << " front_bbox_area_ratio=" << front_area_ratio.value_or(-1.0)
                << " front_close_ratio_threshold=" << front_bbox_close_area_ratio_
                << " eef_bbox_area_ratio=" << eef_area_ratio.value_or(-1.0)
@@ -1516,6 +1519,9 @@ private:
         status << "eef pixel+rpy aligned; starting fixed-pose forward advance before grasp"
                << " distance=" << eef_forward_distance_m_
                << " speed=" << eef_forward_speed_mps_
+               << " pixel_err=(" << err_u_px << ", " << err_v_px << ")"
+               << " feature_source=" << (use_bbox_center ? "eef_bbox" : "front_projection")
+               << " target_center=(" << target_u << ", " << target_v << ")"
                << " front_bbox_start_area=" << front_bbox_area_at_eef_forward_start_.value_or(-1.0)
                << " eef_bbox_start_area=" << eef_bbox_area_at_eef_forward_start_.value_or(-1.0)
                << " front_close_area_ratio=" << front_bbox_close_area_ratio_
