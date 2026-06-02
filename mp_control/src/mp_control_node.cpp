@@ -1589,7 +1589,8 @@ private:
     std::ostringstream status;
     status << "eef refine pixel_err=(" << err_u_px << ", " << err_v_px << ")"
            << " feature_err=(" << (bbox_u - u) << ", " << (bbox_v - v) << ")"
-           << " feature_source=" << (projected_center_valid ? "front_projection" : "eef_bbox")
+           << " feature_source=" << (use_bbox_center ? "eef_bbox" : "front_projection")
+           << " target_center=(" << target_u << ", " << target_v << ")"
            << " range_cmd=disabled"
            << " close_tol_px=" << close_tolerance_px
            << " forward_tol_px=" << forward_start_tolerance_px
