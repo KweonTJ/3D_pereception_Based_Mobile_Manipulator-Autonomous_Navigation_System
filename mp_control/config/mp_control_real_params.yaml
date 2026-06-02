@@ -79,10 +79,11 @@ mp_control_node:
     # can place the object beside the gripper even when the projection says aligned.
     eef_refinement_prefer_eef_bbox: true
     # Pixel offset from EEF optical center to the actual gripper grasp center.
-    # Tune only if the object is consistently centered in the EEF image but still
-    # lands beside the gripper.
-    eef_grasp_center_offset_u_px: 0.0
-    eef_grasp_center_offset_v_px: 0.0
+    # Latest real logs show the EEF bbox centered near (85, 159) while the
+    # calibrated optical center is (178, 114), so the gripper target must be
+    # shifted left/down before starting the final forward joint nudge.
+    eef_grasp_center_offset_u_px: -90.0
+    eef_grasp_center_offset_v_px: 45.0
     eef_camera_fallback_width_px: 320
     eef_camera_fallback_height_px: 240
     eef_camera_fallback_fx: 554.0
