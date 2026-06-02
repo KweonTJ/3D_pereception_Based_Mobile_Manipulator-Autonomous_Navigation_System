@@ -43,6 +43,10 @@ mp_control_node:
     # the EEF camera no longer sees a fresh object bbox.
     require_visual_grasp_confirmation: true
     use_eef_refinement: true
+    # Keep EEF YOLO enabled from the beginning of the grasp sequence.
+    # Early EEF bbox history makes front/EFF color alignment more stable than
+    # enabling it only after the depth handoff.
+    eef_auto_init_on_start: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: false
     use_depthless_triangulation: false
