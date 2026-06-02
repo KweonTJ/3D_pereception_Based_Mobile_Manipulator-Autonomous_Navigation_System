@@ -171,7 +171,7 @@ mp_control_node:
     # negative the gripper/EEF camera still faces up, so joint4 must move
     # positive while joint3 extends negative.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: 1.0
+    eef_forward_roll_joint3_weight: 1.5
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.6
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.04
