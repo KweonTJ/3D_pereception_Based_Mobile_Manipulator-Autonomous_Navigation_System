@@ -1110,6 +1110,28 @@ private:
     }
   }
 
+  bool isFrontBboxRangeCloseForPregrasp()
+  {
+    Bbox bbox;
+    CameraInfo info;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_bbox_ || !latest_camera_info_) {
+        return false;
+      }
+      bbox = *latest_bbox_;
+      info = *latest_camera_info_;
+    }
+
+    if ((now() - bbox.stamp).seconds() > max_target_age_s_ ||
+        !shouldHandoffByBboxSize(bbox, info)) {
+      return false;
+    }
+
+    const auto range_m = estimateRangeFromBboxSize(bbox, info);
+    return range_m && *range_m <= color_triangulation_base_stop_object_x_m_;
+  }
+
   bool prepareEefColorTriangulation(
     const geometry_msgs::msg::PointStamped & object_in_target,
     std::string * block_reason)
