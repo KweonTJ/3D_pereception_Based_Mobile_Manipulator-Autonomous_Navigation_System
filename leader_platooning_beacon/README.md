@@ -33,3 +33,50 @@ relay를 끄고 싶으면 다음처럼 실행한다.
 ```bash
 ros2 launch turtlebot3_manipulation_bringup hardware.launch.py start_state_relays:=false
 ```
+
+## 리더 키보드 텔레옵 플래투닝
+
+리더를 pick/place 작업 없이 키보드 텔레옵으로만 움직이면서 팔로워가 따라오게 할 때는 전용 런치를 사용한다.
+
+```bash
+cd ~/turtlebot3_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch leader_platooning_beacon leader_teleop_platooning.launch.py
+```
+
+이 런치는 다음만 실행한다.
+
+```text
+turtlebot3_manipulation_bringup hardware.launch.py
+leader_task_manager_node
+leader_platooning_beacon_node
+leader_to_follower_domain_bridge.py
+robot_status_uploader.py
+```
+
+`mp_control`, tracker, Servo, YOLO는 실행하지 않는다. 따라서 리더가 `/cmd_vel`로 움직이면 `leader_platooning_beacon_node`가 `/leader/cmd_vel`로 중계하고, `/odom`은 `/leader/odom`으로 중계된다. domain bridge는 이 `/leader/*` 토픽들을 팔로워 도메인으로 넘긴다.
+
+키보드 텔레옵은 별도 터미널에서 실행한다.
+
+```bash
+cd ~/turtlebot3_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+export TURTLEBOT3_MODEL=waffle_pi
+ros2 run turtlebot3_teleop teleop_keyboard
+```
+
+리더에서 확인할 토픽:
+
+```bash
+ros2 topic echo /leader/follower_enable --once
+ros2 topic echo /leader/platoon_mode --once
+ros2 topic echo /leader/heartbeat --once
+ros2 topic echo /leader/odom --once
+ros2 topic echo /leader/cmd_vel --once
+ros2 topic echo /battery_state --once
+ros2 topic echo /sensor_state --once
+```
+
+`/battery_state`, `/sensor_state`가 나오지 않으면 새 런치가 아니라 다른 텔레옵용 런치를 실행했거나 `start_state_relays:=false`로 실행한 상태다. 새 런치의 기본값은 `start_state_relays:=true`다.
