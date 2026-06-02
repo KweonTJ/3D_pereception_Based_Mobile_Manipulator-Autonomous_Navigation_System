@@ -90,9 +90,9 @@ mp_control_node:
     # Front depth is trusted only until 0.47 m. Once that near limit is reached,
     # depth is ignored and front RGB + EEF RGB triangulation keeps the base
     # approaching until color_triangulation_base_stop_object_x_m.
-    eef_refinement_start_object_x_m: 0.30
+    eef_refinement_start_object_x_m: 0.20
     arm_start_max_error_m: 0.50
-    arm_start_max_object_x_m: 0.30
+    arm_start_max_object_x_m: 0.20
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
@@ -211,7 +211,7 @@ mp_control_node:
     eef_front_camera_offset_x_m: -0.05
     eef_front_camera_offset_y_m: 0.0
     eef_front_camera_offset_z_m: 0.15
-    color_triangulation_base_stop_object_x_m: 0.30
+    color_triangulation_base_stop_object_x_m: 0.20
     color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019
