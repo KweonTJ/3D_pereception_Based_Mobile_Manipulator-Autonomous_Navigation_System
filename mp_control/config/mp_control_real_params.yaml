@@ -165,7 +165,7 @@ mp_control_node:
     eef_forward_joint_nudge_period_s: 0.35
     # Give the first trajectory point enough time so joint3 visibly extends
     # before joint2/joint4 compensation starts.
-    eef_forward_joint3_first_duration_ratio: 0.65
+    eef_forward_joint3_first_duration_ratio: 0.0
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # Hardware observation takes priority over the model sign: with joint4 moving
     # negative the gripper/EEF camera still faces up, so joint4 must move
