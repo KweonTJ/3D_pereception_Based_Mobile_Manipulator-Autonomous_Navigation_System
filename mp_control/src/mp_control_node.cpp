@@ -168,7 +168,8 @@ private:
     HANDOFF_LIFT,
     HANDOFF_ROTATE,
     HANDOFF_PLACE,
-    HANDOFF_RELEASE
+    HANDOFF_RELEASE,
+    HANDOFF_STAY
   };
 
   struct Bbox
@@ -431,6 +432,10 @@ private:
       declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
     handoff_release_settle_s_ =
       declare_parameter<double>("handoff_release_settle_s", 0.5);
+    handoff_stay_joint_positions_ =
+      declare_parameter<std::vector<double>>(
+      "handoff_stay_joint_positions",
+      std::vector<double>{0.104311, 0.027612, -0.001534, -1.638291});
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
@@ -565,6 +570,8 @@ private:
     handoff_rotate_angular_speed_rad_s_ =
       std::max(0.05, std::abs(handoff_rotate_angular_speed_rad_s_));
     handoff_release_settle_s_ = std::max(0.0, handoff_release_settle_s_);
+    handoff_stay_joint_positions_ =
+      normalizedJointVector(handoff_stay_joint_positions_, {0.104311, 0.027612, -0.001534, -1.638291});
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
