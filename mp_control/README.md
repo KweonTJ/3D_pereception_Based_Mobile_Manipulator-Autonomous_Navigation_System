@@ -49,7 +49,7 @@ pregrasp_preserve_gripper_roll: true
 pregrasp_roll_joint2_weight: 1.0
 pregrasp_roll_joint3_weight: 1.0
 pregrasp_roll_joint4_weight: 1.0
-pregrasp_reverse_joint3_delta: true
+pregrasp_reverse_joint3_delta: false
 pregrasp_hold_current_duration_s: 0.0
 pregrasp_sync_steps: 1
 pregrasp_joint_tolerance_rad: 0.04
@@ -121,11 +121,11 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `pregrasp_sync_steps`: 기본값은 `1`이다. pregrasp trajectory에는 joint1~4가 모두 들어간 단일 목표 point만 들어가며, joint2/3/4가 같은 `time_from_start`로 동시에 목표에 도달하도록 한다. 이 값을 2 이상으로 올리면 중간 waypoint가 생겨 실제 로봇에서 끊긴 동작처럼 보일 수 있으므로 실제 로봇에서는 1을 유지한다.
 - `pregrasp_joint_tolerance_rad`: `/joint_states`가 pregrasp 목표에 이 오차 안으로 들어와야 EEF 보정과 그리퍼 닫기를 허용한다.
 - `pregrasp_republish_period_s`: arm controller가 1회 trajectory를 놓치면 같은 pregrasp trajectory를 주기적으로 재발행한다.
-- `pregrasp_reverse_joint3_delta`: 실제 로봇 설정에서는 켜져 있다. `pregrasp_ready_joint_positions`는 최종 controller 기준 목표이고, `mp_control`은 raw 토픽으로 보내기 전에 joint3만 미리 반전한다. 이후 `joint_trajectory_transformer.py`가 다시 반전해서 arm controller에는 의도한 최종 joint3 방향으로 들어간다. 이때 도달 판정은 raw 목표가 아니라 controller 목표와 `/joint_states`를 비교한다.
+- `pregrasp_reverse_joint3_delta`: 실제 리더 런치에서는 `false`로 둔다. joint3 방향 반전은 `joint_trajectory_transformer.py` 한 곳에서만 처리한다. `mp_control`에서 미리 한 번 반전하고 transformer에서 다시 반전하면 보정이 상쇄되어, 실제 joint3이 기존 충돌 방향으로 움직일 수 있다. 최근 로그에서 pregrasp가 `max_joint_err` 0.6~1.5 rad로 20초 가까이 완료되지 않았으므로, 다음 실행 로그에는 조인트별 `joint_err`, `current`, `controller_target`, `raw_target`도 함께 출력한다.
 - `0.06 m`: 삼각 측량된 물체 위치에서 EEF pregrasp standoff로 남기는 거리다. 실제 파지 직전에는 EEF 고정자세 전진을 별도로 수행하므로, 이 값은 물체 앞에서 너무 일찍 멈추지 않게 작게 둔다.
 - `eef_forward_use_joint_nudge`: 실제 로봇에서는 최종 전진을 MoveIt Servo twist에만 맡기지 않는다. Servo가 singularity/collision scaling으로 멈추는 경우가 있어서, joint2/joint3/joint4를 하나의 trajectory point에 함께 넣어 같은 `time_from_start`로 동시에 움직인다. 이때 joint4 자체를 고정하는 것이 아니라, 그리퍼의 roll proxy와 TF roll 오차를 기준으로 joint4를 움직인다.
 - `eef_forward_start_tolerance_px`: final forward 시작 기준이다. `eef_close_tolerance_px`보다 넓게 잡아, Servo가 마지막 픽셀 오차를 줄이다가 멈추는 경우에도 조인트 nudge 전진 단계로 넘어가게 한다.
-- `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 실제 설정은 `joint2=0.025 rad`, `joint3=-0.075 rad`이며, joint4는 같은 목표 point에서 그리퍼 roll 유지값으로 계산된다. 이전 `joint2=0.015 rad`, `joint3=-0.050 rad`는 추가 전진량이 작아 물체 앞에서 팔이 충분히 뻗지 못했기 때문에 키웠다. raw 토픽으로 나가기 전 joint3 delta는 기존 transformer 경로와 맞게 pre-invert된다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
+- `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 실제 설정은 `joint2=0.025 rad`, `joint3=-0.075 rad`이며, joint4는 같은 목표 point에서 그리퍼 roll 유지값으로 계산된다. 이전 `joint2=0.015 rad`, `joint3=-0.050 rad`는 추가 전진량이 작아 물체 앞에서 팔이 충분히 뻗지 못했기 때문에 키웠다. raw 토픽으로 나간 뒤 joint3 delta 반전은 `joint_trajectory_transformer.py`가 단독으로 처리한다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
 - `eef_forward_joint3_first_duration_ratio`: 기존 순차 전개 호환용 파라미터다. 현재 실제 리더의 final nudge는 단일 목표 point를 사용하므로 joint3-only 선행 point를 만들지 않는다.
 - `eef_forward_joint_nudge_duration_s`: 추가 전진 trajectory 시간이다. joint4 방향 반전 후 토크 충격을 줄이기 위해 실제 설정은 `0.80 s`로 늦춘다.
 - `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 현재 실제 설정은 `eef_forward_roll_joint3_weight: 0.6`, `eef_forward_roll_joint4_weight: 1.0`이다. 실제 리더에서 음수 weight는 그리퍼와 EEF 카메라가 하늘을 보는 방향으로 joint4를 돌렸기 때문에 양수 weight를 사용하되, joint3 `-0.075 rad` 전개 기준 joint4가 joint2/3보다 과하게 먼저 꺾이지 않도록 roll feedback과 ground-parallel limit으로 제한한다.
