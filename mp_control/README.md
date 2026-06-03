@@ -177,6 +177,17 @@ eef_bbox_topic: /target/eef_init_bbox
 
 즉 실제 파지 제어는 EEF YOLO bbox를 직접 사용한다. EEF용 `hybrid_csrt_ibvs`는 디버그용으로 띄울 수 있지만 `/target/eef_tracked_bbox`는 현재 실제 파지 제어 입력이 아니다.
 
+EEF YOLO는 전면 카메라와 별도 ROI를 사용한다. 마지막 실험에서 EEF 화면 왼쪽 반사/배경을 물체로 잡아 `/mp_control/status`가 `after depth limit; waiting for close-range color triangulation`에 머물렀기 때문에, EEF 자동 bbox는 기본적으로 화면 왼쪽 25%와 최상단 10%를 제외한다.
+
+```text
+auto_eef_init_roi_min_x_ratio:=0.25
+auto_eef_init_roi_max_x_ratio:=0.98
+auto_eef_init_roi_min_y_ratio:=0.10
+auto_eef_init_roi_max_y_ratio:=1.00
+```
+
+또한 EEF YOLO는 감지 실패 시 마지막 bbox를 재사용하지 않는다. 잘못 잡힌 EEF bbox가 계속 fresh 상태로 남으면 물체-로봇 삼각 측량과 pregrasp handoff가 오히려 막히기 때문이다. 실행 중에는 `/target/auto_eef_init_bbox_status`에서 `roi=x[0.25,0.98] y[0.10,1.00]` 거부 로그가 나오는지 확인한다.
+
 EEF 보정은 픽셀 정렬과 stay-roll/current-pitch-yaw 유지를 같이 쓴다.
 
 ```yaml
