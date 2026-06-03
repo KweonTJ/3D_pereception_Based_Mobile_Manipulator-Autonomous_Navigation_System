@@ -1463,6 +1463,7 @@ private:
       info.fy * object_in_eef_camera.point.y / object_in_eef_camera.point.z + info.cy :
       std::numeric_limits<double>::quiet_NaN();
     const bool projected_center_valid =
+      !eef_refinement_use_bbox_center_ &&
       std::isfinite(projected_u) && std::isfinite(projected_v) &&
       projected_u >= 0.0 && projected_u < static_cast<double>(info.width) &&
       projected_v >= 0.0 && projected_v < static_cast<double>(info.height);
