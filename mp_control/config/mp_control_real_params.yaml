@@ -116,10 +116,10 @@ mp_control_node:
     pregrasp_roll_joint2_weight: 1.0
     pregrasp_roll_joint3_weight: 1.0
     pregrasp_roll_joint4_weight: 1.0
-    # pregrasp_ready_joint_positions is the desired final controller pose.
-    # mp_control pre-inverts joint3 on the raw topic, then
-    # joint_trajectory_transformer.py mirrors it back on the controller topic.
-    pregrasp_reverse_joint3_delta: true
+    # pregrasp_ready_joint_positions is the desired software-side pose. Keep
+    # joint3 reversal in joint_trajectory_transformer.py only; pre-inverting
+    # here and mirroring again cancels the real hardware direction correction.
+    pregrasp_reverse_joint3_delta: false
     pregrasp_hold_current_duration_s: 0.0
     pregrasp_move_duration_s: 1.2
     # Keep one synchronized target point so joint2, joint3, and joint4 start
