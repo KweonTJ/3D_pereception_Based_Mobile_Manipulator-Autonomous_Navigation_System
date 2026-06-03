@@ -188,6 +188,8 @@ auto_eef_init_roi_max_y_ratio:=1.00
 
 또한 EEF YOLO는 감지 실패 시 마지막 bbox를 재사용하지 않는다. 잘못 잡힌 EEF bbox가 계속 fresh 상태로 남으면 물체-로봇 삼각 측량과 pregrasp handoff가 오히려 막히기 때문이다. 실행 중에는 `/target/auto_eef_init_bbox_status`에서 `roi=x[0.25,0.98] y[0.10,1.00]` 거부 로그가 나오는지 확인한다.
 
+전면 bbox 크기와 EEF bbox가 모두 close-range 조건을 만족하면, RGB 삼각 측량이나 전면 bbox TF 변환이 일시적으로 실패해도 joint pregrasp로 넘어간다. 이때는 `visual_bbox_fallback=true` 상태로 표시되고, EEF refinement는 임시 3D 투영점이 아니라 실제 EEF bbox 중심을 기준으로 보정한다. 마지막 실험처럼 물체가 이미 EEF 화면 중앙에 들어왔는데 `/mp_control/status`가 `after depth limit; waiting for close-range color triangulation`에 머무는 상황을 막기 위한 fallback이다.
+
 EEF 보정은 픽셀 정렬과 stay-roll/current-pitch-yaw 유지를 같이 쓴다.
 
 ```yaml
