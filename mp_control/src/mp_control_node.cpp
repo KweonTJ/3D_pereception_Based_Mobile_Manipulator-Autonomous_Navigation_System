@@ -346,6 +346,12 @@ private:
 	      declare_parameter<double>("pregrasp_hold_current_duration_s", 0.0);
 	    joint_pregrasp_move_duration_s_ =
 	      declare_parameter<double>("pregrasp_move_duration_s", 1.2);
+	    joint_pregrasp_joint3_lead_enabled_ =
+	      declare_parameter<bool>("pregrasp_joint3_lead_enabled", false);
+	    joint_pregrasp_joint3_lead_duration_ratio_ =
+	      declare_parameter<double>("pregrasp_joint3_lead_duration_ratio", 0.45);
+	    joint_pregrasp_joint3_lead_fraction_ =
+	      declare_parameter<double>("pregrasp_joint3_lead_fraction", 1.0);
 	    joint_pregrasp_sync_steps_ =
 	      declare_parameter<int>("pregrasp_sync_steps", 1);
 	    joint_pregrasp_settle_s_ =
