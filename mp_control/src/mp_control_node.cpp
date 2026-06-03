@@ -3665,6 +3665,7 @@ private:
   double handoff_rotate_angle_rad_{3.14159265358979323846};
   double handoff_rotate_angular_speed_rad_s_{0.45};
   double handoff_release_settle_s_{0.5};
+  std::vector<double> handoff_stay_joint_positions_{0.104311, 0.027612, -0.001534, -1.638291};
   double triangulation_extend_x_m_{0.25};
   double triangulation_extend_y_m_{0.0};
   double triangulation_extend_z_m_{0.12};
