@@ -3678,6 +3678,9 @@ private:
 	  bool joint_pregrasp_reverse_joint3_delta_{true};
 	  double joint_pregrasp_hold_current_duration_s_{0.0};
 	  double joint_pregrasp_move_duration_s_{1.2};
+	  bool joint_pregrasp_joint3_lead_enabled_{false};
+	  double joint_pregrasp_joint3_lead_duration_ratio_{0.45};
+	  double joint_pregrasp_joint3_lead_fraction_{1.0};
 	  int joint_pregrasp_sync_steps_{1};
 	  double joint_pregrasp_settle_s_{0.5};
 	  double joint_pregrasp_tolerance_rad_{0.04};
