@@ -752,6 +752,7 @@ private:
     handoff_place_controller_target_.reset();
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
+    eef_refinement_use_bbox_center_ = false;
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -796,6 +797,7 @@ private:
     handoff_place_controller_target_.reset();
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
+    eef_refinement_use_bbox_center_ = false;
     min_depth_reached_ = false;
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
