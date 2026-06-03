@@ -92,7 +92,7 @@ mp_control_node:
     # approaching until color_triangulation_base_stop_object_x_m.
     eef_refinement_start_object_x_m: 0.30
     arm_start_max_error_m: 0.50
-    arm_start_max_object_x_m: 0.19
+    arm_start_max_object_x_m: 0.20
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
@@ -186,13 +186,13 @@ mp_control_node:
     # eef_usb_camera_link/link3 collision while the real fix is joint4 direction.
     gripper_down_joint4_offset_rad: 0.0
     # During final EEF forward, close the gripper once the front/eef bbox area
-    # shrinks to roughly 50% of the area captured at forward-start. The base now
-    # stops closer to the object, so the forward-start bbox is larger and should
-    # be allowed to shrink more before closing.
+    # shrinks to roughly 55% of the area captured at forward-start. The base now
+    # stops at 0.20 m, so the forward-start bbox is still larger than the old
+    # 0.21 m setting but less extreme than the 0.19 m trial.
     close_on_front_bbox_shrink: true
-    front_bbox_close_area_ratio: 0.50
+    front_bbox_close_area_ratio: 0.55
     close_on_eef_bbox_shrink: true
-    eef_bbox_close_area_ratio: 0.50
+    eef_bbox_close_area_ratio: 0.55
     # After visual grasp confirmation, keep holding the base tracker, lift the
     # object, rotate the leader 180 degrees, lower toward the follower side, and
     # open the gripper. The joint motions are relative to the current grasp pose
@@ -220,7 +220,7 @@ mp_control_node:
     eef_front_camera_offset_x_m: -0.05
     eef_front_camera_offset_y_m: 0.0
     eef_front_camera_offset_z_m: 0.15
-    color_triangulation_base_stop_object_x_m: 0.19
+    color_triangulation_base_stop_object_x_m: 0.20
     color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019
