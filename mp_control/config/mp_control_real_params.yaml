@@ -181,6 +181,7 @@ mp_control_node:
     # hardware, increasing joint4 during final forward nudge points the gripper
     # and EEF camera toward the floor.
     eef_forward_joint4_ground_parallel_limit_rad: -1.05
+    eef_forward_joint4_ground_limit_tolerance_rad: 0.01
     eef_forward_joint4_down_positive: true
     # Extra offset is disabled; forcing joint4 past its URDF lower limit causes
     # eef_usb_camera_link/link3 collision while the real fix is joint4 direction.
@@ -193,6 +194,7 @@ mp_control_node:
     front_bbox_close_area_ratio: 0.55
     close_on_eef_bbox_shrink: true
     eef_bbox_close_area_ratio: 0.55
+    eef_forward_min_advance_before_close_m: 0.04
     # After visual grasp confirmation, keep holding the base tracker, rotate
     # only manipulator joint1 by 180 degrees toward the follower, open the
     # gripper, then return the manipulator to the saved stay pose. Do not lift
