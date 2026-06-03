@@ -1879,6 +1879,19 @@ private:
       appendJointTrajectoryPoint(msg, clampJointPregraspTarget(current), trajectory_time_s);
     }
 
+    const bool use_joint3_lead =
+      joint_pregrasp_joint3_lead_enabled_ &&
+      std::abs(target[2] - current[2]) > joint_pregrasp_tolerance_rad_;
+    if (use_joint3_lead) {
+      std::array<double, 4> joint3_lead = current;
+      joint3_lead[2] = current[2] +
+        (target[2] - current[2]) * joint_pregrasp_joint3_lead_fraction_;
+      appendJointTrajectoryPoint(
+        msg, clampJointPregraspTarget(joint3_lead),
+        trajectory_time_s +
+        joint_pregrasp_move_duration_s_ * joint_pregrasp_joint3_lead_duration_ratio_);
+    }
+
     const int sync_steps = std::max(1, joint_pregrasp_sync_steps_);
     for (int step = 1; step <= sync_steps; ++step) {
       const double ratio = static_cast<double>(step) / static_cast<double>(sync_steps);
