@@ -405,6 +405,8 @@ private:
       declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.04);
     eef_forward_joint4_ground_parallel_limit_rad_ =
       declare_parameter<double>("eef_forward_joint4_ground_parallel_limit_rad", -1.05);
+    eef_forward_joint4_ground_limit_tolerance_rad_ =
+      declare_parameter<double>("eef_forward_joint4_ground_limit_tolerance_rad", 0.01);
     eef_forward_joint4_down_positive_ =
       declare_parameter<bool>("eef_forward_joint4_down_positive", true);
     gripper_down_joint4_offset_rad_ =
@@ -417,6 +419,8 @@ private:
       declare_parameter<bool>("close_on_eef_bbox_shrink", false);
     eef_bbox_close_area_ratio_ =
       declare_parameter<double>("eef_bbox_close_area_ratio", 0.60);
+    eef_forward_min_advance_before_close_m_ =
+      declare_parameter<double>("eef_forward_min_advance_before_close_m", 0.0);
     handoff_after_grasp_ = declare_parameter<bool>("handoff_after_grasp", false);
     handoff_lift_joint2_delta_rad_ =
       declare_parameter<double>("handoff_lift_joint2_delta_rad", 0.25);
