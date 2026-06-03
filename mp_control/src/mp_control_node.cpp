@@ -653,9 +653,6 @@ private:
     }
 
     std::lock_guard<std::mutex> lock(data_mutex_);
-    if (!eef_refinement_requested_) {
-      return;
-    }
     latest_eef_bbox_ = Bbox{
       static_cast<double>(msg->data[0]),
       static_cast<double>(msg->data[1]),
