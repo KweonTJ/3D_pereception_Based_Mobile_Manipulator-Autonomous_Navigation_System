@@ -81,10 +81,11 @@ front_bbox_close_area_ratio: 0.55
 close_on_eef_bbox_shrink: true
 eef_bbox_close_area_ratio: 0.55
 handoff_after_grasp: true
-handoff_lift_joint2_delta_rad: 0.25
-handoff_place_joint2_delta_rad: -0.20
+handoff_lift_joint2_delta_rad: 0.0
+handoff_place_joint2_delta_rad: 0.0
 handoff_rotate_angle_rad: 3.14159265
 handoff_rotate_angular_speed_rad_s: 0.45
+handoff_stay_joint_positions: [0.104311, 0.027612, -0.001534, -1.638291]
 gripper_grasp_clearance_m: 0.004
 gripper_grasp_width_scale: 1.50
 position_tolerance_m: 0.035
@@ -104,9 +105,10 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
 - `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
 - `grasp_completion_eef_lost_timeout_s`: 이 시간 동안 EEF bbox가 새로 들어오지 않으면 EEF에서 물체가 사라진 것으로 본다.
-- `handoff_after_grasp`: 파지 시각 확인 후 바로 종료하지 않고 팔로워 적재 동작으로 이어간다. 현재 구현은 물체를 든 뒤 리더 베이스를 180도 회전하고, 뒤쪽 팔로워 방향으로 내려놓은 뒤 그리퍼를 연다.
-- `handoff_lift_joint2_delta_rad / handoff_place_joint2_delta_rad`: 파지 자세 기준 상대 joint2 동작량이다. joint3/joint4를 절대 자세로 다시 풀지 않아서 기존 joint3/4 토크 충돌을 피한다.
-- `handoff_rotate_angle_rad / handoff_rotate_angular_speed_rad_s`: `/cmd_vel`로 리더 베이스를 제자리 회전시키는 각도와 각속도다. 기본값은 180도 회전이다.
+- `handoff_after_grasp`: 파지 시각 확인 후 바로 종료하지 않고 팔로워 적재 동작으로 이어간다. 현재 구현은 물체를 들어 올리지 않고, 현재 파지 높이를 유지한 채 매니퓰레이터 `joint1`만 180도 회전해 팔로워 쪽으로 보낸 뒤 그리퍼를 연다.
+- `handoff_lift_joint2_delta_rad / handoff_place_joint2_delta_rad`: 실제 리더에서는 둘 다 `0.0`이다. 파지 후 joint2를 들어 올리거나 다시 내리지 않는다.
+- `handoff_rotate_angle_rad`: 베이스 회전이 아니라 매니퓰레이터 `joint1` 상대 회전각이다. 기본값은 180도 회전이다.
+- `handoff_stay_joint_positions`: 팔로워 쪽에 내려놓고 그리퍼를 연 뒤 복귀할 saved stay pose다. bringup의 stay trajectory와 같은 `[0.104311, 0.027612, -0.001534, -1.638291]`를 사용한다.
 - `use_fallback_bbox_for_control`: CSRT `/target/tracked_bbox`가 멈추면 전면 YOLO `/target/init_bbox`를 fallback으로 사용한다.
 - `start_servo_on_start`: `mp_control` 내부 Servo 자동 시작은 꺼져 있다. 실제 런치에서는 Servo 출력이 먼저 `/arm_controller/joint_trajectory_raw`로 나가고, 조인트 trajectory 변환 노드가 joint3 이동량만 반전해 `/arm_controller/joint_trajectory`로 다시 발행한다.
 - `use_joint_pregrasp`: 실제 로봇 pregrasp는 Cartesian Servo가 아니라 joint trajectory로 보낸다. 이 trajectory도 `/arm_controller/joint_trajectory_raw`로 나가며, 최종 arm controller에는 transformer를 거친 `/arm_controller/joint_trajectory`만 들어간다.
@@ -246,7 +248,7 @@ EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전�
 
 실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다. status에는 `controller_target`, `simultaneous_joints=joint2,joint3,joint4`, `controller_joint2_delta`, `controller_joint3_delta`, `controller_joint4_delta`, `raw_joint3_delta`, `roll_proxy_weights`, `joint4_roll_feedback`, `rpy_roll_err`가 같이 나온다. 정상이라면 trajectory point가 하나이고, joint2/joint3/joint4가 같은 `time_from_start`로 동시에 움직인다. transformer 입력인 `raw_joint3_delta`는 controller 기준 joint3 delta와 부호가 반대로 보인다. joint4는 gripper roll feedback까지 반영한다. 실제 리더에서 `eef_forward_roll_joint3_weight: -1.5`일 때 그리퍼와 EEF 카메라가 하늘을 보는 문제가 확인되었으므로, 현재는 joint4 보정 방향을 반대로 만들기 위해 양수 weight를 사용한다. 다만 `1.5`는 팔이 완전히 펴지기 전에 그리퍼가 아래를 보게 만들어, 현재 실제 설정은 `0.6`으로 줄였다.
 
-파지가 시각적으로 확인되면 `handoff_after_grasp: true` 설정에 따라 후속 적재 동작으로 넘어간다. 순서는 `picked` 이벤트 발행, joint2 상대 상승, `/cmd_vel` 180도 회전, joint2 상대 하강, 그리퍼 open, `placed`/`loaded` 이벤트 발행이다. 회전 중에는 `/target/base_hold`를 켜서 전면 tracker가 `/cmd_vel`을 덮어쓰지 않게 한다.
+파지가 시각적으로 확인되면 `handoff_after_grasp: true` 설정에 따라 후속 적재 동작으로 넘어간다. 순서는 `picked` 이벤트 발행, 현재 파지 자세에서 `joint1` 상대 180도 회전, 그리퍼 open, saved stay pose 복귀, `placed`/`loaded` 이벤트 발행이다. handoff 중에는 `/target/base_hold`를 켜서 전면 tracker가 `/cmd_vel`을 덮어쓰지 않게 한다.
 
 ## 전면-EEF RGB 삼각 측량
 
