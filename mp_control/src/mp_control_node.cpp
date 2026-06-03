@@ -1895,6 +1895,17 @@ private:
     return max_error;
   }
 
+  std::array<double, 4> jointErrors(
+    const std::array<double, 4> & current,
+    const std::array<double, 4> & target) const
+  {
+    std::array<double, 4> errors{};
+    for (std::size_t i = 0; i < current.size(); ++i) {
+      errors[i] = target[i] - current[i];
+    }
+    return errors;
+  }
+
   std::array<double, 3> rpyFromTransform(
     const geometry_msgs::msg::TransformStamped & transform_msg) const
   {
@@ -2144,8 +2155,15 @@ private:
       status << "waiting for joint pregrasp trajectory: elapsed="
              << elapsed_s << "/" << wait_s;
       if (can_check_reached) {
+        const auto errors = jointErrors(*current, *joint_pregrasp_controller_target_);
         status << " max_joint_err=" << max_error
-               << " tolerance=" << joint_pregrasp_tolerance_rad_;
+               << " tolerance=" << joint_pregrasp_tolerance_rad_
+               << " joint_err=" << formatJointArray(errors)
+               << " current=" << formatJointArray(*current)
+               << " controller_target=" << formatJointArray(*joint_pregrasp_controller_target_);
+        if (joint_pregrasp_target_) {
+          status << " raw_target=" << formatJointArray(*joint_pregrasp_target_);
+        }
       } else {
         status << " waiting_for_joint_state_or_target";
       }
