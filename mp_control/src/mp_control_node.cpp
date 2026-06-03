@@ -1063,6 +1063,7 @@ private:
 	        return;
       }
       eef_refinement_object_in_target_ = object;
+      eef_refinement_use_bbox_center_ = using_visual_bbox_for_pregrasp;
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
       captureEefRpyReference(eef_tf);
