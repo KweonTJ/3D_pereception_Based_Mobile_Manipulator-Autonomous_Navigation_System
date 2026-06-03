@@ -202,7 +202,8 @@ private:
       stage == "BASE_ALIGNED" || stage == "APPROACH" || stage == "FULL_REACH" ||
       contains_any(stage, {
         "BASE STOPPED", "MOVING ARM", "WAITING FOR PREGRASP", "EXTENDING ARM",
-        "HOLDING NEAR", "EEF CAMERA ALIGNED"}))
+        "HOLDING NEAR", "EEF CAMERA ALIGNED", "COLOR TRIANGULATION UNAVAILABLE",
+        "CLOSE VISUAL BBOX", "EEF PREGRASP", "JOINT PREGRASP TRAJECTORY"}))
     {
       mp_control_active_ = true;
       set_task_state("PICKING");
