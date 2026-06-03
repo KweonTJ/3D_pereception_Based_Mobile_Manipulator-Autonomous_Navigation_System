@@ -2222,6 +2222,10 @@ private:
            << pregrasp_roll_joint4_weight_ << ")"
            << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
            << " sync_steps=" << joint_pregrasp_sync_steps_
+           << " joint3_lead_enabled="
+           << (joint_pregrasp_joint3_lead_enabled_ ? "true" : "false")
+           << " joint3_lead_duration_ratio=" << joint_pregrasp_joint3_lead_duration_ratio_
+           << " joint3_lead_fraction=" << joint_pregrasp_joint3_lead_fraction_
            << " joint3_reverse_delta="
            << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false");
     publishStatus(status.str(), true);
