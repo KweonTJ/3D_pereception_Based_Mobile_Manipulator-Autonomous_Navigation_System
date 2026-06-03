@@ -166,9 +166,13 @@ private:
       contains(stage, "AFTER DEPTH LIMIT"))
     {
       mp_control_active_ = true;
-      set_task_state("MOVING");
-      set_follower_enable(true);
-      set_platoon_mode("FOLLOW");
+      if (task_state_ == "PICKING") {
+        set_task_state("PICKING");
+      } else {
+        set_task_state("MOVING");
+        set_follower_enable(true);
+        set_platoon_mode("FOLLOW");
+      }
       return;
     }
 
@@ -176,7 +180,7 @@ private:
       contains_any(stage, {"WAITING FOR FRESH", "WAITING FOR VALID DEPTH", "WAITING FOR CAMERA INFO"}))
     {
       if (mp_control_active_) {
-        if (contains_any(stage, {"END-EFFECTOR", "EEF"})) {
+        if (task_state_ == "PICKING" || contains_any(stage, {"END-EFFECTOR", "EEF"})) {
           set_task_state("PICKING");
         } else {
           set_task_state("MOVING");
