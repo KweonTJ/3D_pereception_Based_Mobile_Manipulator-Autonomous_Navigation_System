@@ -1246,6 +1246,20 @@ private:
       (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
   }
 
+  geometry_msgs::msg::PointStamped makeVisualPregraspObject(
+    const geometry_msgs::msg::TransformStamped & eef_tf)
+  {
+    geometry_msgs::msg::PointStamped object;
+    object.header.stamp = now();
+    object.header.frame_id = target_frame_;
+    object.point.x = std::max(
+      color_triangulation_min_object_x_m_,
+      color_triangulation_base_stop_object_x_m_ - grasp_offset_x_);
+    object.point.y = eef_tf.transform.translation.y - grasp_offset_y_;
+    object.point.z = eef_tf.transform.translation.z - grasp_offset_z_;
+    return object;
+  }
+
   bool shouldStartEefRefinementByDepth()
   {
     const auto stamp = now();
