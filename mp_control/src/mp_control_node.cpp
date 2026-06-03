@@ -3694,6 +3694,7 @@ private:
   std::optional<geometry_msgs::msg::PointStamped> latest_depth_object_in_target_;
 	  rclcpp::Time latest_depth_object_stamp_;
   std::optional<geometry_msgs::msg::PointStamped> eef_refinement_object_in_target_;
+  bool eef_refinement_use_bbox_center_{false};
 	  sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
 	  std::optional<std::array<double, 4>> latest_arm_joint_positions_;
 	  rclcpp::Time latest_joint_state_stamp_;
