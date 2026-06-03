@@ -144,6 +144,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `close_on_front_bbox_shrink / front_bbox_close_area_ratio`: EEF fixed-pose forward 시작 시점의 전면 bbox 면적을 기준으로 저장하고, 이후 전면 bbox 면적이 그 기준의 `0.55` 이하로 줄면 그리퍼 close를 시작한다. 베이스 정지 거리를 `0.195 m`로 맞춰 forward 시작 bbox가 `0.20 m` 설정보다 약간 크지만 `0.19 m` 설정보다 덜 극단적이므로, close 기준은 유지한다.
 - `close_on_eef_bbox_shrink / eef_bbox_close_area_ratio`: 전면 bbox가 계속 크게 유지되는 상황을 보완한다. 실제 로그에서 전면 bbox ratio는 약 `1.0`으로 유지되었지만 EEF bbox는 약 `9000 px`대에서 `1700 px`대로 줄었으므로, EEF bbox 면적도 시작 면적의 `0.55` 이하가 되면 물체가 그리퍼 안쪽으로 들어온 것으로 보고 close를 시작한다.
 - `eef_forward_min_advance_before_close_m`: bbox 면적이 close 기준까지 줄어도, EEF fixed-pose forward가 이 거리 이상 진행되기 전에는 gripper close로 넘어가지 않는다. 최근 로그에서 `advanced_x=0.004~0.006/0.08 m` 상태에서 close가 먼저 발생해 팔이 충분히 뻗지 못했으므로, 실제 설정은 `0.04 m`로 둔다.
+- EEF bbox가 ROI/aspect 필터 때문에 중간에 사라지거나 stale 상태가 되면, 기존에는 `prepareEefRefinement()`에서 멈춰 final forward가 시작되지 않았다. 현재는 전면 bbox가 close-size 조건을 만족하면 EEF bbox가 불안정해도 전면 bbox fallback으로 EEF fixed-pose forward를 시작한다. 한 번 forward가 시작된 뒤에는 EEF bbox freshness를 다시 요구하지 않고, saved stay roll/current pitch-yaw를 유지한 채 joint2/joint3/joint4 nudge를 계속 보낸다.
 
 ## 실제 로봇 joint3 trajectory 변환
 
