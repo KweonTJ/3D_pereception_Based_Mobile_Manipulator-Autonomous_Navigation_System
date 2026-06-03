@@ -155,6 +155,9 @@ mp_control_node:
     eef_forward_after_align: true
     eef_forward_distance_m: 0.08
     eef_forward_speed_mps: 0.018
+    # Real grasp sequence: stop base, build pregrasp pose, advance the EEF
+    # straight for this duration, then close the gripper.
+    eef_forward_fixed_duration_s: 1.0
     # Start final forward before the stricter close-ready threshold because
     # Servo can stall while trying to remove the last few pixels of lateral error.
     eef_forward_start_tolerance_px: 90.0
@@ -192,10 +195,9 @@ mp_control_node:
     # Extra offset is disabled; forcing joint4 past its URDF lower limit causes
     # eef_usb_camera_link/link3 collision while the real fix is joint4 direction.
     gripper_down_joint4_offset_rad: 0.0
-    # During final EEF forward, close the gripper once the front/eef bbox area
-    # shrinks to roughly 55% of the area captured at forward-start. The base now
-    # stops at 0.195 m, so the forward-start bbox is slightly larger than the old
-    # 0.21 m setting but less extreme than the 0.19 m trial.
+    # During final EEF forward, the 1.0 s fixed-duration gate is the primary
+    # close trigger. Bbox shrink is kept as a secondary confirmation after the
+    # fixed-duration gate, not as an early close trigger.
     close_on_front_bbox_shrink: true
     front_bbox_close_area_ratio: 0.55
     close_on_eef_bbox_shrink: true
