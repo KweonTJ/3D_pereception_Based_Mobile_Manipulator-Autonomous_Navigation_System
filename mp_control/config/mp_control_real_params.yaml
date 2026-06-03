@@ -92,7 +92,7 @@ mp_control_node:
     # approaching until color_triangulation_base_stop_object_x_m.
     eef_refinement_start_object_x_m: 0.30
     arm_start_max_error_m: 0.50
-    arm_start_max_object_x_m: 0.20
+    arm_start_max_object_x_m: 0.195
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
@@ -187,7 +187,7 @@ mp_control_node:
     gripper_down_joint4_offset_rad: 0.0
     # During final EEF forward, close the gripper once the front/eef bbox area
     # shrinks to roughly 55% of the area captured at forward-start. The base now
-    # stops at 0.20 m, so the forward-start bbox is still larger than the old
+    # stops at 0.195 m, so the forward-start bbox is slightly larger than the old
     # 0.21 m setting but less extreme than the 0.19 m trial.
     close_on_front_bbox_shrink: true
     front_bbox_close_area_ratio: 0.55
@@ -220,7 +220,7 @@ mp_control_node:
     eef_front_camera_offset_x_m: -0.05
     eef_front_camera_offset_y_m: 0.0
     eef_front_camera_offset_z_m: 0.15
-    color_triangulation_base_stop_object_x_m: 0.20
+    color_triangulation_base_stop_object_x_m: 0.195
     color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019
