@@ -32,3 +32,5 @@
 - `JOINT PREGRASP TRAJECTORY`
 
 이 상태에서는 팔로워/모니터가 리더를 주행 중으로 오해하지 않도록 `/leader/task_state`를 `PICKING`으로 유지한다.
+
+또한 한 번 `PICKING`에 들어간 뒤에는 `AFTER DEPTH LIMIT`, `COLOR TRIANGULATION APPROACH`, `WAITING FOR BASE APPROACH`, `WAITING FOR FRESH`류 상태가 다시 들어와도 `MOVING`으로 되돌리지 않는다. 최근 로그에서 `MOVING -> PICKING` 직후 `PICKING -> MOVING`으로 빠지며 조인트 pregrasp 로그가 나오지 않았기 때문에, 파지 단계 내부의 대기/근접 문자열은 모두 파지 상태로 유지한다.
