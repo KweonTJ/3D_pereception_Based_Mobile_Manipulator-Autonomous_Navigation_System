@@ -159,8 +159,8 @@ mp_control_node:
     # This bypasses MoveIt Servo collision/singularity scaling that can stall
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
-    eef_forward_joint2_delta_rad: 0.015
-    eef_forward_joint3_delta_rad: -0.050
+    eef_forward_joint2_delta_rad: 0.025
+    eef_forward_joint3_delta_rad: -0.075
     eef_forward_joint_nudge_duration_s: 0.80
     eef_forward_joint_nudge_period_s: 0.35
     # Keep this parameter for compatibility, but the real final nudge now uses
