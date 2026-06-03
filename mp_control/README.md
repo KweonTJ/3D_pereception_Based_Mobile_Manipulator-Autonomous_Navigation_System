@@ -36,6 +36,9 @@ min_depth_handoff_bbox_area_ratio: 0.08
 min_depth_handoff_bbox_height_ratio: 0.40
 color_triangulation_base_stop_object_x_m: 0.195
 arm_start_max_object_x_m: 0.195
+front_yolo_min_bbox_width_px: 6.0
+front_yolo_min_bbox_height_px: 6.0
+front_yolo_min_accept_confidence: 0.05
 use_fallback_bbox_for_control: true
 start_servo_on_start: false
 require_visual_grasp_confirmation: true
@@ -96,6 +99,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
 - `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
 - `0.195 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. `arm_start_max_object_x_m`도 같은 `0.195 m`로 맞춰 베이스가 충분히 가까워지기 전에는 팔 단계로 넘어가지 않게 한다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.195 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. `0.19 m` 실험에서는 로봇과 물체가 너무 가까워져 팔이 뻗기 전에 EEF 시야와 전개 공간이 부족했기 때문에, 현재 기준은 기존 `0.20 m`에서 조금만 줄인 `0.195 m`다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
+- 전면 YOLO는 런치 시작 직후 원거리 박스가 작게 잡히는 구간을 놓치지 않도록 최소 bbox 크기를 `6 px`, accept confidence를 `0.05`로 둔다. 로그에서 전면 후보가 `small/conf`로 버려지는 경우를 줄이기 위한 값이다. EEF YOLO는 반사/옆면 오검출을 막아야 하므로 strict ROI와 last-bbox 미사용 설정을 유지한다.
 - `EEF_REFINE`와 handoff 작업 단계에서는 `/target/base_hold=true`와 zero `/cmd_vel`을 반복 발행한다. 그리퍼가 전면 카메라를 가려 전면 bbox/depth가 왜곡되어도 베이스 접근 루프로 되돌아가 직진하지 않게 한다.
 - `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
 - `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
