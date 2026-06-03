@@ -51,6 +51,8 @@ class AutoInitBbox(Node):
         self.roi_max_x_ratio = float(self.declare_parameter("roi_max_x_ratio", 1.0).value)
         self.roi_min_y_ratio = float(self.declare_parameter("roi_min_y_ratio", 0.0).value)
         self.roi_max_y_ratio = float(self.declare_parameter("roi_max_y_ratio", 1.0).value)
+        self.require_bbox_inside_roi = bool(
+            self.declare_parameter("require_bbox_inside_roi", False).value)
         self.prefer_center = bool(self.declare_parameter("prefer_center", True).value)
         self.auto_color_min = int(self.declare_parameter("auto_color_min", 55).value)
         self.auto_color_margin = int(self.declare_parameter("auto_color_margin", 35).value)
@@ -660,6 +662,12 @@ class AutoInitBbox(Node):
             if not self.point_inside_roi(center_x, center_y, msg.width, msg.height):
                 rejected["roi"] += 1
                 continue
+            if (
+                self.require_bbox_inside_roi
+                and not self.bbox_inside_roi(x0, y0, x1, y1, msg.width, msg.height)
+            ):
+                rejected["roi"] += 1
+                continue
 
             confidence = float(box.conf[0].detach().cpu().item()) if box.conf is not None else 0.0
             min_accept_confidence = (
@@ -818,6 +826,13 @@ class AutoInitBbox(Node):
         y0 = float(np.clip(self.roi_min_y_ratio, 0.0, 1.0) * image_height)
         y1 = float(np.clip(self.roi_max_y_ratio, 0.0, 1.0) * image_height)
         return x0 <= x <= x1 and y0 <= y <= y1
+
+    def bbox_inside_roi(self, x0, y0, x1, y1, image_width, image_height):
+        roi_x0 = float(np.clip(self.roi_min_x_ratio, 0.0, 1.0) * image_width)
+        roi_x1 = float(np.clip(self.roi_max_x_ratio, 0.0, 1.0) * image_width)
+        roi_y0 = float(np.clip(self.roi_min_y_ratio, 0.0, 1.0) * image_height)
+        roi_y1 = float(np.clip(self.roi_max_y_ratio, 0.0, 1.0) * image_height)
+        return roi_x0 <= x0 <= x1 <= roi_x1 and roi_y0 <= y0 <= y1 <= roi_y1
 
     def image_to_depth_m(self, msg):
         encoding = msg.encoding.lower()
