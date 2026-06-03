@@ -1424,35 +1424,74 @@ private:
       return;
     }
 
-    if (!prepareEefRefinement(object_in_target)) {
+    captureEefRpyReference(eef_tf);
+    const RpyError rpy_error = computeEefRpyError(eef_tf);
+
+    if (eef_forward_advance_active_) {
+      updateEefForwardAdvance(eef_tf, rpy_error);
       return;
     }
-    captureEefRpyReference(eef_tf);
+
+    if (!prepareEefRefinement(object_in_target)) {
+      if (canStartEefForwardFromFrontBboxFallback()) {
+        startEefForwardAdvance(
+          eef_tf,
+          rpy_error,
+          "front bbox close-size fallback; EEF bbox unavailable, starting fixed-pose forward advance");
+      }
+      return;
+    }
 
     Bbox bbox;
     CameraInfo info;
+    bool missing_eef_bbox = false;
+    bool missing_eef_camera_info = false;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       if (!latest_eef_bbox_) {
-        publishStop();
-        publishStatus("waiting for end-effector visual feature bbox");
-        return;
+        missing_eef_bbox = true;
+      } else {
+        bbox = *latest_eef_bbox_;
       }
-      bbox = *latest_eef_bbox_;
       if (latest_eef_camera_info_) {
         info = *latest_eef_camera_info_;
       } else {
         auto fallback_info = fallbackEefCameraInfo();
         if (!fallback_info) {
-          publishStop();
-          publishStatus("waiting for end-effector camera info");
-          return;
+          missing_eef_camera_info = true;
+        } else {
+          info = *fallback_info;
         }
-        info = *fallback_info;
       }
     }
 
+    if (missing_eef_bbox) {
+      if (canStartEefForwardFromFrontBboxFallback()) {
+        startEefForwardAdvance(
+          eef_tf,
+          rpy_error,
+          "front bbox close-size fallback; EEF bbox missing, starting fixed-pose forward advance");
+        return;
+      }
+      publishStop();
+      publishStatus("waiting for end-effector visual feature bbox");
+      return;
+    }
+
+    if (missing_eef_camera_info) {
+      publishStop();
+      publishStatus("waiting for end-effector camera info");
+      return;
+    }
+
     if ((now() - bbox.stamp).seconds() > max_target_age_s_ && !eef_forward_advance_active_) {
+      if (canStartEefForwardFromFrontBboxFallback()) {
+        startEefForwardAdvance(
+          eef_tf,
+          rpy_error,
+          "front bbox close-size fallback; EEF bbox stale, starting fixed-pose forward advance");
+        return;
+      }
       publishStop();
       publishStatus("waiting for fresh end-effector visual feature bbox");
       return;
@@ -1517,103 +1556,20 @@ private:
     const bool forward_ready =
       std::abs(err_u_px) <= forward_start_tolerance_px &&
       std::abs(err_v_px) <= forward_start_tolerance_px;
-    const RpyError rpy_error = computeEefRpyError(eef_tf);
     const bool pose_ready = close_ready && rpy_error.ready;
     const bool forward_pose_ready = forward_ready && rpy_error.ready;
-
-    if (eef_forward_advance_active_) {
-      const double advanced_x = std::max(
-        0.0, eef_tf.transform.translation.x - eef_forward_start_x_m_);
-      const auto front_area_ratio = frontBboxAreaRatioFromForwardStart();
-      const auto eef_area_ratio = eefBboxAreaRatioFromForwardStart();
-      const bool advanced_enough_for_visual_close =
-        advanced_x >= eef_forward_min_advance_before_close_m_;
-      if (advanced_enough_for_visual_close &&
-          (shouldCloseOnFrontBboxShrink() || shouldCloseOnEefBboxShrink())) {
-        stable_cycles_ += 1;
-        publishStop();
-        if (stable_cycles_ >= close_after_stable_cycles_) {
-          closeAndCompleteWhenVisualReady(
-            "bbox shrank to close threshold; width-aware gripper command sent",
-            "gripper close commanded after bbox shrink; waiting for visual confirmation");
-        } else {
-          std::ostringstream status;
-          status << "bbox shrink close-ready; holding before closing"
-                 << " front_ratio=" << front_area_ratio.value_or(-1.0)
-                 << " front_threshold=" << front_bbox_close_area_ratio_
-                 << " eef_ratio=" << eef_area_ratio.value_or(-1.0)
-                 << " eef_threshold=" << eef_bbox_close_area_ratio_
-                 << " advanced_x=" << advanced_x
-                 << " min_close_advance=" << eef_forward_min_advance_before_close_m_;
-          publishStatus(status.str());
-        }
-        return;
-      }
-      if (advanced_x < eef_forward_distance_m_) {
-        publishEefForwardAdvanceCommand(rpy_error);
-        std::ostringstream status;
-        status << "eef aligned; advancing forward before grasp: advanced_x="
-               << advanced_x << "/" << eef_forward_distance_m_
-               << " front_bbox_area_ratio=" << front_area_ratio.value_or(-1.0)
-               << " front_close_ratio_threshold=" << front_bbox_close_area_ratio_
-               << " eef_bbox_area_ratio=" << eef_area_ratio.value_or(-1.0)
-               << " eef_close_ratio_threshold=" << eef_bbox_close_area_ratio_
-               << " min_close_advance=" << eef_forward_min_advance_before_close_m_
-               << " advanced_enough_for_visual_close="
-               << (advanced_enough_for_visual_close ? "true" : "false")
-               << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
-               << ", " << rpy_error.yaw << ")"
-               << " roll_ref=" << rpyReferenceMode(rpy_error)
-               << " cmd_frame=" << target_frame_;
-        publishStatus(status.str());
-        return;
-      }
-
-      stable_cycles_ += 1;
-      publishStop();
-      if (stable_cycles_ >= close_after_stable_cycles_) {
-        closeAndCompleteWhenVisualReady(
-          "eef fixed-pose forward advance complete; width-aware gripper command sent",
-          "gripper close commanded after EEF forward advance; waiting for front-only visual grasp confirmation");
-      } else {
-        std::ostringstream status;
-        status << "eef forward advance complete; holding before closing"
-               << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
-               << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
-               << ", " << rpy_error.yaw << ")"
-               << " roll_ref=" << rpyReferenceMode(rpy_error);
-        publishStatus(status.str());
-      }
-      return;
-    }
 
     if (forward_pose_ready) {
       if (eef_forward_after_align_ &&
           eef_forward_distance_m_ > 0.0 &&
           eef_forward_speed_mps_ > 0.0 &&
           !eef_forward_advance_active_) {
-        eef_forward_advance_active_ = true;
-        eef_forward_start_stamp_ = now();
-        eef_forward_start_x_m_ = eef_tf.transform.translation.x;
-        front_bbox_area_at_eef_forward_start_ = latestFreshFrontBboxArea();
-        eef_bbox_area_at_eef_forward_start_ = latestFreshEefBboxArea();
-        stable_cycles_ = 0;
-        publishEefForwardAdvanceCommand(rpy_error);
-        std::ostringstream status;
-        status << "eef pixel+rpy aligned; starting fixed-pose forward advance before grasp"
-               << " distance=" << eef_forward_distance_m_
-               << " speed=" << eef_forward_speed_mps_
-               << " front_bbox_start_area=" << front_bbox_area_at_eef_forward_start_.value_or(-1.0)
-               << " eef_bbox_start_area=" << eef_bbox_area_at_eef_forward_start_.value_or(-1.0)
-               << " front_close_area_ratio=" << front_bbox_close_area_ratio_
-               << " eef_close_area_ratio=" << eef_bbox_close_area_ratio_
-               << " forward_tol_px=" << forward_start_tolerance_px
-               << " close_tol_px=" << close_tolerance_px
-               << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
-               << ", " << rpy_error.yaw << ")"
-               << " roll_ref=" << rpyReferenceMode(rpy_error)
-               << " cmd_frame=" << target_frame_;
-        publishStatus(status.str(), true);
+        startEefForwardAdvance(
+          eef_tf,
+          rpy_error,
+          "eef pixel+rpy aligned; starting fixed-pose forward advance before grasp",
+          forward_start_tolerance_px,
+          close_tolerance_px);
         return;
       }
 
