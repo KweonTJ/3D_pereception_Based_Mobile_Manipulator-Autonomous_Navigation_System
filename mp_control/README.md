@@ -190,6 +190,8 @@ auto_eef_init_roi_max_y_ratio:=1.00
 
 EEF YOLO는 bbox 중심점뿐 아니라 bbox 전체가 EEF ROI 안에 들어와야 `/target/eef_init_bbox`로 발행한다. 로그에서 `[1,0,159,162]`처럼 왼쪽/상단 반사 영역에 걸친 큰 bbox가 중심점만으로 ROI를 통과해 물체가 아닌 곳을 보던 문제가 있었기 때문이다. 전면 YOLO는 기존처럼 중심점 ROI 기준을 유지하고, 이 strict ROI 필터는 EEF 자동 bbox에만 적용한다.
 
+`mp_control_node`는 EEF refinement 요청 플래그가 켜진 뒤에만 EEF bbox를 저장하지 않는다. EEF YOLO는 depth handoff 전에 미리 켜지므로, `/target/eef_init_bbox`가 들어오는 즉시 최신 EEF bbox로 저장한다. 그렇지 않으면 로그에는 `auto_eef_init_bbox`가 정상 검출을 찍어도 제어 노드 내부의 `eef_bbox_ready`가 false로 남아 `after depth limit` 단계에서 팔 pregrasp로 넘어가지 못한다.
+
 전면 bbox 크기와 EEF bbox가 모두 close-range 조건을 만족하면, RGB 삼각 측량이나 전면 bbox TF 변환이 일시적으로 실패해도 joint pregrasp로 넘어간다. 이때는 `visual_bbox_fallback=true` 상태로 표시되고, EEF refinement는 임시 3D 투영점이 아니라 실제 EEF bbox 중심을 기준으로 보정한다. 마지막 실험처럼 물체가 이미 EEF 화면 중앙에 들어왔는데 `/mp_control/status`가 `after depth limit; waiting for close-range color triangulation`에 머무는 상황을 막기 위한 fallback이다.
 
 EEF 보정은 픽셀 정렬과 stay-roll/current-pitch-yaw 유지를 같이 쓴다.
