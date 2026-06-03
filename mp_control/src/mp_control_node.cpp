@@ -849,6 +849,7 @@ private:
     std::string object_block_reason;
     auto maybe_object = estimateObjectPoint(&object_block_reason);
     bool using_latched_depth_for_pregrasp = false;
+    bool using_visual_bbox_for_pregrasp = false;
     bool command_published = false;
     if (useColorTriangulationAfterMinDepth()) {
       std::string color_reason;
