@@ -550,12 +550,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_width_px",
-            default_value="12.0",
+            default_value="6.0",
             description="Minimum detected bbox width in pixels.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_height_px",
-            default_value="12.0",
+            default_value="6.0",
             description="Minimum detected bbox height in pixels.",
         ),
         DeclareLaunchArgument(
