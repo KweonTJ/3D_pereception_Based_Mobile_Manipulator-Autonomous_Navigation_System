@@ -162,6 +162,9 @@ class AutoInitBbox(Node):
         self.enabled = bool(msg.data)
         if self.enabled and not was_enabled:
             self.published = False
+            self.last_bbox = None
+            self.anchor_bbox = None
+            self.last_publish_time = 0.0
             self.start_time = time.monotonic()
             self.publish_status(
                 f"enabled target detection on {self.image_topics()}; publishing bbox to {self.bbox_topic}")
@@ -323,7 +326,7 @@ class AutoInitBbox(Node):
         if now - self.last_warn_time >= 1.0:
             self.last_warn_time = now
             self.publish_status(
-                f"reusing last depth bbox: {self.last_bbox}; {reason}")
+                f"reusing last bbox: {self.last_bbox}; {reason}")
         self.publish_bbox_repeated(self.last_bbox)
         self.last_publish_time = time.monotonic()
         self.published = True
