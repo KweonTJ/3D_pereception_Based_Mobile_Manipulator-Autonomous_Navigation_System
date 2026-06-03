@@ -3084,9 +3084,9 @@ private:
     publishBaseStop();
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
-    stage_ = GraspStage::HANDOFF_LIFT;
+    stage_ = GraspStage::HANDOFF_ROTATE;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-    publishStatus(grasp_status + "; handoff lift started", true);
+    publishStatus(grasp_status + "; handoff joint1 turn started", true);
   }
 
   void updateHandoff()
@@ -3106,6 +3106,9 @@ private:
         return;
       case GraspStage::HANDOFF_RELEASE:
         updateHandoffRelease();
+        return;
+      case GraspStage::HANDOFF_STAY:
+        updateHandoffStay();
         return;
       default:
         return;
@@ -3172,25 +3175,31 @@ private:
   void updateHandoffRotate()
   {
     const auto stamp = now();
-    const double rotate_duration_s =
-      std::abs(handoff_rotate_angle_rad_) / handoff_rotate_angular_speed_rad_s_;
-    const double elapsed_s = (stamp - handoff_stage_start_stamp_).seconds();
-
-    geometry_msgs::msg::Twist cmd;
-    if (elapsed_s < rotate_duration_s) {
-      cmd.angular.z =
-        std::copysign(handoff_rotate_angular_speed_rad_s_, handoff_rotate_angle_rad_);
-      base_cmd_vel_pub_->publish(cmd);
+    if (handoff_stage_start_stamp_.nanoseconds() == 0) {
+      const auto current = latestArmJointPositions();
+      if (!current) {
+        publishStatus("handoff joint1 turn waiting for joint states");
+        return;
+      }
+      std::array<double, 4> target = *current;
+      target[0] += handoff_rotate_angle_rad_;
+      handoff_lift_controller_target_ = clampHandoffTarget(target);
+      publishHandoffJointTrajectory(*handoff_lift_controller_target_);
+      handoff_stage_start_stamp_ = stamp;
       publishStatus(
-        "handoff rotate: turning 180deg toward follower elapsed=" +
-        std::to_string(elapsed_s) + "/" + std::to_string(rotate_duration_s));
+        "handoff joint1 turn: rotating manipulator joint1 toward follower; target=" +
+        formatJointArray(*handoff_lift_controller_target_), true);
       return;
     }
 
+    publishStop();
     publishBaseStop();
-    stage_ = GraspStage::HANDOFF_PLACE;
-    handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-    publishStatus("handoff place: lowering object toward follower side", true);
+    if ((stamp - handoff_stage_start_stamp_).seconds() >=
+        handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
+      stage_ = GraspStage::HANDOFF_PLACE;
+      handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      publishStatus("handoff place: holding current arm pose over follower side", true);
+    }
   }
 
   void updateHandoffPlace()
@@ -3213,7 +3222,7 @@ private:
       publishHandoffJointTrajectory(*handoff_place_controller_target_);
       handoff_stage_start_stamp_ = stamp;
       publishStatus(
-        "handoff place: lowering object before release; target=" +
+        "handoff place: settling before release; target=" +
         formatJointArray(*handoff_place_controller_target_), true);
       return;
     }
@@ -3244,7 +3253,40 @@ private:
     eef_refinement_object_in_target_.reset();
     publishBaseHold(false);
     publishCargoEvent("loaded", true);
-    publishStatus("cargo_loaded: placed on follower side after 180deg turn", true);
+    stage_ = GraspStage::HANDOFF_STAY;
+    handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    publishStatus("handoff release complete; returning manipulator to stay pose", true);
+  }
+
+  void updateHandoffStay()
+  {
+    const auto stamp = now();
+    if (handoff_stage_start_stamp_.nanoseconds() == 0) {
+      std::array<double, 4> target{};
+      for (std::size_t i = 0; i < target.size(); ++i) {
+        target[i] = handoff_stay_joint_positions_[i];
+      }
+      publishHandoffJointTrajectory(target);
+      handoff_stage_start_stamp_ = stamp;
+      publishStatus(
+        "handoff stay: moving manipulator back to saved stay pose; target=" +
+        formatJointArray(target), true);
+      return;
+    }
+
+    publishStop();
+    publishBaseStop();
+    if ((stamp - handoff_stage_start_stamp_).seconds() <
+        handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
+      publishStatus("handoff stay: waiting for manipulator stay pose settle");
+      return;
+    }
+
+    done_ = true;
+    active_ = false;
+    eef_refinement_object_in_target_.reset();
+    publishBaseHold(false);
+    publishStatus("cargo_loaded: placed on follower side by joint1 turn; arm in stay pose", true);
   }
 
   bool closeAndCompleteWhenVisualReady(
