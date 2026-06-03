@@ -91,6 +91,10 @@ def generate_launch_description():
     auto_eef_init_min_mask_pixels = LaunchConfiguration("auto_eef_init_min_mask_pixels")
     auto_eef_init_min_bbox_width_px = LaunchConfiguration("auto_eef_init_min_bbox_width_px")
     auto_eef_init_min_bbox_height_px = LaunchConfiguration("auto_eef_init_min_bbox_height_px")
+    auto_eef_init_roi_min_x_ratio = LaunchConfiguration("auto_eef_init_roi_min_x_ratio")
+    auto_eef_init_roi_max_x_ratio = LaunchConfiguration("auto_eef_init_roi_max_x_ratio")
+    auto_eef_init_roi_min_y_ratio = LaunchConfiguration("auto_eef_init_roi_min_y_ratio")
+    auto_eef_init_roi_max_y_ratio = LaunchConfiguration("auto_eef_init_roi_max_y_ratio")
     start_calibrated_camera_info = LaunchConfiguration("start_calibrated_camera_info")
     calibrated_camera_info_json_path = LaunchConfiguration("calibrated_camera_info_json_path")
     calibrated_camera_image_topic = LaunchConfiguration("calibrated_camera_image_topic")
@@ -283,10 +287,10 @@ def generate_launch_description():
             "max_bbox_area_ratio": 0.98,
             "min_bbox_aspect_ratio": ParameterValue(auto_init_min_bbox_aspect_ratio, value_type=float),
             "max_bbox_aspect_ratio": ParameterValue(auto_init_max_bbox_aspect_ratio, value_type=float),
-            "roi_min_x_ratio": ParameterValue(auto_init_roi_min_x_ratio, value_type=float),
-            "roi_max_x_ratio": ParameterValue(auto_init_roi_max_x_ratio, value_type=float),
-            "roi_min_y_ratio": ParameterValue(auto_init_roi_min_y_ratio, value_type=float),
-            "roi_max_y_ratio": ParameterValue(auto_init_roi_max_y_ratio, value_type=float),
+            "roi_min_x_ratio": ParameterValue(auto_eef_init_roi_min_x_ratio, value_type=float),
+            "roi_max_x_ratio": ParameterValue(auto_eef_init_roi_max_x_ratio, value_type=float),
+            "roi_min_y_ratio": ParameterValue(auto_eef_init_roi_min_y_ratio, value_type=float),
+            "roi_max_y_ratio": ParameterValue(auto_eef_init_roi_max_y_ratio, value_type=float),
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
@@ -313,7 +317,7 @@ def generate_launch_description():
             "yolo_lock_target": False,
             "continuous_publish": True,
             "continuous_publish_period_s": 0.35,
-            "reuse_last_bbox_on_loss": True,
+            "reuse_last_bbox_on_loss": False,
             "lock_first_bbox": False,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
@@ -746,6 +750,26 @@ def generate_launch_description():
             "auto_eef_init_min_bbox_height_px",
             default_value="8.0",
             description="Minimum EEF detected bbox height in pixels.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_roi_min_x_ratio",
+            default_value="0.25",
+            description="Left boundary of the EEF automatic detection ROI as an image-width ratio.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_roi_max_x_ratio",
+            default_value="0.98",
+            description="Right boundary of the EEF automatic detection ROI as an image-width ratio.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_roi_min_y_ratio",
+            default_value="0.10",
+            description="Top boundary of the EEF automatic detection ROI as an image-height ratio.",
+        ),
+        DeclareLaunchArgument(
+            "auto_eef_init_roi_max_y_ratio",
+            default_value="1.00",
+            description="Bottom boundary of the EEF automatic detection ROI as an image-height ratio.",
         ),
         DeclareLaunchArgument(
             "start_calibrated_camera_info",
