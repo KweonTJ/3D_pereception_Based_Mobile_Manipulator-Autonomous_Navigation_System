@@ -2037,24 +2037,24 @@ private:
     controller_target[3] += joint4_roll_feedback;
     controller_target[3] += gripper_down_joint4_offset_rad_;
     const double unclamped_joint4_target = controller_target[3];
-    const bool joint4_ground_limit_active =
+    const bool joint4_target_past_ground_limit =
       eef_forward_joint4_down_positive_ ?
-      ((*current)[3] >= eef_forward_joint4_ground_parallel_limit_rad_ ||
-      controller_target[3] > eef_forward_joint4_ground_parallel_limit_rad_) :
-      ((*current)[3] <= eef_forward_joint4_ground_parallel_limit_rad_ ||
-      controller_target[3] < eef_forward_joint4_ground_parallel_limit_rad_);
-    if (joint4_ground_limit_active) {
-      if (eef_forward_joint4_down_positive_) {
-        controller_target[3] = std::min(
-          std::max((*current)[3], eef_forward_joint4_ground_parallel_limit_rad_),
-          controller_target[3]);
-        controller_target[3] = std::min(controller_target[3], eef_forward_joint4_ground_parallel_limit_rad_);
-      } else {
-        controller_target[3] = std::max(
-          std::min((*current)[3], eef_forward_joint4_ground_parallel_limit_rad_),
-          controller_target[3]);
-        controller_target[3] = std::max(controller_target[3], eef_forward_joint4_ground_parallel_limit_rad_);
-      }
+      controller_target[3] > eef_forward_joint4_ground_parallel_limit_rad_ :
+      controller_target[3] < eef_forward_joint4_ground_parallel_limit_rad_;
+    const bool joint4_near_or_past_ground_limit =
+      eef_forward_joint4_down_positive_ ?
+      (*current)[3] >=
+      eef_forward_joint4_ground_parallel_limit_rad_ -
+      eef_forward_joint4_ground_limit_tolerance_rad_ :
+      (*current)[3] <=
+      eef_forward_joint4_ground_parallel_limit_rad_ +
+      eef_forward_joint4_ground_limit_tolerance_rad_;
+    const bool joint4_ground_limit_active =
+      joint4_target_past_ground_limit || joint4_near_or_past_ground_limit;
+    if (joint4_target_past_ground_limit) {
+      controller_target[3] = joint4_near_or_past_ground_limit ?
+        (*current)[3] :
+        eef_forward_joint4_ground_parallel_limit_rad_;
     }
     controller_target[0] =
       clampValue(controller_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
@@ -2091,7 +2091,10 @@ private:
            << " joint4_roll_feedback=" << joint4_roll_feedback
            << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
            << " joint4_ground_parallel_limit=" << eef_forward_joint4_ground_parallel_limit_rad_
+           << " joint4_ground_limit_tolerance=" << eef_forward_joint4_ground_limit_tolerance_rad_
            << " joint4_ground_limit_active=" << (joint4_ground_limit_active ? "true" : "false")
+           << " joint4_target_past_ground_limit="
+           << (joint4_target_past_ground_limit ? "true" : "false")
            << " joint4_unclamped_target=" << unclamped_joint4_target
            << " rpy_roll_err=" << rpy_error.roll
            << " duration=" << eef_forward_joint_nudge_duration_s_;
