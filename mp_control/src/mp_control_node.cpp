@@ -3670,12 +3670,14 @@ private:
   double eef_forward_joint4_rpy_roll_gain_{0.6};
   double eef_forward_joint4_rpy_roll_max_delta_rad_{0.04};
   double eef_forward_joint4_ground_parallel_limit_rad_{-1.05};
+  double eef_forward_joint4_ground_limit_tolerance_rad_{0.01};
   bool eef_forward_joint4_down_positive_{true};
   double gripper_down_joint4_offset_rad_{0.0};
   bool close_on_front_bbox_shrink_{false};
   double front_bbox_close_area_ratio_{0.60};
   bool close_on_eef_bbox_shrink_{false};
   double eef_bbox_close_area_ratio_{0.60};
+  double eef_forward_min_advance_before_close_m_{0.0};
   bool handoff_after_grasp_{false};
   double handoff_lift_joint2_delta_rad_{0.25};
   double handoff_place_joint2_delta_rad_{-0.20};
