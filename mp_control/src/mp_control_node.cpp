@@ -537,6 +537,10 @@ private:
 	    joint_pregrasp_hold_current_duration_s_ =
 	      std::max(0.0, joint_pregrasp_hold_current_duration_s_);
 	    joint_pregrasp_move_duration_s_ = std::max(0.2, joint_pregrasp_move_duration_s_);
+	    joint_pregrasp_joint3_lead_duration_ratio_ =
+	      clampValue(joint_pregrasp_joint3_lead_duration_ratio_, 0.1, 0.8);
+	    joint_pregrasp_joint3_lead_fraction_ =
+	      clampValue(joint_pregrasp_joint3_lead_fraction_, 0.1, 1.0);
 	    joint_pregrasp_sync_steps_ = std::max(1, joint_pregrasp_sync_steps_);
 	    joint_pregrasp_settle_s_ = std::max(0.0, joint_pregrasp_settle_s_);
 	    joint_pregrasp_tolerance_rad_ = std::max(0.001, joint_pregrasp_tolerance_rad_);
