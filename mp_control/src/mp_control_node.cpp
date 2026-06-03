@@ -385,6 +385,8 @@ private:
     eef_forward_after_align_ = declare_parameter<bool>("eef_forward_after_align", true);
     eef_forward_distance_m_ = declare_parameter<double>("eef_forward_distance_m", 0.05);
     eef_forward_speed_mps_ = declare_parameter<double>("eef_forward_speed_mps", 0.012);
+    eef_forward_fixed_duration_s_ =
+      declare_parameter<double>("eef_forward_fixed_duration_s", 0.0);
     eef_forward_start_tolerance_px_ =
       declare_parameter<double>("eef_forward_start_tolerance_px", eef_close_tolerance_px_);
     eef_forward_use_joint_nudge_ =
@@ -554,6 +556,7 @@ private:
     eef_refine_max_angular_speed_ = std::max(0.0, eef_refine_max_angular_speed_);
     eef_forward_distance_m_ = std::max(0.0, eef_forward_distance_m_);
     eef_forward_speed_mps_ = std::max(0.0, eef_forward_speed_mps_);
+    eef_forward_fixed_duration_s_ = std::max(0.0, eef_forward_fixed_duration_s_);
     eef_forward_start_tolerance_px_ =
       std::max(eef_close_tolerance_px_, eef_forward_start_tolerance_px_);
     eef_forward_joint_nudge_duration_s_ =
@@ -779,7 +782,7 @@ private:
     latest_depth_object_in_target_.reset();
     latest_depth_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     servo_start_requested_ = false;
-    publishEefAutoInitEnable(false);
+    publishEefAutoInitEnable(true);
     publishBaseHold(false);
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
@@ -1700,10 +1703,17 @@ private:
   {
     const double advanced_x = std::max(
       0.0, eef_tf.transform.translation.x - eef_forward_start_x_m_);
+    const double elapsed_s =
+      eef_forward_start_stamp_.nanoseconds() == 0 ?
+      0.0 :
+      (now() - eef_forward_start_stamp_).seconds();
     const auto front_area_ratio = frontBboxAreaRatioFromForwardStart();
     const auto eef_area_ratio = eefBboxAreaRatioFromForwardStart();
+    const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
+    const bool elapsed_enough_for_close =
+      !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
     const bool advanced_enough_for_visual_close =
-      advanced_x >= eef_forward_min_advance_before_close_m_;
+      advanced_x >= eef_forward_min_advance_before_close_m_ && elapsed_enough_for_close;
     if (advanced_enough_for_visual_close &&
         (shouldCloseOnFrontBboxShrink() || shouldCloseOnEefBboxShrink())) {
       stable_cycles_ += 1;
@@ -1720,16 +1730,21 @@ private:
                << " eef_ratio=" << eef_area_ratio.value_or(-1.0)
                << " eef_threshold=" << eef_bbox_close_area_ratio_
                << " advanced_x=" << advanced_x
-               << " min_close_advance=" << eef_forward_min_advance_before_close_m_;
+               << " min_close_advance=" << eef_forward_min_advance_before_close_m_
+               << " elapsed=" << elapsed_s
+               << " fixed_duration=" << eef_forward_fixed_duration_s_;
         publishStatus(status.str());
       }
       return;
     }
-    if (advanced_x < eef_forward_distance_m_) {
+    if ((fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_) ||
+        (!fixed_duration_mode && advanced_x < eef_forward_distance_m_)) {
       publishEefForwardAdvanceCommand(rpy_error);
       std::ostringstream status;
       status << "eef aligned; advancing forward before grasp: advanced_x="
              << advanced_x << "/" << eef_forward_distance_m_
+             << " elapsed=" << elapsed_s
+             << "/" << eef_forward_fixed_duration_s_
              << " front_bbox_area_ratio=" << front_area_ratio.value_or(-1.0)
              << " front_close_ratio_threshold=" << front_bbox_close_area_ratio_
              << " eef_bbox_area_ratio=" << eef_area_ratio.value_or(-1.0)
@@ -1737,6 +1752,8 @@ private:
              << " min_close_advance=" << eef_forward_min_advance_before_close_m_
              << " advanced_enough_for_visual_close="
              << (advanced_enough_for_visual_close ? "true" : "false")
+             << " fixed_duration_mode="
+             << (fixed_duration_mode ? "true" : "false")
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
              << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
@@ -1756,6 +1773,8 @@ private:
       std::ostringstream status;
       status << "eef forward advance complete; holding before closing"
              << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
+             << " elapsed=" << elapsed_s
+             << "/" << eef_forward_fixed_duration_s_
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
              << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
@@ -3779,6 +3798,7 @@ private:
   bool eef_forward_after_align_{true};
   double eef_forward_distance_m_{0.05};
   double eef_forward_speed_mps_{0.012};
+  double eef_forward_fixed_duration_s_{0.0};
   double eef_forward_start_tolerance_px_{18.0};
   bool eef_forward_use_joint_nudge_{false};
   double eef_forward_joint2_delta_rad_{0.025};
