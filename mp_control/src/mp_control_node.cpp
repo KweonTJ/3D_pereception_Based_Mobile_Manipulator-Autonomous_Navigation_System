@@ -3069,7 +3069,8 @@ private:
       stage == GraspStage::HANDOFF_LIFT ||
       stage == GraspStage::HANDOFF_ROTATE ||
       stage == GraspStage::HANDOFF_PLACE ||
-      stage == GraspStage::HANDOFF_RELEASE;
+      stage == GraspStage::HANDOFF_RELEASE ||
+      stage == GraspStage::HANDOFF_STAY;
   }
 
   void startHandoffSequence(const std::string & grasp_status)
@@ -3248,11 +3249,6 @@ private:
       return;
     }
 
-    done_ = true;
-    active_ = false;
-    eef_refinement_object_in_target_.reset();
-    publishBaseHold(false);
-    publishCargoEvent("loaded", true);
     stage_ = GraspStage::HANDOFF_STAY;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishStatus("handoff release complete; returning manipulator to stay pose", true);
@@ -3286,6 +3282,7 @@ private:
     active_ = false;
     eef_refinement_object_in_target_.reset();
     publishBaseHold(false);
+    publishCargoEvent("loaded", true);
     publishStatus("cargo_loaded: placed on follower side by joint1 turn; arm in stay pose", true);
   }
 
