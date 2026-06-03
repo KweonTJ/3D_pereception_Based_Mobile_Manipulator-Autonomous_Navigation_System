@@ -565,10 +565,14 @@ private:
       eef_forward_joint4_ground_parallel_limit_rad_,
       joint_pregrasp_min_positions_[3],
       joint_pregrasp_max_positions_[3]);
+    eef_forward_joint4_ground_limit_tolerance_rad_ =
+      clampValue(eef_forward_joint4_ground_limit_tolerance_rad_, 0.0, 0.10);
     front_bbox_close_area_ratio_ =
       clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
     eef_bbox_close_area_ratio_ =
       clampValue(eef_bbox_close_area_ratio_, 0.05, 1.0);
+    eef_forward_min_advance_before_close_m_ =
+      clampValue(eef_forward_min_advance_before_close_m_, 0.0, eef_forward_distance_m_);
     handoff_joint_move_duration_s_ = std::max(0.1, handoff_joint_move_duration_s_);
     handoff_joint_settle_s_ = std::max(0.0, handoff_joint_settle_s_);
     handoff_rotate_angular_speed_rad_s_ =
