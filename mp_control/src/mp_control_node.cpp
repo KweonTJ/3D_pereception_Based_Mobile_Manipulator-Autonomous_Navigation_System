@@ -1516,7 +1516,10 @@ private:
         0.0, eef_tf.transform.translation.x - eef_forward_start_x_m_);
       const auto front_area_ratio = frontBboxAreaRatioFromForwardStart();
       const auto eef_area_ratio = eefBboxAreaRatioFromForwardStart();
-      if (shouldCloseOnFrontBboxShrink() || shouldCloseOnEefBboxShrink()) {
+      const bool advanced_enough_for_visual_close =
+        advanced_x >= eef_forward_min_advance_before_close_m_;
+      if (advanced_enough_for_visual_close &&
+          (shouldCloseOnFrontBboxShrink() || shouldCloseOnEefBboxShrink())) {
         stable_cycles_ += 1;
         publishStop();
         if (stable_cycles_ >= close_after_stable_cycles_) {
@@ -1529,7 +1532,9 @@ private:
                  << " front_ratio=" << front_area_ratio.value_or(-1.0)
                  << " front_threshold=" << front_bbox_close_area_ratio_
                  << " eef_ratio=" << eef_area_ratio.value_or(-1.0)
-                 << " eef_threshold=" << eef_bbox_close_area_ratio_;
+                 << " eef_threshold=" << eef_bbox_close_area_ratio_
+                 << " advanced_x=" << advanced_x
+                 << " min_close_advance=" << eef_forward_min_advance_before_close_m_;
           publishStatus(status.str());
         }
         return;
@@ -1543,6 +1548,9 @@ private:
                << " front_close_ratio_threshold=" << front_bbox_close_area_ratio_
                << " eef_bbox_area_ratio=" << eef_area_ratio.value_or(-1.0)
                << " eef_close_ratio_threshold=" << eef_bbox_close_area_ratio_
+               << " min_close_advance=" << eef_forward_min_advance_before_close_m_
+               << " advanced_enough_for_visual_close="
+               << (advanced_enough_for_visual_close ? "true" : "false")
                << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
                << ", " << rpy_error.yaw << ")"
                << " roll_ref=" << rpyReferenceMode(rpy_error)
