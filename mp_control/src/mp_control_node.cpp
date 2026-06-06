@@ -468,6 +468,8 @@ private:
       declare_parameter<double>("eef_bbox_close_area_ratio", 0.60);
     eef_forward_min_advance_before_close_m_ =
       declare_parameter<double>("eef_forward_min_advance_before_close_m", 0.025);
+    close_after_full_eef_forward_extension_ =
+      declare_parameter<bool>("close_after_full_eef_forward_extension", false);
     handoff_after_grasp_ = declare_parameter<bool>("handoff_after_grasp", false);
     handoff_lift_joint2_delta_rad_ =
       declare_parameter<double>("handoff_lift_joint2_delta_rad", 0.25);
@@ -1815,22 +1817,26 @@ private:
       return;
     }
 
-    const bool joint3_extension_complete =
-      !joint_progress_gate_enabled ||
-      !joint_progress.available ||
-      joint_progress.joint3_complete ||
+    const bool distance_extension_complete =
+      advanced_x >= eef_forward_distance_m_;
+    const bool min_advance_complete =
       advanced_x >= eef_forward_min_advance_before_close_m_;
+    const bool joint3_extension_complete =
+      joint_progress_gate_enabled &&
+      joint_progress.available &&
+      joint_progress.joint3_complete;
     const bool arm_extension_complete =
-      joint3_extension_complete;
+      distance_extension_complete ||
+      (joint3_extension_complete && min_advance_complete);
     const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
     const bool elapsed_enough_for_close =
       !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
     const bool advanced_enough_for_visual_close =
-      advanced_x >= eef_forward_min_advance_before_close_m_ && elapsed_enough_for_close;
+      min_advance_complete && elapsed_enough_for_close;
     const bool forward_stalled =
       eef_forward_gate_timeout_s_ > 0.0 &&
       elapsed_s >= eef_forward_gate_timeout_s_ &&
-      advanced_x < eef_forward_min_advance_before_close_m_;
+      !arm_extension_complete;
     if (forward_stalled) {
       abortEefForwardAdvance(
         "EEF forward aborted: arm extension gate timeout; possible collision or joint stall",
@@ -1867,10 +1873,7 @@ private:
     }
     const bool should_continue_forward =
       (fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_) ||
-      (!fixed_duration_mode &&
-      advanced_x < eef_forward_distance_m_ &&
-      !advanced_enough_for_visual_close) ||
-      !arm_extension_complete;
+      (!fixed_duration_mode && !arm_extension_complete);
     if (should_continue_forward) {
       publishEefForwardAdvanceCommand(rpy_error);
       std::ostringstream status;
@@ -1887,6 +1890,10 @@ private:
              << (advanced_enough_for_visual_close ? "true" : "false")
              << " fixed_duration_mode="
              << (fixed_duration_mode ? "true" : "false")
+             << " distance_extension_complete="
+             << (distance_extension_complete ? "true" : "false")
+             << " min_advance_complete="
+             << (min_advance_complete ? "true" : "false")
              << " joint3_extension_complete="
              << (joint3_extension_complete ? "true" : "false")
              << " arm_extension_complete="
@@ -1907,19 +1914,35 @@ private:
     stable_cycles_ += 1;
     publishStop();
     if (stable_cycles_ >= close_after_stable_cycles_) {
-      closeAndCompleteWhenVisualReady(
-        "eef fixed-pose forward advance complete; width-aware gripper command sent",
-        "gripper close commanded after EEF forward advance; waiting for front-only visual grasp confirmation");
+      if (close_after_full_eef_forward_extension_) {
+        if (close_gripper_on_arrival_ && !close_sent_) {
+          sendGripperGraspForObject();
+          close_sent_ = true;
+        }
+        completeGrasp(
+          "eef full forward extension reached; width-aware gripper command sent; " +
+          visualGraspStateText(currentVisualGraspState()));
+      } else {
+        closeAndCompleteWhenVisualReady(
+          "eef fixed-pose forward advance complete; width-aware gripper command sent",
+          "gripper close commanded after EEF forward advance; waiting for front-only visual grasp confirmation");
+      }
     } else {
       std::ostringstream status;
       status << "eef forward advance complete; holding before closing"
              << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
              << " elapsed=" << elapsed_s
              << "/" << eef_forward_fixed_duration_s_
+             << " distance_extension_complete="
+             << (distance_extension_complete ? "true" : "false")
+             << " min_advance_complete="
+             << (min_advance_complete ? "true" : "false")
              << " joint3_extension_complete="
              << (joint3_extension_complete ? "true" : "false")
              << " arm_extension_complete="
              << (arm_extension_complete ? "true" : "false")
+             << " close_after_full_eef_forward_extension="
+             << (close_after_full_eef_forward_extension_ ? "true" : "false")
              << formatEefForwardJointProgress(joint_progress)
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
@@ -4305,6 +4328,7 @@ private:
   bool close_on_eef_bbox_shrink_{false};
   double eef_bbox_close_area_ratio_{0.60};
   double eef_forward_min_advance_before_close_m_{0.025};
+  bool close_after_full_eef_forward_extension_{false};
   bool handoff_after_grasp_{false};
   double handoff_lift_joint2_delta_rad_{0.25};
   double handoff_place_joint2_delta_rad_{-0.20};
