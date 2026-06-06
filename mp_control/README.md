@@ -151,7 +151,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint3_first_duration_ratio`: 기존 순차 전개 호환용 파라미터다. 현재 실제 리더의 final nudge는 joint2/joint3/joint4를 같은 trajectory point로 보내므로 이 값이 주 동작을 결정하지 않는다.
 - `eef_forward_joint_nudge_duration_s / eef_forward_joint_nudge_period_s`: 추가 전진 trajectory 시간과 재발행 주기다. 실제 설정은 `0.60 s / 0.25 s`로, 기존 `0.80 s / 0.35 s`보다 빠르게 전개하되 joint3 delta 자체는 키우지 않아 토크 충격을 줄인다.
 - `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 현재 실제 설정은 `eef_forward_roll_joint3_weight: 0.0`, `eef_forward_roll_joint4_weight: 1.0`이다. joint3 전개량을 joint4 목표에 직접 반영하지 않아, joint4가 final reach를 막는 gate가 되거나 반복 보정으로 베이스 쪽에 충돌하는 상황을 피한다.
-- `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: 실제 리더에서는 둘 다 `0.0`이다. joint4 목표에 TF RPY feedback을 추가로 더하지 않는다. joint4는 joint3 완료 후 roll proxy 기반 목표와 1회 변화량 제한만 사용한다.
+- `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: 실제 리더에서는 둘 다 `0.0`이다. joint4 목표에 TF RPY feedback을 추가로 더하지 않는다. joint4는 final forward에서 close gate가 아니라 보조 보정으로만 사용하고, 1회 변화량 제한을 적용한다.
 - `eef_forward_joint4_max_delta_rad`: EEF forward nudge 1회당 joint4 목표 변화량 상한이다. 현재 실제 리더는 `0.010 rad`로 둔다. joint4가 한 번에 크게 회전하지 않게 하는 안전장치다.
 - `eef_forward_joint4_ground_parallel_limit_rad`: 추가 전진 중 joint4가 이 값에 도달하면 그리퍼/EEF 카메라가 땅과 수평에 가까운 한계 자세로 본다. 실제 리더는 기존 `-1.05 rad`에서 더 보수적인 `-1.15 rad`로 앞당겼고, 이 이후에는 joint4를 더 아래로 숙이는 방향으로 회전시키지 않는다.
 - `eef_forward_joint4_ground_limit_tolerance_rad`: joint4가 수평 한계 근처에 이미 도달했을 때 제한값으로 다시 끌어당기지 않고 현재 각도를 유지하는 허용 오차다. 로그에서 joint4가 `-1.053 rad` 근처인데 매 nudge마다 `-1.05 rad`로 미세하게 당겨지며 그리퍼 자세가 흔들렸기 때문에, 실제 설정은 `0.01 rad`로 둔다.
