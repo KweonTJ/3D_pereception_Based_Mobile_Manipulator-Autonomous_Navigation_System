@@ -443,9 +443,9 @@ private:
     eef_forward_roll_joint4_weight_ =
       declare_parameter<double>("eef_forward_roll_joint4_weight", 1.0);
     eef_forward_joint4_rpy_roll_gain_ =
-      declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.6);
+      declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.0);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.04);
+      declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.0);
     eef_forward_joint4_max_delta_rad_ =
       declare_parameter<double>("eef_forward_joint4_max_delta_rad", 0.0);
     eef_forward_joint4_ground_parallel_limit_rad_ =
@@ -2449,7 +2449,6 @@ private:
       controller_target[2] = (*current)[2];
     }
 
-    double joint4_roll_feedback = 0.0;
     double unclamped_joint4_target = (*current)[3];
     double delta_limited_joint4_target = (*current)[3];
     bool joint4_delta_limit_active = false;
@@ -2463,11 +2462,6 @@ private:
       } else if (joint_pregrasp_preserve_gripper_roll_) {
         controller_target[3] = joint4ForPreservedEefForwardRoll(*current, controller_target);
       }
-      joint4_roll_feedback = clampValue(
-        eef_forward_joint4_rpy_roll_gain_ * rpy_error.roll,
-        -eef_forward_joint4_rpy_roll_max_delta_rad_,
-        eef_forward_joint4_rpy_roll_max_delta_rad_);
-      controller_target[3] += joint4_roll_feedback;
       if (!staged_joint4) {
         controller_target[3] += gripper_down_joint4_offset_rad_;
       }
@@ -2537,7 +2531,8 @@ private:
            << " roll_proxy_weights=(" << eef_forward_roll_joint2_weight_ << ", "
            << eef_forward_roll_joint3_weight_ << ", "
            << eef_forward_roll_joint4_weight_ << ")"
-           << " joint4_roll_feedback=" << joint4_roll_feedback
+           << " joint4_rpy_feedback_disabled=true"
+           << " joint4_roll_feedback=0"
            << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
            << " joint4_max_delta=" << eef_forward_joint4_max_delta_rad_
            << " joint4_delta_limit_active="
