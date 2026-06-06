@@ -2138,6 +2138,15 @@ private:
     return out.str();
   }
 
+  std::string poseStatusSuffix()
+  {
+    std::ostringstream out;
+    out << " eef_pose=" << formatPoseStatus(lookupPoseStatus(end_effector_frame_))
+        << " joint4_pose=" << formatPoseStatus(lookupPoseStatus(joint4_pose_frame_))
+        << " gripper_pose=" << formatPoseStatus(lookupPoseStatus(rpyControlFrame()));
+    return out.str();
+  }
+
   geometry_msgs::msg::TransformStamped gripperPoseTransformOrEef(
     const geometry_msgs::msg::TransformStamped & eef_tf)
   {
@@ -2366,7 +2375,9 @@ private:
            << " joint4_unclamped_target=" << unclamped_joint4_target
            << " joint4_delta_limited_target=" << delta_limited_joint4_target
            << " rpy_roll_err=" << rpy_error.roll
-           << " duration=" << eef_forward_joint_nudge_duration_s_;
+           << " rpy_frame=" << rpyControlFrame()
+           << " duration=" << eef_forward_joint_nudge_duration_s_
+           << poseStatusSuffix();
     publishStatus(status.str());
     return true;
   }
@@ -2418,7 +2429,8 @@ private:
                << " tolerance=" << joint_pregrasp_tolerance_rad_
                << " joint_err=" << formatJointArray(errors)
                << " current=" << formatJointArray(*current)
-               << " controller_target=" << formatJointArray(*joint_pregrasp_controller_target_);
+               << " controller_target=" << formatJointArray(*joint_pregrasp_controller_target_)
+               << poseStatusSuffix();
         if (joint_pregrasp_target_) {
           status << " raw_target=" << formatJointArray(*joint_pregrasp_target_);
         }
@@ -2462,7 +2474,8 @@ private:
            << " joint3_lead_duration_ratio=" << joint_pregrasp_joint3_lead_duration_ratio_
            << " joint3_lead_fraction=" << joint_pregrasp_joint3_lead_fraction_
            << " joint3_reverse_delta="
-           << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false");
+           << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false")
+           << poseStatusSuffix();
     publishStatus(status.str(), true);
     return false;
   }

@@ -44,6 +44,8 @@ start_servo_on_start: false
 require_visual_grasp_confirmation: true
 use_joint_pregrasp: true
 joint_trajectory_topic: /arm_controller/joint_trajectory_raw
+joint4_pose_frame: link5
+gripper_pose_frame: end_effector_link
 pregrasp_ready_joint_positions: [0.0, 0.50, -0.85, -1.05]
 pregrasp_preserve_gripper_roll: true
 pregrasp_roll_joint2_weight: 1.0
@@ -110,6 +112,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `0.195 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. `arm_start_max_object_x_m`도 같은 `0.195 m`로 맞춰 베이스가 충분히 가까워지기 전에는 팔 단계로 넘어가지 않게 한다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.195 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. `0.19 m` 실험에서는 로봇과 물체가 너무 가까워져 팔이 뻗기 전에 EEF 시야와 전개 공간이 부족했기 때문에, 현재 기준은 기존 `0.20 m`에서 조금만 줄인 `0.195 m`다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
 - 전면 YOLO는 런치 시작 직후 원거리 박스가 작게 잡히는 구간을 놓치지 않도록 최소 bbox 크기를 `6 px`, accept confidence를 `0.05`로 둔다. 로그에서 전면 후보가 `small/conf`로 버려지는 경우를 줄이기 위한 값이다. EEF YOLO는 반사/옆면 오검출을 막기 위해 strict ROI와 same-object lock을 사용하고, 짧은 검출 실패에서는 마지막 bbox를 재사용한다.
 - `EEF_REFINE`와 handoff 작업 단계에서는 `/target/base_hold=true`와 zero `/cmd_vel`을 반복 발행한다. 그리퍼가 전면 카메라를 가려 전면 bbox/depth가 왜곡되어도 베이스 접근 루프로 되돌아가 직진하지 않게 한다.
+- `joint4_pose_frame / gripper_pose_frame`: joint4와 그리퍼 자세 확인용 TF frame이다. 기본값은 `joint4_pose_frame: link5`, `gripper_pose_frame: end_effector_link`다. `/mp_control/status`에는 EEF refine, pregrasp, final forward 구간에서 `eef_pose`, `joint4_pose`, `gripper_pose`가 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 함께 나온다. roll 유지 제어는 `gripper_pose_frame`의 RPY를 기준으로 한다.
 - `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
 - `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
 - `grasp_completion_eef_lost_timeout_s`: 이 시간 동안 EEF bbox가 새로 들어오지 않으면 EEF에서 물체가 사라진 것으로 본다.
@@ -243,7 +246,9 @@ eef_forward_speed_mps: 0.018
 eef_forward_fixed_duration_s: 1.0
 ```
 
-이 단계에서 `/mp_control/status`에는 `rpy_err=(roll, pitch, yaw)`, `roll_ref=stay_roll`, `rpy_ready`, forward advance 진행 상태가 표시된다. 실제 파지 순서는 `베이스 정지 -> joint pregrasp 자세 생성 -> EEF fixed-pose 1초 직진 -> 그리퍼 close`다. `eef_forward_fixed_duration_s: 1.0`이 켜져 있으면 bbox 면적 축소 조건이 먼저 들어와도 1초 전에는 그리퍼를 닫지 않는다.
+이 단계에서 `/mp_control/status`에는 `rpy_err=(roll, pitch, yaw)`, `roll_ref=stay_roll`, `rpy_ready`, `rpy_frame`, forward advance 진행 상태가 표시된다. 실제 파지 순서는 `베이스 정지 -> joint pregrasp 자세 생성 -> EEF fixed-pose 1초 직진 -> 그리퍼 close`다. `eef_forward_fixed_duration_s: 1.0`이 켜져 있으면 bbox 면적 축소 조건이 먼저 들어와도 1초 전에는 그리퍼를 닫지 않는다.
+
+추가로 `eef_pose`, `joint4_pose`, `gripper_pose`가 각각 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 출력된다. `joint4_pose`는 `link5` 기준이므로 joint4가 그리퍼 쪽 링크를 어느 방향으로 돌리는지 확인하는 용도이고, `gripper_pose`는 실제 roll 유지 기준이다. 기본 설정에서는 `gripper_pose_frame=end_effector_link`라서 기존 end-effector RPY 제어와 동일하게 동작하지만, 현장에서 `gripper_left_link`나 다른 gripper frame 기준이 더 맞으면 파라미터만 바꿔 비교할 수 있다.
 
 EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전면 depth에서 얻은 물체 폭만 사용한다. 유효한 전면 depth 폭이 없으면 fallback 폭을 쓴다. EEF RGB는 EE가 약간 틀어진 경우 최종 위치 보정에만 사용한다.
 
@@ -267,7 +272,7 @@ EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전�
 
 그리퍼 close는 EEF fixed-pose 전진 1초가 지난 뒤에만 허용한다. EEF forward 시작 시점의 전면 bbox와 EEF bbox 면적도 각각 저장하고, 현재 전면 bbox 면적이 `front_bbox_close_area_ratio` 이하이거나 현재 EEF bbox 면적이 `eef_bbox_close_area_ratio` 이하가 되면 보조 close 조건으로 쓴다. 다만 bbox 축소 조건도 `eef_forward_fixed_duration_s: 1.0` 전에는 무시된다. 현재 close ratio는 둘 다 `0.55`이다.
 
-실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다. status에는 `controller_target`, `simultaneous_joints=joint2,joint3,joint4`, `controller_joint2_delta`, `controller_joint3_delta`, `controller_joint4_delta`, `raw_joint3_delta`, `roll_proxy_weights`, `joint4_roll_feedback`, `joint4_max_delta`, `joint4_delta_limit_active`, `rpy_roll_err`가 같이 나온다. 정상이라면 trajectory point가 하나이고, joint2/joint3/joint4가 같은 `time_from_start`로 동시에 움직인다. transformer 입력인 `raw_joint3_delta`는 controller 기준 joint3 delta와 부호가 반대로 보인다. joint4는 gripper roll feedback까지 반영한다. 실제 리더에서 `eef_forward_roll_joint3_weight: -1.5`일 때 그리퍼와 EEF 카메라가 하늘을 보는 문제가 확인되었으므로, 현재는 joint4 보정 방향을 반대로 만들기 위해 양수 weight를 사용한다. 다만 `1.5`와 `0.6`은 반복 nudge에서 그리퍼와 EEF가 바닥을 보게 만들어, 현재 실제 설정은 `0.3`으로 줄이고 1회 joint4 변화량도 `0.010 rad`로 제한한다.
+실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다. status에는 `controller_target`, `simultaneous_joints=joint2,joint3,joint4`, `controller_joint2_delta`, `controller_joint3_delta`, `controller_joint4_delta`, `raw_joint3_delta`, `roll_proxy_weights`, `joint4_roll_feedback`, `joint4_max_delta`, `joint4_delta_limit_active`, `rpy_roll_err`, `eef_pose`, `joint4_pose`, `gripper_pose`가 같이 나온다. 정상이라면 trajectory point가 하나이고, joint2/joint3/joint4가 같은 `time_from_start`로 동시에 움직인다. transformer 입력인 `raw_joint3_delta`는 controller 기준 joint3 delta와 부호가 반대로 보인다. joint4는 gripper roll feedback까지 반영한다. 실제 리더에서 `eef_forward_roll_joint3_weight: -1.5`일 때 그리퍼와 EEF 카메라가 하늘을 보는 문제가 확인되었으므로, 현재는 joint4 보정 방향을 반대로 만들기 위해 양수 weight를 사용한다. 다만 `1.5`와 `0.6`은 반복 nudge에서 그리퍼와 EEF가 바닥을 보게 만들어, 현재 실제 설정은 `0.3`으로 줄이고 1회 joint4 변화량도 `0.010 rad`로 제한한다.
 
 파지가 시각적으로 확인되면 `handoff_after_grasp: true` 설정에 따라 후속 적재 동작으로 넘어간다. 순서는 `picked` 이벤트 발행, 현재 파지 자세에서 `joint1` 상대 180도 회전, 그리퍼 open, saved stay pose 복귀, `placed`/`loaded` 이벤트 발행이다. handoff 중에는 `/target/base_hold`를 켜서 전면 tracker가 `/cmd_vel`을 덮어쓰지 않게 한다.
 
