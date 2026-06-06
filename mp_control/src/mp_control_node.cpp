@@ -1340,7 +1340,7 @@ private:
   {
     const auto & reference = front_size_object ? front_size_object : depth_reference;
     return reference &&
-      objectGoalXForPregrasp(**reference) <= color_triangulation_base_stop_object_x_m_;
+      objectGoalXForPregrasp(*reference) <= color_triangulation_base_stop_object_x_m_;
   }
 
   geometry_msgs::msg::PointStamped makeVisualPregraspObject(
