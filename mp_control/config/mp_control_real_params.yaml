@@ -167,9 +167,8 @@ mp_control_node:
     # Servo can stall while trying to remove the last few pixels of lateral error.
     eef_forward_start_tolerance_px: 90.0
     # Final EEF advance uses staged joint nudges on real hardware.
-    # joint3 extends first, then joint4 preserves the stay-pose gripper roll.
-    # joint2 is not lowered further here because that can cover the front Astra
-    # camera while the visual grasp confirmation still depends on the front bbox.
+    # joint2/joint3 extend first while joint4 is held, then joint4 preserves
+    # the stay-pose gripper roll after joint3 reaches the required progress.
     # This bypasses MoveIt Servo collision/singularity scaling that can stall
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
@@ -177,8 +176,8 @@ mp_control_node:
     eef_forward_joint3_delta_rad: -0.050
     eef_forward_joint_nudge_duration_s: 0.60
     eef_forward_joint_nudge_period_s: 0.25
-    # Keep this parameter for compatibility, but the real final nudge now uses
-    # one synchronized trajectory point so joint2/joint3/joint4 move together.
+    # Keep this parameter for compatibility. The real final nudge now uses the
+    # explicit staged gate below instead of this legacy ratio.
     eef_forward_joint3_first_duration_ratio: 0.65
     # Real hardware order for final reach:
     # 1) joint2/joint3 extend while joint4 is held,
