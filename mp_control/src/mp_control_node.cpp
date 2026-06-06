@@ -428,6 +428,14 @@ private:
       declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.35);
     eef_forward_joint3_first_duration_ratio_ =
       declare_parameter<double>("eef_forward_joint3_first_duration_ratio", 0.65);
+    eef_forward_joint4_after_joint3_complete_ =
+      declare_parameter<bool>("eef_forward_joint4_after_joint3_complete", true);
+    eef_forward_joint3_complete_delta_rad_ =
+      declare_parameter<double>("eef_forward_joint3_complete_delta_rad", 0.25);
+    eef_forward_joint3_complete_tolerance_rad_ =
+      declare_parameter<double>("eef_forward_joint3_complete_tolerance_rad", 0.015);
+    eef_forward_joint4_finish_tolerance_rad_ =
+      declare_parameter<double>("eef_forward_joint4_finish_tolerance_rad", 0.015);
     eef_forward_roll_joint2_weight_ =
       declare_parameter<double>("eef_forward_roll_joint2_weight", 0.0);
     eef_forward_roll_joint3_weight_ =
@@ -594,6 +602,12 @@ private:
       std::max(0.05, eef_forward_joint_nudge_period_s_);
     eef_forward_joint3_first_duration_ratio_ =
       clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
+    eef_forward_joint3_complete_delta_rad_ =
+      std::max(0.0, std::abs(eef_forward_joint3_complete_delta_rad_));
+    eef_forward_joint3_complete_tolerance_rad_ =
+      clampValue(eef_forward_joint3_complete_tolerance_rad_, 0.001, 0.10);
+    eef_forward_joint4_finish_tolerance_rad_ =
+      clampValue(eef_forward_joint4_finish_tolerance_rad_, 0.001, 0.10);
     if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
       eef_forward_roll_joint4_weight_ = 1.0;
     }
