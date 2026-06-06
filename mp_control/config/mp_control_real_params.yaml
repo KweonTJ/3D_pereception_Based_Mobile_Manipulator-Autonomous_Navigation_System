@@ -28,6 +28,11 @@ mp_control_node:
 
     target_frame: base_link
     end_effector_frame: end_effector_link
+    # Pose diagnostics and roll-control frame selection.
+    # link5 is the joint4 child side before the gripper jaws, while
+    # end_effector_link is the gripper-center control frame used for RPY hold.
+    joint4_pose_frame: link5
+    gripper_pose_frame: end_effector_link
     camera_frame_override: ""
     eef_camera_frame_override: eef_usb_camera_optical_frame
 
