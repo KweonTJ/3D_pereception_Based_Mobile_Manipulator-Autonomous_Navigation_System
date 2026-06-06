@@ -1769,12 +1769,17 @@ private:
       (now() - eef_forward_start_stamp_).seconds();
     const auto front_area_ratio = frontBboxAreaRatioFromForwardStart();
     const auto eef_area_ratio = eefBboxAreaRatioFromForwardStart();
+    const auto joint_progress = eefForwardJointProgress();
+    const bool joint_progress_gate_enabled =
+      eef_forward_use_joint_nudge_ && eef_forward_joint4_after_joint3_complete_;
+    const bool arm_extension_complete =
+      !joint_progress_gate_enabled || joint_progress.complete;
     const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
     const bool elapsed_enough_for_close =
       !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
     const bool advanced_enough_for_visual_close =
       advanced_x >= eef_forward_min_advance_before_close_m_ && elapsed_enough_for_close;
-    if (advanced_enough_for_visual_close &&
+    if (arm_extension_complete && advanced_enough_for_visual_close &&
         (shouldCloseOnFrontBboxShrink() || shouldCloseOnEefBboxShrink())) {
       stable_cycles_ += 1;
       publishStop();
@@ -1792,13 +1797,15 @@ private:
                << " advanced_x=" << advanced_x
                << " min_close_advance=" << eef_forward_min_advance_before_close_m_
                << " elapsed=" << elapsed_s
-               << " fixed_duration=" << eef_forward_fixed_duration_s_;
+               << " fixed_duration=" << eef_forward_fixed_duration_s_
+               << formatEefForwardJointProgress(joint_progress);
         publishStatus(status.str());
       }
       return;
     }
     if ((fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_) ||
-        (!fixed_duration_mode && advanced_x < eef_forward_distance_m_)) {
+        (!fixed_duration_mode && advanced_x < eef_forward_distance_m_) ||
+        !arm_extension_complete) {
       publishEefForwardAdvanceCommand(rpy_error);
       std::ostringstream status;
       status << "eef aligned; advancing forward before grasp: advanced_x="
@@ -1814,6 +1821,7 @@ private:
              << (advanced_enough_for_visual_close ? "true" : "false")
              << " fixed_duration_mode="
              << (fixed_duration_mode ? "true" : "false")
+             << formatEefForwardJointProgress(joint_progress)
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
              << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
@@ -1837,6 +1845,7 @@ private:
              << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
              << " elapsed=" << elapsed_s
              << "/" << eef_forward_fixed_duration_s_
+             << formatEefForwardJointProgress(joint_progress)
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
              << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
