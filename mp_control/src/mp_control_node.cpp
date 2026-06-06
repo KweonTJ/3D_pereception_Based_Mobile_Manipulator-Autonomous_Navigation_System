@@ -4217,6 +4217,7 @@ private:
   double eef_forward_distance_m_{0.05};
   double eef_forward_speed_mps_{0.012};
   double eef_forward_fixed_duration_s_{0.0};
+  double eef_forward_gate_timeout_s_{5.0};
   double eef_forward_start_tolerance_px_{18.0};
   bool eef_forward_use_joint_nudge_{false};
   double eef_forward_joint2_delta_rad_{0.025};
@@ -4231,8 +4232,8 @@ private:
   double eef_forward_roll_joint2_weight_{0.0};
   double eef_forward_roll_joint3_weight_{1.0};
   double eef_forward_roll_joint4_weight_{1.0};
-  double eef_forward_joint4_rpy_roll_gain_{0.6};
-  double eef_forward_joint4_rpy_roll_max_delta_rad_{0.04};
+  double eef_forward_joint4_rpy_roll_gain_{0.0};
+  double eef_forward_joint4_rpy_roll_max_delta_rad_{0.0};
   double eef_forward_joint4_max_delta_rad_{0.0};
   double eef_forward_joint4_ground_parallel_limit_rad_{-1.05};
   double eef_forward_joint4_ground_limit_tolerance_rad_{0.01};
