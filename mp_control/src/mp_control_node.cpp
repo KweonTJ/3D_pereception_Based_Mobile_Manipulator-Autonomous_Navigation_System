@@ -414,6 +414,8 @@ private:
     eef_forward_speed_mps_ = declare_parameter<double>("eef_forward_speed_mps", 0.012);
     eef_forward_fixed_duration_s_ =
       declare_parameter<double>("eef_forward_fixed_duration_s", 0.0);
+    eef_forward_gate_timeout_s_ =
+      declare_parameter<double>("eef_forward_gate_timeout_s", 5.0);
     eef_forward_start_tolerance_px_ =
       declare_parameter<double>("eef_forward_start_tolerance_px", eef_close_tolerance_px_);
     eef_forward_use_joint_nudge_ =
@@ -594,6 +596,7 @@ private:
     eef_forward_distance_m_ = std::max(0.0, eef_forward_distance_m_);
     eef_forward_speed_mps_ = std::max(0.0, eef_forward_speed_mps_);
     eef_forward_fixed_duration_s_ = std::max(0.0, eef_forward_fixed_duration_s_);
+    eef_forward_gate_timeout_s_ = std::max(0.0, eef_forward_gate_timeout_s_);
     eef_forward_start_tolerance_px_ =
       std::max(eef_close_tolerance_px_, eef_forward_start_tolerance_px_);
     eef_forward_joint_nudge_duration_s_ =
