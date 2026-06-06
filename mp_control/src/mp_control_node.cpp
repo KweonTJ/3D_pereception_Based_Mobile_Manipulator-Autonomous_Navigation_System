@@ -1724,6 +1724,7 @@ private:
     eef_forward_advance_active_ = true;
     eef_forward_start_stamp_ = now();
     eef_forward_start_x_m_ = eef_tf.transform.translation.x;
+    eef_forward_start_joint_positions_ = latestArmJointPositions();
     front_bbox_area_at_eef_forward_start_ = latestFreshFrontBboxArea();
     eef_bbox_area_at_eef_forward_start_ = latestFreshEefBboxArea();
     stable_cycles_ = 0;
@@ -1733,6 +1734,9 @@ private:
     status << reason
            << " distance=" << eef_forward_distance_m_
            << " speed=" << eef_forward_speed_mps_
+           << " start_joints="
+           << (eef_forward_start_joint_positions_ ?
+             formatJointArray(*eef_forward_start_joint_positions_) : "unavailable")
            << " front_bbox_start_area=" << front_bbox_area_at_eef_forward_start_.value_or(-1.0)
            << " eef_bbox_start_area=" << eef_bbox_area_at_eef_forward_start_.value_or(-1.0)
            << " front_close_area_ratio=" << front_bbox_close_area_ratio_
