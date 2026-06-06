@@ -1732,7 +1732,11 @@ private:
         eef_forward_advance_active_) {
       return false;
     }
-    return isFrontBboxCloseBySize() && latestFreshFrontBboxArea().has_value();
+    auto front_size_object = estimateObjectPointFromFrontBboxSize();
+    auto depth_reference = front_size_object ? front_size_object : latestDepthObjectInTarget();
+    return isFrontBboxCloseBySize() &&
+      latestFreshFrontBboxArea().has_value() &&
+      isVisualPregraspReferenceClose(front_size_object, depth_reference);
   }
 
   void startEefForwardAdvance(
@@ -1791,15 +1795,49 @@ private:
     const auto front_area_ratio = frontBboxAreaRatioFromForwardStart();
     const auto eef_area_ratio = eefBboxAreaRatioFromForwardStart();
     const auto joint_progress = eefForwardJointProgress();
-    const bool joint_progress_gate_enabled =
-      eef_forward_use_joint_nudge_ && eef_forward_joint4_after_joint3_complete_;
+    const bool joint_progress_gate_enabled = eef_forward_use_joint_nudge_;
+    const bool joint4_only_gate_active =
+      joint_progress_gate_enabled &&
+      eef_forward_joint4_after_joint3_complete_ &&
+      joint_progress.available &&
+      joint_progress.joint3_complete &&
+      !joint_progress.joint4_complete;
+    if (joint4_only_gate_active) {
+      abortEefForwardAdvance(
+        "EEF forward aborted: joint4-only loop detected; possible collision or joint stall",
+        advanced_x,
+        elapsed_s,
+        joint_progress,
+        eef_tf);
+      return;
+    }
+
+    const bool joint3_extension_complete =
+      !joint_progress_gate_enabled ||
+      !joint_progress.available ||
+      joint_progress.joint3_complete ||
+      advanced_x >= eef_forward_min_advance_before_close_m_;
     const bool arm_extension_complete =
-      !joint_progress_gate_enabled || joint_progress.complete;
+      joint3_extension_complete;
     const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
     const bool elapsed_enough_for_close =
       !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
     const bool advanced_enough_for_visual_close =
       advanced_x >= eef_forward_min_advance_before_close_m_ && elapsed_enough_for_close;
+    const bool forward_stalled =
+      eef_forward_gate_timeout_s_ > 0.0 &&
+      elapsed_s >= eef_forward_gate_timeout_s_ &&
+      advanced_x < eef_forward_min_advance_before_close_m_;
+    if (forward_stalled) {
+      abortEefForwardAdvance(
+        "EEF forward aborted: arm extension gate timeout; possible collision or joint stall",
+        advanced_x,
+        elapsed_s,
+        joint_progress,
+        eef_tf);
+      return;
+    }
+
     if (arm_extension_complete && advanced_enough_for_visual_close &&
         (shouldCloseOnFrontBboxShrink() || shouldCloseOnEefBboxShrink())) {
       stable_cycles_ += 1;
