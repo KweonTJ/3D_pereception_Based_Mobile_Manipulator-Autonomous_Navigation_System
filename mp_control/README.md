@@ -42,6 +42,7 @@ front_yolo_min_accept_confidence: 0.05
 use_fallback_bbox_for_control: true
 start_servo_on_start: false
 require_visual_grasp_confirmation: true
+grasp_offset_y: 0.025
 use_joint_pregrasp: true
 joint_trajectory_topic: /arm_controller/joint_trajectory_raw
 joint4_pose_frame: link5
@@ -118,7 +119,8 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - 전면 YOLO는 런치 시작 직후 원거리 박스가 작게 잡히는 구간을 놓치지 않도록 최소 bbox 크기를 `6 px`, accept confidence를 `0.05`로 둔다. 로그에서 전면 후보가 `small/conf`로 버려지는 경우를 줄이기 위한 값이다. EEF YOLO는 반사/옆면 오검출을 막기 위해 strict ROI와 same-object lock을 사용하고, 짧은 검출 실패에서는 마지막 bbox를 재사용한다.
 - `EEF_REFINE`와 handoff 작업 단계에서는 `/target/base_hold=true`와 zero `/cmd_vel`을 반복 발행한다. 그리퍼가 전면 카메라를 가려 전면 bbox/depth가 왜곡되어도 베이스 접근 루프로 되돌아가 직진하지 않게 한다.
 - `joint4_pose_frame / gripper_pose_frame`: joint4와 그리퍼 자세 확인용 TF frame이다. 기본값은 `joint4_pose_frame: link5`, `gripper_pose_frame: end_effector_link`다. `/mp_control/status`에는 EEF refine, pregrasp, final forward 구간에서 `eef_pose`, `joint4_pose`, `gripper_pose`가 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 함께 나온다. 이 값들은 상태 확인용이며, joint4 final nudge 목표값에 XYZ/RPY 추가 보정으로 더하지 않는다.
-- `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
+- `grasp_offset_y`: `base_link` 기준 y+가 로봇 왼쪽이다. 현재 실제 리더는 카메라 중심 정렬 후에도 매니퓰레이터가 물체보다 오른쪽에서 펼쳐지는 경향이 있어, 목표점을 왼쪽으로 `0.025 m` 보정한다. 이 보정은 전면 카메라 3D 목표뿐 아니라 EEF refinement 투영에도 같이 적용되어 EEF 보정 단계에서 좌측 오프셋이 다시 지워지지 않는다.
+- `require_visual_grasp_confirmation`: 그리퍼를 팔 도착 즉시 닫지 않는다. 전면 카메라에서 물체 bbox가 가려져 사라지고, EEF 카메라에서도 물체가 너무 가까워져 bbox가 사라진 뒤 그리퍼 close를 보낸다. 그 직후 `/cargo/events`에 `picked`를 발행하고, handoff가 켜져 있으면 `joint1` 180도 회전 적재 단계로 넘어간다.
 - `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
 - `grasp_completion_eef_lost_timeout_s`: 이 시간 동안 EEF bbox가 새로 들어오지 않으면 EEF에서 물체가 사라진 것으로 본다.
 - `handoff_after_grasp`: 파지 시각 확인 후 바로 종료하지 않고 팔로워 적재 동작으로 이어간다. 현재 구현은 물체를 들어 올리지 않고, 현재 파지 높이를 유지한 채 매니퓰레이터 `joint1`만 180도 회전해 팔로워 쪽으로 보낸 뒤 그리퍼를 연다.
