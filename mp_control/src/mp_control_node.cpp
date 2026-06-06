@@ -237,6 +237,18 @@ private:
     double eef_age_s{std::numeric_limits<double>::infinity()};
   };
 
+  struct EefForwardJointProgress
+  {
+    bool available{false};
+    bool joint3_complete{false};
+    bool joint4_complete{true};
+    bool complete{false};
+    double joint3_progress_rad{0.0};
+    double joint3_required_rad{0.0};
+    double joint4_error_rad{0.0};
+    double joint4_target_rad{0.0};
+  };
+
   void readParameters()
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
@@ -2177,6 +2189,7 @@ private:
     eef_forward_advance_active_ = false;
     eef_forward_start_x_m_ = 0.0;
     eef_forward_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    eef_forward_start_joint_positions_.reset();
     front_bbox_area_at_eef_forward_start_.reset();
     eef_bbox_area_at_eef_forward_start_.reset();
   }
