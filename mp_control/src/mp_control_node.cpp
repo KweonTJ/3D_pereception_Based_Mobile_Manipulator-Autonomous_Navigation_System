@@ -1862,9 +1862,13 @@ private:
       }
       return;
     }
-    if ((fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_) ||
-        (!fixed_duration_mode && advanced_x < eef_forward_distance_m_) ||
-        !arm_extension_complete) {
+    const bool should_continue_forward =
+      (fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_) ||
+      (!fixed_duration_mode &&
+      advanced_x < eef_forward_distance_m_ &&
+      !advanced_enough_for_visual_close) ||
+      !arm_extension_complete;
+    if (should_continue_forward) {
       publishEefForwardAdvanceCommand(rpy_error);
       std::ostringstream status;
       status << "eef aligned; advancing forward before grasp: advanced_x="
@@ -2528,6 +2532,21 @@ private:
     const bool staged_joint4 = eef_forward_joint4_after_joint3_complete_;
     const bool defer_joint4 = staged_joint4 && !progress.joint3_complete;
     std::string joint_stage = defer_joint4 ? "joint2,joint3" : "joint4";
+
+    if (progress.available && progress.complete && !staged_joint4) {
+      publishStop();
+      eef_forward_last_joint_nudge_stamp_ = stamp;
+      std::ostringstream status;
+      status << "eef forward joint nudge skipped: arm extension already complete"
+             << " current=" << formatJointArray(*current)
+             << formatEefForwardJointProgress(progress)
+             << " duration=" << eef_forward_joint_nudge_duration_s_
+             << " configured_period=" << eef_forward_joint_nudge_period_s_
+             << " effective_period=" << effective_nudge_period_s
+             << poseStatusSuffix();
+      publishStatus(status.str());
+      return true;
+    }
 
     if (!staged_joint4 || !progress.joint3_complete) {
       controller_target[1] = stepJointWithoutReversingTowardLimit(
@@ -3920,6 +3939,17 @@ private:
     }
 
     if (visual_state.eef_fresh && eef_forward_speed_mps_ > 0.0) {
+      const auto joint_progress = eefForwardJointProgress();
+      if (joint_progress.available && joint_progress.complete) {
+        publishStop();
+        publishStatus(
+          "eef bbox still visible after gripper close; holding because arm extension is complete: " +
+          visualGraspStateText(visual_state) +
+          formatEefForwardJointProgress(joint_progress) +
+          " rpy_frame=" + rpyControlFrame() +
+          poseStatusSuffix(eef_tf));
+        return true;
+      }
       const auto gripper_tf = gripperPoseTransformOrEef(eef_tf);
       const RpyError rpy_error = computeEefRpyError(gripper_tf);
       publishEefForwardAdvanceCommand(rpy_error);
