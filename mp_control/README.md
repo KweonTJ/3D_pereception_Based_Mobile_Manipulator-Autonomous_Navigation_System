@@ -82,8 +82,8 @@ eef_forward_joint4_finish_tolerance_rad: 0.015
 eef_forward_roll_joint2_weight: 0.0
 eef_forward_roll_joint3_weight: 0.3
 eef_forward_roll_joint4_weight: 1.0
-eef_forward_joint4_rpy_roll_gain: 0.3
-eef_forward_joint4_rpy_roll_max_delta_rad: 0.008
+eef_forward_joint4_rpy_roll_gain: 0.0
+eef_forward_joint4_rpy_roll_max_delta_rad: 0.0
 eef_forward_joint4_max_delta_rad: 0.010
 eef_forward_joint4_ground_parallel_limit_rad: -1.15
 eef_forward_joint4_ground_limit_tolerance_rad: 0.01
@@ -116,7 +116,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `0.185 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. `arm_start_max_object_x_m`도 같은 `0.185 m`로 맞춰 베이스가 더 가까워진 뒤에만 팔 단계로 넘어가게 한다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.185 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
 - 전면 YOLO는 런치 시작 직후 원거리 박스가 작게 잡히는 구간을 놓치지 않도록 최소 bbox 크기를 `6 px`, accept confidence를 `0.05`로 둔다. 로그에서 전면 후보가 `small/conf`로 버려지는 경우를 줄이기 위한 값이다. EEF YOLO는 반사/옆면 오검출을 막기 위해 strict ROI와 same-object lock을 사용하고, 짧은 검출 실패에서는 마지막 bbox를 재사용한다.
 - `EEF_REFINE`와 handoff 작업 단계에서는 `/target/base_hold=true`와 zero `/cmd_vel`을 반복 발행한다. 그리퍼가 전면 카메라를 가려 전면 bbox/depth가 왜곡되어도 베이스 접근 루프로 되돌아가 직진하지 않게 한다.
-- `joint4_pose_frame / gripper_pose_frame`: joint4와 그리퍼 자세 확인용 TF frame이다. 기본값은 `joint4_pose_frame: link5`, `gripper_pose_frame: end_effector_link`다. `/mp_control/status`에는 EEF refine, pregrasp, final forward 구간에서 `eef_pose`, `joint4_pose`, `gripper_pose`가 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 함께 나온다. roll 유지 제어는 `gripper_pose_frame`의 RPY를 기준으로 한다.
+- `joint4_pose_frame / gripper_pose_frame`: joint4와 그리퍼 자세 확인용 TF frame이다. 기본값은 `joint4_pose_frame: link5`, `gripper_pose_frame: end_effector_link`다. `/mp_control/status`에는 EEF refine, pregrasp, final forward 구간에서 `eef_pose`, `joint4_pose`, `gripper_pose`가 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 함께 나온다. 이 값들은 상태 확인용이며, joint4 final nudge 목표값에 XYZ/RPY 추가 보정으로 더하지 않는다.
 - `require_visual_grasp_confirmation`: 그리퍼 close 명령 직후 바로 파지 완료로 보지 않는다. 전면 bbox는 계속 보이고, EEF bbox는 사라져야 `/cargo/events`에 `picked`를 발행한다.
 - `grasp_completion_front_max_age_s`: 파지 완료 판정에 사용할 전면 bbox freshness 한계다.
 - `grasp_completion_eef_lost_timeout_s`: 이 시간 동안 EEF bbox가 새로 들어오지 않으면 EEF에서 물체가 사라진 것으로 본다.
@@ -149,8 +149,8 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint3_first_duration_ratio`: 기존 순차 전개 호환용 파라미터다. 현재 실제 리더의 final nudge는 이 값 대신 `eef_forward_joint4_after_joint3_complete` 단계 로직을 사용한다.
 - `eef_forward_joint_nudge_duration_s / eef_forward_joint_nudge_period_s`: 추가 전진 trajectory 시간과 재발행 주기다. 실제 설정은 `0.60 s / 0.25 s`로, 기존 `0.80 s / 0.35 s`보다 빠르게 전개하되 joint3 delta 자체는 키우지 않아 토크 충격을 줄인다.
 - `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 현재 실제 설정은 `eef_forward_roll_joint3_weight: 0.3`, `eef_forward_roll_joint4_weight: 1.0`이다. 실제 리더에서 음수 weight는 그리퍼와 EEF 카메라가 하늘을 보는 방향으로 joint4를 돌렸기 때문에 양수 weight를 사용하되, joint3 `-0.050 rad` 전개 기준 joint4가 반복 nudge마다 바닥을 보지 않도록 보상 비율을 낮췄다.
-- `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: `/tf`에서 계산한 EE roll 오차를 joint4 목표에 추가로 반영하는 값이다. joint trajectory nudge가 Servo twist를 우회하더라도 gripper roll feedback을 잃지 않게 한다. 현재 실제 설정은 gain `0.3`, max `0.008 rad`로 제한해서 joint4가 joint2/joint3보다 크게 먼저 꺾이지 않게 한다.
-- `eef_forward_joint4_max_delta_rad`: EEF forward nudge 1회당 joint4 목표 변화량 상한이다. 현재 실제 리더는 `0.010 rad`로 둔다. roll proxy와 rpy feedback이 합쳐져도 joint4가 한 번에 크게 회전하지 않게 하는 안전장치다.
+- `eef_forward_joint4_rpy_roll_gain / eef_forward_joint4_rpy_roll_max_delta_rad`: 실제 리더에서는 둘 다 `0.0`이다. joint4 목표에 TF RPY feedback을 추가로 더하지 않는다. joint4는 joint3 완료 후 roll proxy 기반 목표와 1회 변화량 제한만 사용한다.
+- `eef_forward_joint4_max_delta_rad`: EEF forward nudge 1회당 joint4 목표 변화량 상한이다. 현재 실제 리더는 `0.010 rad`로 둔다. joint4가 한 번에 크게 회전하지 않게 하는 안전장치다.
 - `eef_forward_joint4_ground_parallel_limit_rad`: 추가 전진 중 joint4가 이 값에 도달하면 그리퍼/EEF 카메라가 땅과 수평에 가까운 한계 자세로 본다. 실제 리더는 기존 `-1.05 rad`에서 더 보수적인 `-1.15 rad`로 앞당겼고, 이 이후에는 joint4를 더 아래로 숙이는 방향으로 회전시키지 않는다.
 - `eef_forward_joint4_ground_limit_tolerance_rad`: joint4가 수평 한계 근처에 이미 도달했을 때 제한값으로 다시 끌어당기지 않고 현재 각도를 유지하는 허용 오차다. 로그에서 joint4가 `-1.053 rad` 근처인데 매 nudge마다 `-1.05 rad`로 미세하게 당겨지며 그리퍼 자세가 흔들렸기 때문에, 실제 설정은 `0.01 rad`로 둔다.
 - `eef_forward_joint4_down_positive`: 실제 리더에서는 joint4 값이 증가하는 방향이 그리퍼와 EEF 카메라를 바닥으로 숙이는 방향이다. 따라서 `true`로 두고, `eef_forward_joint4_ground_parallel_limit_rad`보다 큰 joint4 목표를 막는다.
@@ -254,7 +254,7 @@ eef_forward_fixed_duration_s: 1.0
 
 이 단계에서 `/mp_control/status`에는 `rpy_err=(roll, pitch, yaw)`, `roll_ref=stay_roll`, `rpy_ready`, `rpy_frame`, forward advance 진행 상태가 표시된다. 실제 파지 순서는 `베이스 정지 -> joint pregrasp 자세 생성 -> joint2/joint3 추가 전개 -> joint4 정면 보정 -> 그리퍼 close`다. `eef_forward_fixed_duration_s: 1.0`이 지나도 `joint3_complete`와 `joint4_complete`가 모두 참이 아니면 그리퍼를 닫지 않는다.
 
-추가로 `eef_pose`, `joint4_pose`, `gripper_pose`가 각각 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 출력된다. `joint4_pose`는 `link5` 기준이므로 joint4가 그리퍼 쪽 링크를 어느 방향으로 돌리는지 확인하는 용도이고, `gripper_pose`는 실제 roll 유지 기준이다. 기본 설정에서는 `gripper_pose_frame=end_effector_link`라서 기존 end-effector RPY 제어와 동일하게 동작하지만, 현장에서 `gripper_left_link`나 다른 gripper frame 기준이 더 맞으면 파라미터만 바꿔 비교할 수 있다.
+추가로 `eef_pose`, `joint4_pose`, `gripper_pose`가 각각 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 출력된다. `joint4_pose`는 `link5` 기준이므로 joint4가 그리퍼 쪽 링크를 어느 방향으로 돌리는지 확인하는 용도다. 이 TF 값은 로그 확인용이며, final forward에서 joint4 목표에 XYZ/RPY 추가 보정으로 사용하지 않는다.
 
 EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전면 depth에서 얻은 물체 폭만 사용한다. 유효한 전면 depth 폭이 없으면 fallback 폭을 쓴다. EEF RGB는 EE가 약간 틀어진 경우 최종 위치 보정에만 사용한다.
 

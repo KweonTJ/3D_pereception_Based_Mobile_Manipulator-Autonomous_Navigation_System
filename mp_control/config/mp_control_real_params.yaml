@@ -158,19 +158,20 @@ mp_control_node:
     eef_rpy_gain: 0.8
     eef_refine_max_angular_speed: 0.25
     eef_forward_after_align: true
-    eef_forward_distance_m: 0.08
+    eef_forward_distance_m: 0.10
     eef_forward_speed_mps: 0.024
-    # Real grasp sequence: stop base, build pregrasp pose, advance the EEF
-    # straight for this duration, then close the gripper.
-    eef_forward_fixed_duration_s: 1.0
+    # Real grasp sequence: stop base, build pregrasp pose, advance the EEF by
+    # distance instead of a fixed timer, then close the gripper.
+    eef_forward_fixed_duration_s: 0.0
+    # If a staged arm-extension gate is enabled again later, abort instead of
+    # pushing one stalled joint forever.
+    eef_forward_gate_timeout_s: 5.0
     # Start final forward before the stricter close-ready threshold because
     # Servo can stall while trying to remove the last few pixels of lateral error.
     eef_forward_start_tolerance_px: 90.0
-    # Final EEF advance uses staged joint nudges on real hardware.
-    # joint2/joint3 extend first while joint4 is held, then joint4 preserves
-    # the stay-pose gripper roll after joint3 reaches the required progress.
-    # This bypasses MoveIt Servo collision/singularity scaling that can stall
-    # when the object is already close to the gripper.
+    # Final EEF advance uses simultaneous joint nudges on real hardware.
+    # joint2, joint3, and joint4 are sent in one trajectory point so joint4
+    # never enters a joint4-only correction loop near the base frame.
     eef_forward_use_joint_nudge: true
     eef_forward_joint2_delta_rad: 0.025
     eef_forward_joint3_delta_rad: -0.050
@@ -179,22 +180,19 @@ mp_control_node:
     # Keep this parameter for compatibility. The real final nudge now uses the
     # explicit staged gate below instead of this legacy ratio.
     eef_forward_joint3_first_duration_ratio: 0.65
-    # Real hardware order for final reach:
-    # 1) joint2/joint3 extend while joint4 is held,
-    # 2) after joint3 reaches this required progress, joint4 alone corrects the
-    #    gripper/EEF camera to face the object,
-    # 3) only then the gripper is allowed to close.
-    eef_forward_joint4_after_joint3_complete: true
+    # Keep staged joint4 disabled on the real robot. The staged mode can leave
+    # joint2/joint3 fixed while joint4 alone keeps pushing into the base frame.
+    eef_forward_joint4_after_joint3_complete: false
     eef_forward_joint3_complete_delta_rad: 0.25
     eef_forward_joint3_complete_tolerance_rad: 0.015
-    eef_forward_joint4_finish_tolerance_rad: 0.015
+    eef_forward_joint4_finish_tolerance_rad: 0.08
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # Hardware observation takes priority over the model sign. Keep the
     # compensation direction opposite to the upward-looking motion, but limit
     # joint4 to a smaller correction than joint2/joint3 so the gripper does not
     # point down before the arm is fully extended.
     eef_forward_roll_joint2_weight: 0.0
-    eef_forward_roll_joint3_weight: 0.3
+    eef_forward_roll_joint3_weight: 0.0
     eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.0
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.0
@@ -218,7 +216,7 @@ mp_control_node:
     front_bbox_close_area_ratio: 0.55
     close_on_eef_bbox_shrink: false
     eef_bbox_close_area_ratio: 0.55
-    eef_forward_min_advance_before_close_m: 0.04
+    eef_forward_min_advance_before_close_m: 0.08
     # After visual grasp confirmation, keep holding the base tracker, rotate
     # only manipulator joint1 by 180 degrees toward the follower, open the
     # gripper, then return the manipulator to the saved stay pose. Do not lift
