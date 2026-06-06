@@ -159,6 +159,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `gripper_down_joint4_offset_rad`: pregrasp와 EEF forward joint nudge의 roll 보정 이후 joint4에 더하는 추가 오프셋이다. 현재 실제 리더는 `0.0 rad`로 둔다. 로그에서 `-0.10 rad` 오프셋이 joint4 하한 근처에서 clamp를 만들고 `eef_usb_camera_link`와 `link3` 충돌을 유발했기 때문에, 방향 보정은 roll proxy 부호로 처리하고 별도 하향 오프셋은 끈다.
 - `close_on_front_bbox_shrink / close_on_eef_bbox_shrink`: 실제 리더에서는 둘 다 `false`다. bbox 면적 축소만으로 그리퍼를 닫으면 팔을 다 뻗기 전에 close가 나가므로, 현재 close는 EEF 전진 거리와 joint3 전개 진행률을 중심으로 판단한다. EEF bbox area ratio가 `1.0`을 넘는 비정상 값은 close 판단에 사용하지 않는다.
 - `eef_forward_min_advance_before_close_m`: 그리퍼 close를 허용하기 전 최소 EEF 전진량이다. 현재 실제 리더는 `0.025 m`이며, `eef_forward_distance_m: 0.05 m`까지 전진하는 경로를 기본으로 한다. 직전 로그에서 EEF x가 `0.0149 m`만 증가한 상태로 abort되었기 때문에, 박스에 계속 밀고 들어가기보다 짧은 전진 후 close 판단으로 넘어가도록 낮췄다.
+- close 이후 EEF bbox가 계속 fresh로 남아도 `joint3_progress`가 이미 완료 기준을 넘었으면 더 이상 fixed-pose forward nudge를 보내지 않는다. 직전 로그에서는 gripper close 이후에도 `joint3_progress=0.56/0.14`에서 `1.37/0.14`까지 계속 증가하며 closed gripper가 물체를 밀어 파지를 놓쳤다. 이제 이 상태에서는 `eef bbox still visible after gripper close; holding because arm extension is complete` 상태로 멈춰서, close 이후 과전개로 joint3와 EEF 자세가 무너지는 상황을 막는다.
 - EEF bbox가 ROI/aspect 필터 때문에 중간에 사라지거나 stale 상태가 되면, 기존에는 `prepareEefRefinement()`에서 멈춰 final forward가 시작되지 않았다. 현재는 전면 bbox close-size와 실제 거리 reference가 모두 close 조건을 만족할 때만 fallback으로 EEF fixed-pose forward를 시작한다. 전면 bbox 크기와 EEF bbox만으로 fake object를 만들어 너무 먼 상태에서 arm stage에 들어가는 경로는 막는다.
 
 ## 실제 로봇 joint3 trajectory 변환
