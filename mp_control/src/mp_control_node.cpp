@@ -1827,7 +1827,7 @@ private:
       joint_progress.joint3_complete;
     const bool arm_extension_complete =
       distance_extension_complete ||
-      (joint3_extension_complete && min_advance_complete);
+      joint3_extension_complete;
     const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
     const bool elapsed_enough_for_close =
       !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
