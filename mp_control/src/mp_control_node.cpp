@@ -1424,6 +1424,9 @@ private:
 
     geometry_msgs::msg::PointStamped object_latest = object_in_target;
     object_latest.header.stamp = builtin_interfaces::msg::Time();
+    object_latest.point.x += grasp_offset_x_;
+    object_latest.point.y += grasp_offset_y_;
+    object_latest.point.z += grasp_offset_z_;
 
     geometry_msgs::msg::PointStamped object_in_eef_camera;
     try {
@@ -3568,7 +3571,12 @@ private:
 
   bool visualGraspConfirmed(const VisualGraspState & state) const
   {
-    return state.front_fresh && eef_bbox_seen_after_close_ && !state.eef_fresh;
+    return close_sent_ && !state.front_fresh && eef_bbox_seen_after_close_ && !state.eef_fresh;
+  }
+
+  bool visualCloseTriggerReady(const VisualGraspState & state) const
+  {
+    return !state.front_fresh && eef_bbox_seen_after_close_ && !state.eef_fresh;
   }
 
   double bboxArea(const Bbox & bbox) const
@@ -3893,12 +3901,11 @@ private:
     const std::string & complete_status,
     const std::string & waiting_status)
   {
-    if (close_gripper_on_arrival_ && !close_sent_) {
-      sendGripperGraspForObject();
-      close_sent_ = true;
-    }
-
     if (!require_visual_grasp_confirmation_) {
+      if (close_gripper_on_arrival_ && !close_sent_) {
+        sendGripperGraspForObject();
+        close_sent_ = true;
+      }
       completeGrasp(complete_status);
       return true;
     }
@@ -3907,10 +3914,31 @@ private:
     if (visual_state.eef_fresh) {
       eef_bbox_seen_after_close_ = true;
     }
+
+    if (close_gripper_on_arrival_ && !close_sent_) {
+      if (!visualCloseTriggerReady(visual_state)) {
+        publishStop();
+        publishStatus(
+          "waiting for visual close trigger before gripper close: " +
+          visualGraspStateText(visual_state) +
+          ", eef_seen_before_close=" +
+          (eef_bbox_seen_after_close_ ? "true" : "false") +
+          "; need front occluded and eef lost");
+        return false;
+      }
+
+      sendGripperGraspForObject();
+      close_sent_ = true;
+      completeGrasp(
+        complete_status +
+        "; visual close trigger: front bbox occluded and eef bbox lost");
+      return true;
+    }
+
     if (visualGraspConfirmed(visual_state)) {
       completeGrasp(
         complete_status +
-        "; visual confirmation: front bbox present, eef bbox seen then lost");
+        "; visual confirmation: front bbox occluded and eef bbox lost");
       return true;
     }
 
@@ -3934,28 +3962,17 @@ private:
     if (visualGraspConfirmed(visual_state)) {
       completeGrasp(
         complete_status +
-        "; visual confirmation: front bbox present, eef bbox seen then lost");
+        "; visual confirmation: front bbox occluded and eef bbox lost");
       return true;
     }
 
     if (visual_state.eef_fresh && eef_forward_speed_mps_ > 0.0) {
       const auto joint_progress = eefForwardJointProgress();
-      if (joint_progress.available && joint_progress.complete) {
-        publishStop();
-        publishStatus(
-          "eef bbox still visible after gripper close; holding because arm extension is complete: " +
-          visualGraspStateText(visual_state) +
-          formatEefForwardJointProgress(joint_progress) +
-          " rpy_frame=" + rpyControlFrame() +
-          poseStatusSuffix(eef_tf));
-        return true;
-      }
-      const auto gripper_tf = gripperPoseTransformOrEef(eef_tf);
-      const RpyError rpy_error = computeEefRpyError(gripper_tf);
-      publishEefForwardAdvanceCommand(rpy_error);
+      publishStop();
       publishStatus(
-        "eef bbox still visible after gripper close; continuing fixed-pose forward advance: " +
+        "eef bbox still visible after gripper close; holding for safety before handoff: " +
         visualGraspStateText(visual_state) +
+        formatEefForwardJointProgress(joint_progress) +
         " rpy_frame=" + rpyControlFrame() +
         poseStatusSuffix(eef_tf));
       return true;
