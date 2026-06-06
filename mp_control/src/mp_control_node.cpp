@@ -415,7 +415,7 @@ private:
     eef_forward_fixed_duration_s_ =
       declare_parameter<double>("eef_forward_fixed_duration_s", 0.0);
     eef_forward_gate_timeout_s_ =
-      declare_parameter<double>("eef_forward_gate_timeout_s", 5.0);
+      declare_parameter<double>("eef_forward_gate_timeout_s", 8.0);
     eef_forward_start_tolerance_px_ =
       declare_parameter<double>("eef_forward_start_tolerance_px", eef_close_tolerance_px_);
     eef_forward_use_joint_nudge_ =
@@ -423,17 +423,17 @@ private:
     eef_forward_joint2_delta_rad_ =
       declare_parameter<double>("eef_forward_joint2_delta_rad", 0.025);
     eef_forward_joint3_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint3_delta_rad", -0.050);
+      declare_parameter<double>("eef_forward_joint3_delta_rad", -0.035);
     eef_forward_joint_nudge_duration_s_ =
-      declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.45);
+      declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.75);
     eef_forward_joint_nudge_period_s_ =
-      declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.35);
+      declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.80);
     eef_forward_joint3_first_duration_ratio_ =
       declare_parameter<double>("eef_forward_joint3_first_duration_ratio", 0.65);
     eef_forward_joint4_after_joint3_complete_ =
       declare_parameter<bool>("eef_forward_joint4_after_joint3_complete", true);
     eef_forward_joint3_complete_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint3_complete_delta_rad", 0.25);
+      declare_parameter<double>("eef_forward_joint3_complete_delta_rad", 0.14);
     eef_forward_joint3_complete_tolerance_rad_ =
       declare_parameter<double>("eef_forward_joint3_complete_tolerance_rad", 0.015);
     eef_forward_joint4_finish_tolerance_rad_ =
@@ -467,7 +467,7 @@ private:
     eef_bbox_close_area_ratio_ =
       declare_parameter<double>("eef_bbox_close_area_ratio", 0.60);
     eef_forward_min_advance_before_close_m_ =
-      declare_parameter<double>("eef_forward_min_advance_before_close_m", 0.0);
+      declare_parameter<double>("eef_forward_min_advance_before_close_m", 0.025);
     handoff_after_grasp_ = declare_parameter<bool>("handoff_after_grasp", false);
     handoff_lift_joint2_delta_rad_ =
       declare_parameter<double>("handoff_lift_joint2_delta_rad", 0.25);
@@ -4231,16 +4231,16 @@ private:
   double eef_forward_distance_m_{0.05};
   double eef_forward_speed_mps_{0.012};
   double eef_forward_fixed_duration_s_{0.0};
-  double eef_forward_gate_timeout_s_{5.0};
+  double eef_forward_gate_timeout_s_{8.0};
   double eef_forward_start_tolerance_px_{18.0};
   bool eef_forward_use_joint_nudge_{false};
   double eef_forward_joint2_delta_rad_{0.025};
-  double eef_forward_joint3_delta_rad_{-0.050};
-  double eef_forward_joint_nudge_duration_s_{0.45};
-  double eef_forward_joint_nudge_period_s_{0.35};
+  double eef_forward_joint3_delta_rad_{-0.035};
+  double eef_forward_joint_nudge_duration_s_{0.75};
+  double eef_forward_joint_nudge_period_s_{0.80};
   double eef_forward_joint3_first_duration_ratio_{0.65};
   bool eef_forward_joint4_after_joint3_complete_{true};
-  double eef_forward_joint3_complete_delta_rad_{0.25};
+  double eef_forward_joint3_complete_delta_rad_{0.14};
   double eef_forward_joint3_complete_tolerance_rad_{0.015};
   double eef_forward_joint4_finish_tolerance_rad_{0.015};
   double eef_forward_roll_joint2_weight_{0.0};
@@ -4257,7 +4257,7 @@ private:
   double front_bbox_close_area_ratio_{0.60};
   bool close_on_eef_bbox_shrink_{false};
   double eef_bbox_close_area_ratio_{0.60};
-  double eef_forward_min_advance_before_close_m_{0.0};
+  double eef_forward_min_advance_before_close_m_{0.025};
   bool handoff_after_grasp_{false};
   double handoff_lift_joint2_delta_rad_{0.25};
   double handoff_place_joint2_delta_rad_{-0.20};
