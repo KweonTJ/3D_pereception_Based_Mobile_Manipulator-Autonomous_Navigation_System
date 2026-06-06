@@ -2419,52 +2419,92 @@ private:
     }
 
     std::array<double, 4> controller_target = *current;
-    controller_target[1] += eef_forward_joint2_delta_rad_;
-    controller_target[2] += eef_forward_joint3_delta_rad_;
-    if (joint_pregrasp_preserve_gripper_roll_) {
-      controller_target[3] = joint4ForPreservedEefForwardRoll(*current, controller_target);
+    if (!eef_forward_start_joint_positions_) {
+      eef_forward_start_joint_positions_ = *current;
     }
-    const double joint4_roll_feedback = clampValue(
-      eef_forward_joint4_rpy_roll_gain_ * rpy_error.roll,
-      -eef_forward_joint4_rpy_roll_max_delta_rad_,
-      eef_forward_joint4_rpy_roll_max_delta_rad_);
-    controller_target[3] += joint4_roll_feedback;
-    controller_target[3] += gripper_down_joint4_offset_rad_;
-    const double unclamped_joint4_target = controller_target[3];
+
+    const auto progress = eefForwardJointProgressFromCurrent(*current);
+    const double joint3_direction = eefForwardJoint3Direction();
+    const double joint3_remaining = std::max(
+      0.0, progress.joint3_required_rad - progress.joint3_progress_rad);
+    const bool staged_joint4 = eef_forward_joint4_after_joint3_complete_;
+    const bool defer_joint4 = staged_joint4 && !progress.joint3_complete;
+    std::string joint_stage = defer_joint4 ? "joint2,joint3" : "joint4";
+
+    if (!staged_joint4 || !progress.joint3_complete) {
+      controller_target[1] = stepJointWithoutReversingTowardLimit(
+        (*current)[1],
+        eef_forward_joint2_delta_rad_,
+        joint_pregrasp_min_positions_[1],
+        joint_pregrasp_max_positions_[1]);
+      const double joint3_step = staged_joint4 ?
+        std::min(std::abs(eef_forward_joint3_delta_rad_), joint3_remaining) :
+        std::abs(eef_forward_joint3_delta_rad_);
+      controller_target[2] = (*current)[2] + joint3_direction * joint3_step;
+      if (!staged_joint4) {
+        joint_stage = "joint2,joint3,joint4";
+      }
+    } else {
+      controller_target[1] = (*current)[1];
+      controller_target[2] = (*current)[2];
+    }
+
+    double joint4_roll_feedback = 0.0;
+    double unclamped_joint4_target = (*current)[3];
+    double delta_limited_joint4_target = (*current)[3];
     bool joint4_delta_limit_active = false;
-    if (eef_forward_joint4_max_delta_rad_ > 0.0) {
-      const double joint4_delta = controller_target[3] - (*current)[3];
-      const double limited_joint4_delta = clampValue(
-        joint4_delta,
-        -eef_forward_joint4_max_delta_rad_,
-        eef_forward_joint4_max_delta_rad_);
-      joint4_delta_limit_active = std::abs(limited_joint4_delta - joint4_delta) > 1.0e-9;
-      controller_target[3] = (*current)[3] + limited_joint4_delta;
-    }
-    const double delta_limited_joint4_target = controller_target[3];
-    const bool joint4_target_past_ground_limit =
-      eef_forward_joint4_down_positive_ ?
-      controller_target[3] > eef_forward_joint4_ground_parallel_limit_rad_ :
-      controller_target[3] < eef_forward_joint4_ground_parallel_limit_rad_;
-    const bool joint4_near_or_past_ground_limit =
-      eef_forward_joint4_down_positive_ ?
-      (*current)[3] >=
-      eef_forward_joint4_ground_parallel_limit_rad_ -
-      eef_forward_joint4_ground_limit_tolerance_rad_ :
-      (*current)[3] <=
-      eef_forward_joint4_ground_parallel_limit_rad_ +
-      eef_forward_joint4_ground_limit_tolerance_rad_;
-    const bool joint4_ground_limit_active =
-      joint4_target_past_ground_limit || joint4_near_or_past_ground_limit;
-    if (joint4_target_past_ground_limit) {
-      controller_target[3] = joint4_near_or_past_ground_limit ?
-        (*current)[3] :
-        eef_forward_joint4_ground_parallel_limit_rad_;
+    bool joint4_target_past_ground_limit = false;
+    bool joint4_ground_limit_active = false;
+    if (defer_joint4) {
+      controller_target[3] = (*current)[3];
+    } else {
+      if (staged_joint4) {
+        controller_target[3] = progress.joint4_target_rad;
+      } else if (joint_pregrasp_preserve_gripper_roll_) {
+        controller_target[3] = joint4ForPreservedEefForwardRoll(*current, controller_target);
+      }
+      joint4_roll_feedback = clampValue(
+        eef_forward_joint4_rpy_roll_gain_ * rpy_error.roll,
+        -eef_forward_joint4_rpy_roll_max_delta_rad_,
+        eef_forward_joint4_rpy_roll_max_delta_rad_);
+      controller_target[3] += joint4_roll_feedback;
+      if (!staged_joint4) {
+        controller_target[3] += gripper_down_joint4_offset_rad_;
+      }
+      unclamped_joint4_target = controller_target[3];
+
+      if (eef_forward_joint4_max_delta_rad_ > 0.0) {
+        const double joint4_delta = controller_target[3] - (*current)[3];
+        const double limited_joint4_delta = clampValue(
+          joint4_delta,
+          -eef_forward_joint4_max_delta_rad_,
+          eef_forward_joint4_max_delta_rad_);
+        joint4_delta_limit_active = std::abs(limited_joint4_delta - joint4_delta) > 1.0e-9;
+        controller_target[3] = (*current)[3] + limited_joint4_delta;
+      }
+      delta_limited_joint4_target = controller_target[3];
+      joint4_target_past_ground_limit =
+        eef_forward_joint4_down_positive_ ?
+        controller_target[3] > eef_forward_joint4_ground_parallel_limit_rad_ :
+        controller_target[3] < eef_forward_joint4_ground_parallel_limit_rad_;
+      const bool joint4_near_or_past_ground_limit =
+        eef_forward_joint4_down_positive_ ?
+        (*current)[3] >=
+        eef_forward_joint4_ground_parallel_limit_rad_ -
+        eef_forward_joint4_ground_limit_tolerance_rad_ :
+        (*current)[3] <=
+        eef_forward_joint4_ground_parallel_limit_rad_ +
+        eef_forward_joint4_ground_limit_tolerance_rad_;
+      joint4_ground_limit_active =
+        joint4_target_past_ground_limit || joint4_near_or_past_ground_limit;
+      if (joint4_target_past_ground_limit) {
+        controller_target[3] = joint4_near_or_past_ground_limit ?
+          (*current)[3] :
+          eef_forward_joint4_ground_parallel_limit_rad_;
+      }
     }
     controller_target[0] =
       clampValue(controller_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
-    controller_target[1] =
-      clampValue(controller_target[1], joint_pregrasp_min_positions_[1], joint_pregrasp_max_positions_[1]);
     controller_target[3] =
       clampValue(controller_target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
     const auto raw_target =
@@ -2485,7 +2525,11 @@ private:
     status << "eef forward joint nudge: current=" << formatJointArray(*current)
            << " raw_target=" << formatJointArray(raw_target)
            << " controller_target=" << formatJointArray(controller_target)
-           << " simultaneous_joints=joint2,joint3,joint4"
+           << " simultaneous_joints=" << joint_stage
+           << " joint4_deferred_until_joint3_complete="
+           << (defer_joint4 ? "true" : "false")
+           << formatEefForwardJointProgress(progress)
+           << " joint3_remaining=" << joint3_remaining
            << " controller_joint2_delta=" << controller_joint2_delta
            << " controller_joint3_delta=" << controller_joint3_delta
            << " controller_joint4_delta=" << controller_joint4_delta
