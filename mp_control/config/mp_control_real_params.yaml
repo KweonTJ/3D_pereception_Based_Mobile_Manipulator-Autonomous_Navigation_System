@@ -169,10 +169,7 @@ mp_control_node:
     # when the object is already close to the gripper.
     eef_forward_use_joint_nudge: true
     eef_forward_joint2_delta_rad: 0.025
-    eef_forward_joint3_delta_rad: -0.065
-    # Joint3 must keep extending during the final forward nudge, but do not
-    # drive it past this controller-side lower bound on the real arm.
-    eef_forward_joint3_lower_limit_rad: -1.55
+    eef_forward_joint3_delta_rad: -0.050
     eef_forward_joint_nudge_duration_s: 0.80
     eef_forward_joint_nudge_period_s: 0.35
     # Keep this parameter for compatibility, but the real final nudge now uses
