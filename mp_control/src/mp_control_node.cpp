@@ -395,6 +395,8 @@ private:
       declare_parameter<double>("eef_forward_joint2_delta_rad", 0.025);
     eef_forward_joint3_delta_rad_ =
       declare_parameter<double>("eef_forward_joint3_delta_rad", -0.050);
+    eef_forward_joint3_lower_limit_rad_ =
+      declare_parameter<double>("eef_forward_joint3_lower_limit_rad", -1.55);
     eef_forward_joint_nudge_duration_s_ =
       declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.45);
     eef_forward_joint_nudge_period_s_ =
@@ -565,6 +567,9 @@ private:
       std::max(0.1, eef_forward_joint_nudge_duration_s_);
     eef_forward_joint_nudge_period_s_ =
       std::max(0.05, eef_forward_joint_nudge_period_s_);
+    if (!std::isfinite(eef_forward_joint3_lower_limit_rad_)) {
+      eef_forward_joint3_lower_limit_rad_ = -1.55;
+    }
     eef_forward_joint3_first_duration_ratio_ =
       clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
     if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
@@ -2158,6 +2163,13 @@ private:
     std::array<double, 4> controller_target = *current;
     controller_target[1] += eef_forward_joint2_delta_rad_;
     controller_target[2] += eef_forward_joint3_delta_rad_;
+    const double requested_controller_joint3_target = controller_target[2];
+    bool joint3_lower_limit_active = false;
+    if (eef_forward_joint3_delta_rad_ < 0.0 &&
+        controller_target[2] < eef_forward_joint3_lower_limit_rad_) {
+      controller_target[2] = std::min((*current)[2], eef_forward_joint3_lower_limit_rad_);
+      joint3_lower_limit_active = true;
+    }
     if (joint_pregrasp_preserve_gripper_roll_) {
       controller_target[3] = joint4ForPreservedEefForwardRoll(*current, controller_target);
     }
@@ -2227,6 +2239,9 @@ private:
            << " controller_joint3_delta=" << controller_joint3_delta
            << " controller_joint4_delta=" << controller_joint4_delta
            << " raw_joint3_delta=" << raw_joint3_delta
+           << " requested_controller_joint3_target=" << requested_controller_joint3_target
+           << " joint3_lower_limit=" << eef_forward_joint3_lower_limit_rad_
+           << " joint3_lower_limit_active=" << (joint3_lower_limit_active ? "true" : "false")
            << " roll_proxy_weights=(" << eef_forward_roll_joint2_weight_ << ", "
            << eef_forward_roll_joint3_weight_ << ", "
            << eef_forward_roll_joint4_weight_ << ")"
@@ -3822,6 +3837,7 @@ private:
   bool eef_forward_use_joint_nudge_{false};
   double eef_forward_joint2_delta_rad_{0.025};
   double eef_forward_joint3_delta_rad_{-0.050};
+  double eef_forward_joint3_lower_limit_rad_{-1.55};
   double eef_forward_joint_nudge_duration_s_{0.45};
   double eef_forward_joint_nudge_period_s_{0.35};
   double eef_forward_joint3_first_duration_ratio_{0.65};
