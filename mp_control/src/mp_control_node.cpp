@@ -3601,7 +3601,8 @@ private:
       return false;
     }
     const auto ratio = frontBboxAreaRatioFromForwardStart();
-    return ratio && *ratio <= front_bbox_close_area_ratio_;
+    return ratio && *ratio > 0.0 && *ratio <= 1.0 &&
+      *ratio <= front_bbox_close_area_ratio_;
   }
 
   bool shouldCloseOnEefBboxShrink()
@@ -3610,7 +3611,8 @@ private:
       return false;
     }
     const auto ratio = eefBboxAreaRatioFromForwardStart();
-    return ratio && *ratio <= eef_bbox_close_area_ratio_;
+    return ratio && *ratio > 0.0 && *ratio <= 1.0 &&
+      *ratio <= eef_bbox_close_area_ratio_;
   }
 
   void completeGrasp(const std::string & status_text)
