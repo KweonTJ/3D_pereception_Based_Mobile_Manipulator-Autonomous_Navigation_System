@@ -2502,9 +2502,12 @@ private:
   bool publishEefForwardJointNudge(const RpyError & rpy_error)
   {
     const auto stamp = now();
+    const double effective_nudge_period_s = std::max(
+      eef_forward_joint_nudge_period_s_,
+      eef_forward_joint_nudge_duration_s_);
     if (eef_forward_last_joint_nudge_stamp_.nanoseconds() != 0 &&
         (stamp - eef_forward_last_joint_nudge_stamp_).seconds() <
-        eef_forward_joint_nudge_period_s_) {
+        effective_nudge_period_s) {
       return true;
     }
 
@@ -2642,6 +2645,8 @@ private:
            << " rpy_roll_err=" << rpy_error.roll
            << " rpy_frame=" << rpyControlFrame()
            << " duration=" << eef_forward_joint_nudge_duration_s_
+           << " configured_period=" << eef_forward_joint_nudge_period_s_
+           << " effective_period=" << effective_nudge_period_s
            << poseStatusSuffix();
     publishStatus(status.str());
     return true;

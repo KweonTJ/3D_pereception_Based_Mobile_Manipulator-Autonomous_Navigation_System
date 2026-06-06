@@ -34,8 +34,8 @@ eef_refinement_start_depth_m: 0.47
 eef_yolo_pre_enable_depth_m: 0.60
 min_depth_handoff_bbox_area_ratio: 0.08
 min_depth_handoff_bbox_height_ratio: 0.40
-color_triangulation_base_stop_object_x_m: 0.185
-arm_start_max_object_x_m: 0.185
+color_triangulation_base_stop_object_x_m: 0.23
+arm_start_max_object_x_m: 0.23
 front_yolo_min_bbox_width_px: 6.0
 front_yolo_min_bbox_height_px: 6.0
 front_yolo_min_accept_confidence: 0.05
@@ -65,14 +65,14 @@ use_eef_rpy_refinement: true
 eef_hold_current_rpy: true
 eef_hold_stay_roll: true
 eef_forward_after_align: true
-eef_forward_distance_m: 0.10
+eef_forward_distance_m: 0.07
 eef_forward_speed_mps: 0.024
 eef_forward_fixed_duration_s: 0.0
 eef_forward_gate_timeout_s: 5.0
 eef_forward_start_tolerance_px: 90.0
 eef_forward_use_joint_nudge: true
-eef_forward_joint2_delta_rad: 0.035
-eef_forward_joint3_delta_rad: -0.060
+eef_forward_joint2_delta_rad: 0.030
+eef_forward_joint3_delta_rad: -0.055
 eef_forward_joint_nudge_duration_s: 0.60
 eef_forward_joint_nudge_period_s: 0.25
 eef_forward_joint3_first_duration_ratio: 0.65
@@ -94,7 +94,7 @@ close_on_front_bbox_shrink: false
 front_bbox_close_area_ratio: 0.55
 close_on_eef_bbox_shrink: false
 eef_bbox_close_area_ratio: 0.55
-eef_forward_min_advance_before_close_m: 0.08
+eef_forward_min_advance_before_close_m: 0.05
 handoff_after_grasp: true
 handoff_lift_joint2_delta_rad: 0.0
 handoff_place_joint2_delta_rad: 0.0
@@ -114,7 +114,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `0.60 m`: 전면 depth가 아직 유효할 때 EEF YOLO를 미리 켠다.
 - `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
 - `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
-- `0.185 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 이 거리 이후 팔 파지 단계로 넘어간다. `arm_start_max_object_x_m`도 같은 `0.185 m`로 맞춰 베이스가 더 가까워진 뒤에만 팔 단계로 넘어가게 한다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.185 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
+- `0.23 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 직전 로그에서 전면 bbox가 화면을 크게 채운 상태에서 `0.185 m`까지 붙은 뒤 final forward가 이어져 박스와 충돌했기 때문에, 베이스 정지 거리를 23 cm로 되돌렸다. `arm_start_max_object_x_m`도 같은 `0.23 m`로 맞춰 이 거리 이후 팔 파지 단계로 넘어간다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.23 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
 - 전면 YOLO는 런치 시작 직후 원거리 박스가 작게 잡히는 구간을 놓치지 않도록 최소 bbox 크기를 `6 px`, accept confidence를 `0.05`로 둔다. 로그에서 전면 후보가 `small/conf`로 버려지는 경우를 줄이기 위한 값이다. EEF YOLO는 반사/옆면 오검출을 막기 위해 strict ROI와 same-object lock을 사용하고, 짧은 검출 실패에서는 마지막 bbox를 재사용한다.
 - `EEF_REFINE`와 handoff 작업 단계에서는 `/target/base_hold=true`와 zero `/cmd_vel`을 반복 발행한다. 그리퍼가 전면 카메라를 가려 전면 bbox/depth가 왜곡되어도 베이스 접근 루프로 되돌아가 직진하지 않게 한다.
 - `joint4_pose_frame / gripper_pose_frame`: joint4와 그리퍼 자세 확인용 TF frame이다. 기본값은 `joint4_pose_frame: link5`, `gripper_pose_frame: end_effector_link`다. `/mp_control/status`에는 EEF refine, pregrasp, final forward 구간에서 `eef_pose`, `joint4_pose`, `gripper_pose`가 `xyz=(x, y, z) rpy=(roll, pitch, yaw)` 형식으로 함께 나온다. 이 값들은 상태 확인용이며, joint4 final nudge 목표값에 XYZ/RPY 추가 보정으로 더하지 않는다.
@@ -144,7 +144,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_start_tolerance_px`: final forward 시작 기준이다. `eef_close_tolerance_px`보다 넓게 잡아, Servo가 마지막 픽셀 오차를 줄이다가 멈추는 경우에도 조인트 nudge 전진 단계로 넘어가게 한다.
 - `eef_forward_fixed_duration_s`: 현재 실제 리더는 `0.0 s`다. timer가 아니라 `eef_forward_distance_m`과 `eef_forward_min_advance_before_close_m` 중심으로 close 가능 여부를 판단한다.
 - `eef_forward_gate_timeout_s`: final forward 시작 후 이 시간 안에 `eef_forward_min_advance_before_close_m`만큼 전진하지 못하면 충돌 또는 stall로 보고 sequence를 abort한다.
-- `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 실제 설정은 `joint2=0.035 rad`, `joint3=-0.060 rad`이다. raw 토픽으로 나간 뒤 joint3 delta 반전은 `joint_trajectory_transformer.py`가 단독으로 처리한다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
+- `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 실제 설정은 `joint2=0.030 rad`, `joint3=-0.055 rad`이다. 박스와 너무 가까운 상태에서 추가 전개가 들어가 충돌하던 로그를 기준으로 이전 `0.035 / -0.060 rad`보다 약간 줄였다. raw 토픽으로 나간 뒤 joint3 delta 반전은 `joint_trajectory_transformer.py`가 단독으로 처리한다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
 - `eef_forward_joint4_after_joint3_complete`: 실제 리더에서는 `false`다. 이 값을 `true`로 두면 joint3 완료 후 joint2/joint3이 멈추고 joint4만 반복되는 루프가 생길 수 있다. 현재 코드에는 해당 joint4-only loop가 감지되면 즉시 abort하는 방어도 들어가 있다.
 - `eef_forward_joint3_complete_delta_rad`: final forward 시작 시점의 joint3 기준으로 추가 전개 완료를 판단하는 controller 기준 절대 변화량이다. 현재 값은 `0.25 rad`다.
 - `eef_forward_joint3_complete_tolerance_rad / eef_forward_joint4_finish_tolerance_rad`: joint3 완료와 joint4 보조 보정 허용 오차다. joint4는 close를 막는 필수 gate가 아니므로 실제 설정은 `joint4_finish=0.08 rad`로 완화한다.
@@ -158,7 +158,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint4_down_positive`: 실제 리더에서는 joint4 값이 증가하는 방향이 그리퍼와 EEF 카메라를 바닥으로 숙이는 방향이다. 따라서 `true`로 두고, `eef_forward_joint4_ground_parallel_limit_rad`보다 큰 joint4 목표를 막는다.
 - `gripper_down_joint4_offset_rad`: pregrasp와 EEF forward joint nudge의 roll 보정 이후 joint4에 더하는 추가 오프셋이다. 현재 실제 리더는 `0.0 rad`로 둔다. 로그에서 `-0.10 rad` 오프셋이 joint4 하한 근처에서 clamp를 만들고 `eef_usb_camera_link`와 `link3` 충돌을 유발했기 때문에, 방향 보정은 roll proxy 부호로 처리하고 별도 하향 오프셋은 끈다.
 - `close_on_front_bbox_shrink / close_on_eef_bbox_shrink`: 실제 리더에서는 둘 다 `false`다. bbox 면적 축소만으로 그리퍼를 닫으면 팔을 다 뻗기 전에 close가 나가므로, 현재 close는 EEF 전진 거리와 joint3 전개 진행률을 중심으로 판단한다. EEF bbox area ratio가 `1.0`을 넘는 비정상 값은 close 판단에 사용하지 않는다.
-- `eef_forward_min_advance_before_close_m`: 그리퍼 close를 허용하기 전 최소 EEF 전진량이다. 현재 실제 리더는 `0.08 m`이며, `eef_forward_distance_m: 0.10 m`까지 전진하는 경로를 기본으로 한다.
+- `eef_forward_min_advance_before_close_m`: 그리퍼 close를 허용하기 전 최소 EEF 전진량이다. 현재 실제 리더는 `0.05 m`이며, `eef_forward_distance_m: 0.07 m`까지 전진하는 경로를 기본으로 한다. 베이스 정지 거리를 23 cm로 늘린 대신 팔 final forward가 박스에 밀고 들어가지 않도록 이전 `0.08 / 0.10 m`보다 보수적으로 낮췄다.
 - EEF bbox가 ROI/aspect 필터 때문에 중간에 사라지거나 stale 상태가 되면, 기존에는 `prepareEefRefinement()`에서 멈춰 final forward가 시작되지 않았다. 현재는 전면 bbox close-size와 실제 거리 reference가 모두 close 조건을 만족할 때만 fallback으로 EEF fixed-pose forward를 시작한다. 전면 bbox 크기와 EEF bbox만으로 fake object를 만들어 너무 먼 상태에서 arm stage에 들어가는 경로는 막는다.
 
 ## 실제 로봇 joint3 trajectory 변환
@@ -249,10 +249,10 @@ eef_rpy_tolerance_rad: 0.12
 eef_rpy_gain: 0.8
 eef_refine_max_angular_speed: 0.25
 eef_forward_after_align: true
-eef_forward_distance_m: 0.10
+eef_forward_distance_m: 0.07
 eef_forward_speed_mps: 0.024
 eef_forward_fixed_duration_s: 0.0
-eef_forward_min_advance_before_close_m: 0.08
+eef_forward_min_advance_before_close_m: 0.05
 ```
 
 이 단계에서 `/mp_control/status`에는 `rpy_err=(roll, pitch, yaw)`, `roll_ref=stay_roll`, `rpy_ready`, `rpy_frame`, forward advance 진행 상태가 표시된다. 실제 파지 순서는 `베이스 정지 -> joint pregrasp 자세 생성 -> joint2/joint3 중심 추가 전개 -> joint4 보조 보정 -> 그리퍼 close`다. close는 joint4 완료가 아니라 `advanced_x`, `eef_forward_min_advance_before_close_m`, joint3 전개 진행률을 중심으로 판단한다.
