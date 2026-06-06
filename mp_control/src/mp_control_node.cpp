@@ -2371,6 +2371,33 @@ private:
     eef_bbox_area_at_eef_forward_start_.reset();
   }
 
+  void abortEefForwardAdvance(
+    const std::string & reason,
+    double advanced_x,
+    double elapsed_s,
+    const EefForwardJointProgress & joint_progress,
+    const geometry_msgs::msg::TransformStamped & eef_tf)
+  {
+    active_ = false;
+    eef_forward_advance_active_ = false;
+    stable_cycles_ = 0;
+    publishStop();
+    publishBaseStop();
+    publishBaseHold(true);
+    publishEefAutoInitEnable(false);
+
+    std::ostringstream status;
+    status << reason
+           << " advanced_x=" << advanced_x
+           << "/" << eef_forward_distance_m_
+           << " min_close_advance=" << eef_forward_min_advance_before_close_m_
+           << " elapsed=" << elapsed_s
+           << "/" << eef_forward_gate_timeout_s_
+           << formatEefForwardJointProgress(joint_progress)
+           << poseStatusSuffix(eef_tf);
+    publishStatus(status.str(), true);
+  }
+
   void captureEefStayRollReference(const geometry_msgs::msg::TransformStamped & eef_tf)
   {
     if (!use_eef_rpy_refinement_ || !eef_hold_stay_roll_ || eef_stay_roll_reference_) {
