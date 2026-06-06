@@ -1972,6 +1972,97 @@ private:
       eef_forward_roll_joint4_weight_;
   }
 
+  double eefForwardJoint3Direction() const
+  {
+    return eef_forward_joint3_delta_rad_ < 0.0 ? -1.0 : 1.0;
+  }
+
+  double stepJointWithoutReversingTowardLimit(
+    double current,
+    double delta,
+    double min_value,
+    double max_value) const
+  {
+    if (delta > 0.0) {
+      return current >= max_value ? current : std::min(current + delta, max_value);
+    }
+    if (delta < 0.0) {
+      return current <= min_value ? current : std::max(current + delta, min_value);
+    }
+    return current;
+  }
+
+  EefForwardJointProgress eefForwardJointProgressFromCurrent(
+    const std::array<double, 4> & current) const
+  {
+    EefForwardJointProgress progress;
+    if (!eef_forward_start_joint_positions_) {
+      return progress;
+    }
+
+    progress.available = true;
+    progress.joint3_required_rad = eef_forward_joint3_complete_delta_rad_;
+    const auto & start = *eef_forward_start_joint_positions_;
+    const double direction = eefForwardJoint3Direction();
+    progress.joint3_progress_rad =
+      std::max(0.0, direction * (current[2] - start[2]));
+    progress.joint3_complete =
+      progress.joint3_required_rad <= 0.0 ||
+      progress.joint3_progress_rad + eef_forward_joint3_complete_tolerance_rad_ >=
+      progress.joint3_required_rad;
+
+    if (!eef_forward_joint4_after_joint3_complete_) {
+      progress.joint4_complete = true;
+      progress.joint4_target_rad = current[3];
+      progress.complete = progress.joint3_complete;
+      return progress;
+    }
+
+    std::array<double, 4> final_roll_target = current;
+    final_roll_target[2] =
+      start[2] + direction * progress.joint3_required_rad;
+    if (joint_pregrasp_preserve_gripper_roll_) {
+      progress.joint4_target_rad =
+        joint4ForPreservedEefForwardRoll(start, final_roll_target);
+    } else {
+      progress.joint4_target_rad = current[3];
+    }
+    progress.joint4_target_rad += gripper_down_joint4_offset_rad_;
+    progress.joint4_target_rad = clampValue(
+      progress.joint4_target_rad,
+      joint_pregrasp_min_positions_[3],
+      joint_pregrasp_max_positions_[3]);
+    progress.joint4_error_rad = progress.joint4_target_rad - current[3];
+    progress.joint4_complete =
+      progress.joint3_complete &&
+      std::abs(progress.joint4_error_rad) <= eef_forward_joint4_finish_tolerance_rad_;
+    progress.complete = progress.joint3_complete && progress.joint4_complete;
+    return progress;
+  }
+
+  EefForwardJointProgress eefForwardJointProgress()
+  {
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      return EefForwardJointProgress{};
+    }
+    return eefForwardJointProgressFromCurrent(*current);
+  }
+
+  std::string formatEefForwardJointProgress(const EefForwardJointProgress & progress) const
+  {
+    std::ostringstream out;
+    out << " joint_progress_available=" << (progress.available ? "true" : "false")
+        << " joint3_progress=" << progress.joint3_progress_rad
+        << "/" << progress.joint3_required_rad
+        << " joint3_complete=" << (progress.joint3_complete ? "true" : "false")
+        << " joint4_target=" << progress.joint4_target_rad
+        << " joint4_error=" << progress.joint4_error_rad
+        << " joint4_complete=" << (progress.joint4_complete ? "true" : "false")
+        << " arm_extension_complete=" << (progress.complete ? "true" : "false");
+    return out.str();
+  }
+
   std::array<double, 4> jointPregraspControllerTargetFromCurrent(
     const std::array<double, 4> & current) const
   {
