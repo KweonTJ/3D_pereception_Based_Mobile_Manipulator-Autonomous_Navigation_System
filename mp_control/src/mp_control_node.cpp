@@ -3635,11 +3635,14 @@ private:
     }
 
     if (visual_state.eef_fresh && eef_forward_speed_mps_ > 0.0) {
-      const RpyError rpy_error = computeEefRpyError(eef_tf);
+      const auto gripper_tf = gripperPoseTransformOrEef(eef_tf);
+      const RpyError rpy_error = computeEefRpyError(gripper_tf);
       publishEefForwardAdvanceCommand(rpy_error);
       publishStatus(
         "eef bbox still visible after gripper close; continuing fixed-pose forward advance: " +
-        visualGraspStateText(visual_state));
+        visualGraspStateText(visual_state) +
+        " rpy_frame=" + rpyControlFrame() +
+        poseStatusSuffix(eef_tf));
       return true;
     }
 
