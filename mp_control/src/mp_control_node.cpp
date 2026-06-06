@@ -4141,6 +4141,10 @@ private:
   double eef_forward_joint_nudge_duration_s_{0.45};
   double eef_forward_joint_nudge_period_s_{0.35};
   double eef_forward_joint3_first_duration_ratio_{0.65};
+  bool eef_forward_joint4_after_joint3_complete_{true};
+  double eef_forward_joint3_complete_delta_rad_{0.25};
+  double eef_forward_joint3_complete_tolerance_rad_{0.015};
+  double eef_forward_joint4_finish_tolerance_rad_{0.015};
   double eef_forward_roll_joint2_weight_{0.0};
   double eef_forward_roll_joint3_weight_{1.0};
   double eef_forward_roll_joint4_weight_{1.0};
@@ -4254,6 +4258,7 @@ private:
   bool eef_forward_advance_active_{false};
   std::optional<double> front_bbox_area_at_eef_forward_start_;
   std::optional<double> eef_bbox_area_at_eef_forward_start_;
+  std::optional<std::array<double, 4>> eef_forward_start_joint_positions_;
 	  bool min_depth_reached_{false};
   bool servo_start_requested_{false};
   std::optional<std::array<double, 4>> joint_pregrasp_target_;
