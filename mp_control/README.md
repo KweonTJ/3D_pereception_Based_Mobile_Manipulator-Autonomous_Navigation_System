@@ -213,20 +213,21 @@ eef_bbox_topic: /target/eef_init_bbox
 
 즉 실제 파지 제어는 EEF YOLO bbox를 직접 사용한다. EEF용 `hybrid_csrt_ibvs`는 디버그용으로 띄울 수 있지만 `/target/eef_tracked_bbox`는 현재 실제 파지 제어 입력이 아니다.
 
-EEF YOLO는 전면 카메라와 별도 ROI를 사용한다. 마지막 실험에서 EEF 화면 왼쪽 반사/배경을 물체로 잡아 `/mp_control/status`가 `after depth limit; waiting for close-range color triangulation`에 머물렀기 때문에, EEF 자동 bbox는 기본적으로 화면 왼쪽 25%와 최상단 10%를 제외한다.
+EEF YOLO는 전면 카메라와 별도 ROI를 사용한다. 최근 실험에서는 실제 박스가 EEF 화면 왼쪽까지 크게 들어왔는데 기존 `x>=0.25` strict ROI 때문에 물체 전체 bbox가 reject되고, 넓고 낮은 반사/테이블 후보가 대신 잡혔다. 그래서 EEF ROI는 왼쪽을 `5%`까지만 제외하고, 대신 EEF 후보는 세로형 박스만 통과시키도록 aspect 상한을 낮춘다.
 
 ```text
-auto_eef_init_roi_min_x_ratio:=0.25
+auto_eef_init_roi_min_x_ratio:=0.05
 auto_eef_init_roi_max_x_ratio:=0.98
 auto_eef_init_roi_min_y_ratio:=0.10
 auto_eef_init_roi_max_y_ratio:=1.00
+eef yolo aspect limit: [0.25, 1.20]
 ```
 
 EEF YOLO는 런치 직후부터 켜지고, `mp_control` 파지 시퀀스가 시작되어도 꺼지지 않는다. EEF bbox가 중간에 켜지면 첫 lock이 반사면이나 배경에 걸릴 수 있어서, 현재 기본값은 `auto_eef_init_bbox_start_delay:=0.0`이다.
 
-또한 EEF YOLO는 같은 물체를 계속 따라가도록 target lock을 사용한다. 새 후보 bbox가 이전 bbox/anchor bbox에서 너무 멀리 튀면 `/target/eef_init_bbox`로 발행하지 않고, `/target/auto_eef_init_bbox_status`에 `YOLO target locked; no same-object box near last bbox`가 찍힌다. 짧은 검출 실패는 `reuse_last_bbox_on_loss: true`로 마지막 bbox를 재발행해서 EEF refinement가 바로 끊기지 않게 한다. 단, `/target/eef_auto_init_enable`이 false에서 true로 다시 바뀌면 이전 lock과 anchor는 초기화된다.
+또한 EEF YOLO는 같은 물체를 계속 따라가도록 target lock을 사용한다. 새 후보 bbox가 이전 bbox/anchor bbox에서 너무 멀리 튀면 `/target/eef_init_bbox`로 발행하지 않고, `/target/auto_eef_init_bbox_status`에 `YOLO target locked; no same-object box near last bbox`가 찍힌다. 짧은 검출 실패는 `reuse_last_bbox_on_loss: true`로 마지막 bbox를 재발행해서 EEF refinement가 바로 끊기지 않게 한다. 단, EEF는 잘못 잡힌 bbox가 오래 남으면 팔이 엉뚱한 위치로 보정되므로 마지막 bbox 재사용은 `1.0 s`까지만 허용한다. `/target/eef_auto_init_enable`이 false에서 true로 다시 바뀌면 이전 lock과 anchor는 초기화된다.
 
-실행 중에는 `/target/auto_eef_init_bbox_status`에서 `roi=x[0.25,0.98] y[0.10,1.00]` 거부 로그와 target lock 로그를 같이 확인한다.
+실행 중에는 `/target/auto_eef_init_bbox_status`에서 `roi=x[0.05,0.98] y[0.10,1.00]`, `aspect=[0.25,1.20]`, `last bbox too old for reuse` 로그를 같이 확인한다.
 
 EEF YOLO는 bbox 중심점뿐 아니라 bbox 전체가 EEF ROI 안에 들어와야 `/target/eef_init_bbox`로 발행한다. 로그에서 `[1,0,159,162]`처럼 왼쪽/상단 반사 영역에 걸친 큰 bbox가 중심점만으로 ROI를 통과해 물체가 아닌 곳을 보던 문제가 있었기 때문이다. 전면 YOLO는 기존처럼 중심점 ROI 기준을 유지하고, 이 strict ROI 필터는 EEF 자동 bbox에만 적용한다.
 
