@@ -1880,6 +1880,11 @@ private:
              << (advanced_enough_for_visual_close ? "true" : "false")
              << " fixed_duration_mode="
              << (fixed_duration_mode ? "true" : "false")
+             << " joint3_extension_complete="
+             << (joint3_extension_complete ? "true" : "false")
+             << " arm_extension_complete="
+             << (arm_extension_complete ? "true" : "false")
+             << " gate_timeout=" << eef_forward_gate_timeout_s_
              << formatEefForwardJointProgress(joint_progress)
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
@@ -1904,6 +1909,10 @@ private:
              << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
              << " elapsed=" << elapsed_s
              << "/" << eef_forward_fixed_duration_s_
+             << " joint3_extension_complete="
+             << (joint3_extension_complete ? "true" : "false")
+             << " arm_extension_complete="
+             << (arm_extension_complete ? "true" : "false")
              << formatEefForwardJointProgress(joint_progress)
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
