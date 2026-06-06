@@ -2068,6 +2068,99 @@ private:
     return {roll, pitch, yaw};
   }
 
+  PoseStatus poseStatusFromTransform(
+    const std::string & frame,
+    const geometry_msgs::msg::TransformStamped & transform_msg) const
+  {
+    const auto rpy = rpyFromTransform(transform_msg);
+    PoseStatus pose;
+    pose.frame = frame;
+    pose.valid = true;
+    pose.x = transform_msg.transform.translation.x;
+    pose.y = transform_msg.transform.translation.y;
+    pose.z = transform_msg.transform.translation.z;
+    pose.roll = rpy[0];
+    pose.pitch = rpy[1];
+    pose.yaw = rpy[2];
+    return pose;
+  }
+
+  PoseStatus lookupPoseStatus(const std::string & frame)
+  {
+    PoseStatus pose;
+    pose.frame = frame;
+    if (frame.empty()) {
+      pose.reason = "empty_frame";
+      return pose;
+    }
+
+    try {
+      const auto transform_msg =
+        tf_buffer_.lookupTransform(target_frame_, frame, tf2::TimePointZero);
+      return poseStatusFromTransform(frame, transform_msg);
+    } catch (const tf2::TransformException & ex) {
+      pose.reason = ex.what();
+      return pose;
+    }
+  }
+
+  std::string formatPoseStatus(const PoseStatus & pose) const
+  {
+    std::ostringstream out;
+    out << pose.frame << ":";
+    if (!pose.valid) {
+      out << "unavailable";
+      if (!pose.reason.empty()) {
+        out << "(" << pose.reason << ")";
+      }
+      return out.str();
+    }
+
+    out << std::fixed << std::setprecision(3)
+        << "xyz=(" << pose.x << ", " << pose.y << ", " << pose.z << ")"
+        << " rpy=(" << pose.roll << ", " << pose.pitch << ", " << pose.yaw << ")";
+    return out.str();
+  }
+
+  std::string poseStatusSuffix(const geometry_msgs::msg::TransformStamped & eef_tf)
+  {
+    std::ostringstream out;
+    out << " eef_pose="
+        << formatPoseStatus(poseStatusFromTransform(end_effector_frame_, eef_tf))
+        << " joint4_pose=" << formatPoseStatus(lookupPoseStatus(joint4_pose_frame_));
+
+    if (gripper_pose_frame_ == end_effector_frame_) {
+      out << " gripper_pose="
+          << formatPoseStatus(poseStatusFromTransform(gripper_pose_frame_, eef_tf));
+    } else {
+      out << " gripper_pose=" << formatPoseStatus(lookupPoseStatus(gripper_pose_frame_));
+    }
+    return out.str();
+  }
+
+  geometry_msgs::msg::TransformStamped gripperPoseTransformOrEef(
+    const geometry_msgs::msg::TransformStamped & eef_tf)
+  {
+    if (gripper_pose_frame_.empty() || gripper_pose_frame_ == end_effector_frame_) {
+      return eef_tf;
+    }
+
+    try {
+      return tf_buffer_.lookupTransform(target_frame_, gripper_pose_frame_, tf2::TimePointZero);
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "gripper pose TF unavailable, falling back to %s for RPY control: %s",
+        end_effector_frame_.c_str(), ex.what());
+      return eef_tf;
+    }
+  }
+
+  std::string rpyControlFrame() const
+  {
+    return gripper_pose_frame_.empty() ? end_effector_frame_ : gripper_pose_frame_;
+  }
+
   void resetEefRefinementMotionState()
   {
     eef_rpy_reference_.reset();
