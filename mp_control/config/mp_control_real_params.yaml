@@ -177,8 +177,8 @@ mp_control_node:
     eef_forward_joint3_delta_rad: -0.060
     eef_forward_joint_nudge_duration_s: 0.60
     eef_forward_joint_nudge_period_s: 0.25
-    # Keep this parameter for compatibility. The real final nudge now uses the
-    # explicit staged gate below instead of this legacy ratio.
+    # Keep this parameter for compatibility. The real final nudge now sends
+    # joint2/joint3/joint4 in one trajectory point instead of using this ratio.
     eef_forward_joint3_first_duration_ratio: 0.65
     # Keep staged joint4 disabled on the real robot. The staged mode can leave
     # joint2/joint3 fixed while joint4 alone keeps pushing into the base frame.
@@ -209,9 +209,9 @@ mp_control_node:
     # Extra offset is disabled; forcing joint4 past its URDF lower limit causes
     # eef_usb_camera_link/link3 collision while the real fix is joint4 direction.
     gripper_down_joint4_offset_rad: 0.0
-    # During final EEF forward, the 1.0 s fixed-duration gate is the primary
-    # close trigger. Bbox shrink is kept as a secondary confirmation after the
-    # fixed-duration gate, not as an early close trigger.
+    # During final EEF forward, distance and joint3 extension are the primary
+    # close gates. Bbox shrink is kept disabled so rejected/oversized EEF bbox
+    # observations cannot close the gripper early.
     close_on_front_bbox_shrink: false
     front_bbox_close_area_ratio: 0.55
     close_on_eef_bbox_shrink: false
