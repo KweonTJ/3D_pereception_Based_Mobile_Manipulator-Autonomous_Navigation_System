@@ -97,7 +97,7 @@ mp_control_node:
     # approaching until color_triangulation_base_stop_object_x_m.
     eef_refinement_start_object_x_m: 0.30
     arm_start_max_error_m: 0.50
-    arm_start_max_object_x_m: 0.195
+    arm_start_max_object_x_m: 0.185
     object_height_m: 0.10
     eef_init_bbox_min_size_px: 32.0
     eef_init_bbox_max_size_px: 180.0
@@ -159,7 +159,7 @@ mp_control_node:
     eef_refine_max_angular_speed: 0.25
     eef_forward_after_align: true
     eef_forward_distance_m: 0.08
-    eef_forward_speed_mps: 0.018
+    eef_forward_speed_mps: 0.024
     # Real grasp sequence: stop base, build pregrasp pose, advance the EEF
     # straight for this duration, then close the gripper.
     eef_forward_fixed_duration_s: 1.0
@@ -175,11 +175,20 @@ mp_control_node:
     eef_forward_use_joint_nudge: true
     eef_forward_joint2_delta_rad: 0.025
     eef_forward_joint3_delta_rad: -0.050
-    eef_forward_joint_nudge_duration_s: 0.80
-    eef_forward_joint_nudge_period_s: 0.35
+    eef_forward_joint_nudge_duration_s: 0.60
+    eef_forward_joint_nudge_period_s: 0.25
     # Keep this parameter for compatibility, but the real final nudge now uses
     # one synchronized trajectory point so joint2/joint3/joint4 move together.
     eef_forward_joint3_first_duration_ratio: 0.65
+    # Real hardware order for final reach:
+    # 1) joint2/joint3 extend while joint4 is held,
+    # 2) after joint3 reaches this required progress, joint4 alone corrects the
+    #    gripper/EEF camera to face the object,
+    # 3) only then the gripper is allowed to close.
+    eef_forward_joint4_after_joint3_complete: true
+    eef_forward_joint3_complete_delta_rad: 0.25
+    eef_forward_joint3_complete_tolerance_rad: 0.015
+    eef_forward_joint4_finish_tolerance_rad: 0.015
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # Hardware observation takes priority over the model sign. Keep the
     # compensation direction opposite to the upward-looking motion, but limit
@@ -206,9 +215,9 @@ mp_control_node:
     # During final EEF forward, the 1.0 s fixed-duration gate is the primary
     # close trigger. Bbox shrink is kept as a secondary confirmation after the
     # fixed-duration gate, not as an early close trigger.
-    close_on_front_bbox_shrink: true
+    close_on_front_bbox_shrink: false
     front_bbox_close_area_ratio: 0.55
-    close_on_eef_bbox_shrink: true
+    close_on_eef_bbox_shrink: false
     eef_bbox_close_area_ratio: 0.55
     eef_forward_min_advance_before_close_m: 0.04
     # After visual grasp confirmation, keep holding the base tracker, rotate
@@ -240,7 +249,7 @@ mp_control_node:
     eef_front_camera_offset_x_m: -0.05
     eef_front_camera_offset_y_m: 0.0
     eef_front_camera_offset_z_m: 0.15
-    color_triangulation_base_stop_object_x_m: 0.195
+    color_triangulation_base_stop_object_x_m: 0.185
     color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019
