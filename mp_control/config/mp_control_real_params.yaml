@@ -44,8 +44,9 @@ mp_control_node:
     start_servo_on_start: false
     open_gripper_on_start: true
     close_gripper_on_arrival: true
-    # Grasp is complete only when the front camera still sees the object and
-    # the EEF camera no longer sees a fresh object bbox.
+    # Gripper close is triggered only after the front camera object becomes
+    # occluded/missing and the EEF camera also loses the object because it is
+    # too close. Handoff starts right after that visual close trigger.
     require_visual_grasp_confirmation: true
     use_eef_refinement: true
     wait_for_base_approach: true
@@ -73,7 +74,10 @@ mp_control_node:
     # Offset is applied in target_frame after the camera point is transformed.
     # Tune these slowly if the gripper consistently stops beside/above/in front of the object.
     grasp_offset_x: 0.0
-    grasp_offset_y: 0.0
+    # ROS base_link y+ is robot-left. The real gripper currently reaches about
+    # 2-3 cm to the right of the object after visual centering, so bias the
+    # manipulator target 2.5 cm left.
+    grasp_offset_y: 0.025
     grasp_offset_z: 0.0
 
     # Real EEF refinement/triangulation requires calibrated camera_info from v4l2_camera.
