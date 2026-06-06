@@ -216,6 +216,19 @@ private:
     bool using_stay_roll{false};
   };
 
+  struct PoseStatus
+  {
+    std::string frame;
+    bool valid{false};
+    double x{0.0};
+    double y{0.0};
+    double z{0.0};
+    double roll{0.0};
+    double pitch{0.0};
+    double yaw{0.0};
+    std::string reason;
+  };
+
   struct VisualGraspState
   {
     bool front_fresh{false};
@@ -252,6 +265,8 @@ private:
     gripper_action_name_ = declare_parameter<std::string>("gripper_action_name", "/gripper_controller/gripper_cmd");
     target_frame_ = declare_parameter<std::string>("target_frame", "base_link");
     end_effector_frame_ = declare_parameter<std::string>("end_effector_frame", "end_effector_link");
+    joint4_pose_frame_ = declare_parameter<std::string>("joint4_pose_frame", "link5");
+    gripper_pose_frame_ = declare_parameter<std::string>("gripper_pose_frame", end_effector_frame_);
     camera_frame_override_ = declare_parameter<std::string>("camera_frame_override", "");
     eef_camera_frame_override_ =
       declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
@@ -860,7 +875,8 @@ private:
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "end-effector TF unavailable: %s", ex.what());
       return;
     }
-    captureEefStayRollReference(eef_tf);
+    const auto gripper_tf = gripperPoseTransformOrEef(eef_tf);
+    captureEefStayRollReference(gripper_tf);
 
     if (stage_ == GraspStage::EEF_REFINE) {
       publishBaseHold(true);
@@ -1097,8 +1113,11 @@ private:
       eef_refinement_use_bbox_center_ = using_visual_bbox_for_pregrasp;
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
-      captureEefRpyReference(eef_tf);
-      publishStatus("base stopped, depth+EEF ready; arm extended toward object and switching to refinement", true);
+      captureEefRpyReference(gripper_tf);
+      publishStatus(
+        "base stopped, depth+EEF ready; arm extended toward object and switching to refinement" +
+        poseStatusSuffix(eef_tf),
+        true);
       updateEefRefinement(object, eef_tf);
       return;
     }
@@ -1431,8 +1450,9 @@ private:
       return;
     }
 
-    captureEefRpyReference(eef_tf);
-    const RpyError rpy_error = computeEefRpyError(eef_tf);
+    const auto gripper_tf = gripperPoseTransformOrEef(eef_tf);
+    captureEefRpyReference(gripper_tf);
+    const RpyError rpy_error = computeEefRpyError(gripper_tf);
 
     if (eef_forward_advance_active_) {
       updateEefForwardAdvance(eef_tf, rpy_error);
@@ -1599,8 +1619,10 @@ private:
                     << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
                     << ", " << rpy_error.yaw << ")"
                     << " roll_ref=" << rpyReferenceMode(rpy_error)
+                    << " rpy_frame=" << rpyControlFrame()
                     << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
-                    << " strict_centered=" << (centered ? "true" : "false");
+                    << " strict_centered=" << (centered ? "true" : "false")
+                    << poseStatusSuffix(eef_tf);
         publishStatus(hold_status.str());
       }
       return;
@@ -1647,9 +1669,11 @@ private:
            << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
            << ", " << rpy_error.yaw << ")"
            << " roll_ref=" << rpyReferenceMode(rpy_error)
+           << " rpy_frame=" << rpyControlFrame()
            << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
            << " eef_resolution=" << info.width << "x" << info.height
-           << " cmd_frame=" << target_frame_;
+           << " cmd_frame=" << target_frame_
+           << poseStatusSuffix(eef_tf);
     publishStatus(status.str());
   }
 
@@ -1697,7 +1721,9 @@ private:
            << ", " << rpy_error.yaw << ")"
            << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
            << " roll_ref=" << rpyReferenceMode(rpy_error)
-           << " cmd_frame=" << target_frame_;
+           << " rpy_frame=" << rpyControlFrame()
+           << " cmd_frame=" << target_frame_
+           << poseStatusSuffix(eef_tf);
     publishStatus(status.str(), true);
   }
 
@@ -1762,7 +1788,9 @@ private:
              << ", " << rpy_error.yaw << ")"
              << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
              << " roll_ref=" << rpyReferenceMode(rpy_error)
-             << " cmd_frame=" << target_frame_;
+             << " rpy_frame=" << rpyControlFrame()
+             << " cmd_frame=" << target_frame_
+             << poseStatusSuffix(eef_tf);
       publishStatus(status.str());
       return;
     }
@@ -1782,7 +1810,9 @@ private:
              << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
              << ", " << rpy_error.yaw << ")"
              << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
-             << " roll_ref=" << rpyReferenceMode(rpy_error);
+             << " roll_ref=" << rpyReferenceMode(rpy_error)
+             << " rpy_frame=" << rpyControlFrame()
+             << poseStatusSuffix(eef_tf);
       publishStatus(status.str());
     }
   }
