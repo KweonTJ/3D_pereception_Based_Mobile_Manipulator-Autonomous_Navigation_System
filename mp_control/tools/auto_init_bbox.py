@@ -102,6 +102,8 @@ class AutoInitBbox(Node):
             self.declare_parameter("continuous_publish_period_s", 0.5).value)
         self.reuse_last_bbox_on_loss = bool(
             self.declare_parameter("reuse_last_bbox_on_loss", False).value)
+        self.reuse_last_bbox_max_age_s = float(
+            self.declare_parameter("reuse_last_bbox_max_age_s", 0.0).value)
         self.lock_first_bbox = bool(
             self.declare_parameter("lock_first_bbox", False).value)
         self.timeout_s = float(self.declare_parameter("timeout_s", 0.0).value)
@@ -148,6 +150,7 @@ class AutoInitBbox(Node):
         self.logged_first_image = False
         self.last_status = ""
         self.last_bbox = None
+        self.last_bbox_update_time = 0.0
         self.anchor_bbox = None
         self.yolo_model = None
         self.yolo_load_failed = False
@@ -163,6 +166,7 @@ class AutoInitBbox(Node):
         if self.enabled and not was_enabled:
             self.published = False
             self.last_bbox = None
+            self.last_bbox_update_time = 0.0
             self.anchor_bbox = None
             self.last_publish_time = 0.0
             self.start_time = time.monotonic()
@@ -296,6 +300,7 @@ class AutoInitBbox(Node):
 
         bbox_msg = [float(x_min), float(y_min), width, height]
         self.last_bbox = bbox_msg
+        self.last_bbox_update_time = time.monotonic()
         self.publish_status(f"auto init bbox detected: {bbox_msg}; pixels={pixels}")
         self.publish_bbox_repeated(bbox_msg)
         self.last_publish_time = time.monotonic()
@@ -323,6 +328,15 @@ class AutoInitBbox(Node):
             return False
 
         now = time.monotonic()
+        if (
+            self.reuse_last_bbox_max_age_s > 0.0
+            and self.last_bbox_update_time > 0.0
+            and now - self.last_bbox_update_time > self.reuse_last_bbox_max_age_s
+        ):
+            self.throttled_waiting_status(
+                f"last bbox too old for reuse: age={now - self.last_bbox_update_time:.2f}s; {reason}")
+            return False
+
         if now - self.last_warn_time >= 1.0:
             self.last_warn_time = now
             self.publish_status(
