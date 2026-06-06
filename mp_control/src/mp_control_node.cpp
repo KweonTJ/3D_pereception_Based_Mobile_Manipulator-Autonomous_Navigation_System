@@ -952,15 +952,16 @@ private:
       }
 
       if (!maybe_color_object) {
+        const bool visual_reference_close =
+          isVisualPregraspReferenceClose(front_size_object, depth_reference);
         const bool front_size_close_ready =
           (front_size_object &&
-          ((front_size_object->point.x + grasp_offset_x_) <=
-           color_triangulation_base_stop_object_x_m_ ||
-           eef_bbox_ready)) ||
-          (front_bbox_size_close_ready && eef_bbox_ready);
+          objectGoalXForPregrasp(*front_size_object) <=
+          color_triangulation_base_stop_object_x_m_) ||
+          (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
         if (front_size_close_ready) {
           maybe_object = front_size_object ? front_size_object : depth_reference;
-          if (!maybe_object && eef_bbox_ready) {
+          if (!maybe_object && eef_bbox_ready && visual_reference_close) {
             maybe_object = makeVisualPregraspObject(eef_tf);
             using_visual_bbox_for_pregrasp = true;
           }
@@ -979,6 +980,7 @@ private:
           status << " front_bbox_size_ready=" << (front_bbox_size_close_ready ? "true" : "false")
                  << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
                  << " eef_bbox_ready=" << (eef_bbox_ready ? "true" : "false")
+                 << " visual_reference_close=" << (visual_reference_close ? "true" : "false")
                  << " visual_bbox_fallback=" << (using_visual_bbox_for_pregrasp ? "true" : "false")
                  << ": " << color_reason;
           publishStatus(status.str());
@@ -996,15 +998,16 @@ private:
         }
       } else {
         const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
+        const bool visual_reference_close =
+          isVisualPregraspReferenceClose(front_size_object, depth_reference);
         const bool front_size_close_ready =
           (front_size_object &&
-          ((front_size_object->point.x + grasp_offset_x_) <=
-           color_triangulation_base_stop_object_x_m_ ||
-           eef_bbox_ready)) ||
-          (front_bbox_size_close_ready && eef_bbox_ready);
+          objectGoalXForPregrasp(*front_size_object) <=
+          color_triangulation_base_stop_object_x_m_) ||
+          (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
           maybe_object = front_size_object ? front_size_object : depth_reference;
-          if (!maybe_object && eef_bbox_ready) {
+          if (!maybe_object && eef_bbox_ready && visual_reference_close) {
             maybe_object = makeVisualPregraspObject(eef_tf);
             using_visual_bbox_for_pregrasp = true;
           }
@@ -1024,6 +1027,7 @@ private:
           status << " front_bbox_size_ready=" << (front_bbox_size_close_ready ? "true" : "false")
                  << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
                  << " eef_bbox_ready=" << (eef_bbox_ready ? "true" : "false")
+                 << " visual_reference_close=" << (visual_reference_close ? "true" : "false")
                  << " visual_bbox_fallback=" << (using_visual_bbox_for_pregrasp ? "true" : "false");
           publishStatus(status.str());
         } else {
