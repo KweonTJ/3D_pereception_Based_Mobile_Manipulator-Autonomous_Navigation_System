@@ -1329,6 +1329,20 @@ private:
       (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
   }
 
+  double objectGoalXForPregrasp(const geometry_msgs::msg::PointStamped & object) const
+  {
+    return object.point.x + grasp_offset_x_;
+  }
+
+  bool isVisualPregraspReferenceClose(
+    const std::optional<geometry_msgs::msg::PointStamped> & front_size_object,
+    const std::optional<geometry_msgs::msg::PointStamped> & depth_reference) const
+  {
+    const auto & reference = front_size_object ? front_size_object : depth_reference;
+    return reference &&
+      objectGoalXForPregrasp(**reference) <= color_triangulation_base_stop_object_x_m_;
+  }
+
   geometry_msgs::msg::PointStamped makeVisualPregraspObject(
     const geometry_msgs::msg::TransformStamped & eef_tf)
   {
