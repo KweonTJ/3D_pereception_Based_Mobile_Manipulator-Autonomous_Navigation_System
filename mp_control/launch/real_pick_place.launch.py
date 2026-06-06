@@ -285,8 +285,8 @@ def generate_launch_description():
             "min_bbox_width_px": ParameterValue(auto_eef_init_min_bbox_width_px, value_type=float),
             "min_bbox_height_px": ParameterValue(auto_eef_init_min_bbox_height_px, value_type=float),
             "max_bbox_area_ratio": 0.98,
-            "min_bbox_aspect_ratio": ParameterValue(auto_init_min_bbox_aspect_ratio, value_type=float),
-            "max_bbox_aspect_ratio": ParameterValue(auto_init_max_bbox_aspect_ratio, value_type=float),
+            "min_bbox_aspect_ratio": 0.25,
+            "max_bbox_aspect_ratio": 1.20,
             "roi_min_x_ratio": ParameterValue(auto_eef_init_roi_min_x_ratio, value_type=float),
             "roi_max_x_ratio": ParameterValue(auto_eef_init_roi_max_x_ratio, value_type=float),
             "roi_min_y_ratio": ParameterValue(auto_eef_init_roi_min_y_ratio, value_type=float),
@@ -326,6 +326,7 @@ def generate_launch_description():
             "continuous_publish": True,
             "continuous_publish_period_s": 0.35,
             "reuse_last_bbox_on_loss": True,
+            "reuse_last_bbox_max_age_s": 1.0,
             "lock_first_bbox": False,
         }],
         condition=IfCondition(start_auto_eef_init_bbox),
@@ -761,7 +762,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_eef_init_roi_min_x_ratio",
-            default_value="0.25",
+            default_value="0.05",
             description="Left boundary of the EEF automatic detection ROI as an image-width ratio.",
         ),
         DeclareLaunchArgument(
