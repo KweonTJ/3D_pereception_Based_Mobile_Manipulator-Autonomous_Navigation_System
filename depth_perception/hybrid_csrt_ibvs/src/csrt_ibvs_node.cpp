@@ -216,6 +216,24 @@ void CsrtIbvsNode::readParameters()
     declare_parameter<double>("eef_front_camera_offset_y_m", 0.0);
   eef_front_camera_offset_z_m_ =
     declare_parameter<double>("eef_front_camera_offset_z_m", 0.15);
+  use_eef_front_camera_optical_offset_ =
+    declare_parameter<bool>("use_eef_front_camera_optical_offset", false);
+  eef_front_camera_optical_offset_x_m_ =
+    declare_parameter<double>("eef_front_camera_optical_offset_x_m", 0.0);
+  eef_front_camera_optical_offset_y_m_ =
+    declare_parameter<double>("eef_front_camera_optical_offset_y_m", -0.15);
+  eef_front_camera_optical_offset_z_m_ =
+    declare_parameter<double>("eef_front_camera_optical_offset_z_m", -0.05);
+  triangulation_flip_front_x_ =
+    declare_parameter<bool>("triangulation_flip_front_x", false);
+  triangulation_flip_front_y_ =
+    declare_parameter<bool>("triangulation_flip_front_y", false);
+  triangulation_flip_eef_x_ =
+    declare_parameter<bool>("triangulation_flip_eef_x", false);
+  triangulation_flip_eef_y_ =
+    declare_parameter<bool>("triangulation_flip_eef_y", false);
+  triangulation_flip_eef_z_ =
+    declare_parameter<bool>("triangulation_flip_eef_z", false);
 
   depth_roi_radius_px_ = declare_parameter<int>("depth_roi_radius_px", 6);
   depth_bbox_inner_scale_ = declare_parameter<double>("depth_bbox_inner_scale", 0.7);
