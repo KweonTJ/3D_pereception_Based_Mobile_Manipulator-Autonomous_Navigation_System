@@ -4346,6 +4346,7 @@ private:
 	  std::string base_cmd_vel_topic_;
 	  std::string joint_state_topic_;
 	  std::string joint_trajectory_topic_;
+  std::string handoff_joint_trajectory_topic_;
 	  std::string start_topic_;
   std::string cancel_topic_;
   std::string status_topic_;
