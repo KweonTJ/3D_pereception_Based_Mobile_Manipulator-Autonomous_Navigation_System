@@ -1825,9 +1825,15 @@ private:
       joint_progress_gate_enabled &&
       joint_progress.available &&
       joint_progress.joint3_complete;
+    const bool joint_based_extension_complete =
+      joint3_extension_complete && min_advance_complete;
     const bool arm_extension_complete =
       distance_extension_complete ||
-      joint3_extension_complete;
+      joint_based_extension_complete;
+    const bool continue_joint3_after_required =
+      joint3_extension_complete &&
+      !min_advance_complete &&
+      !distance_extension_complete;
     const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
     const bool elapsed_enough_for_close =
       !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
@@ -1875,7 +1881,7 @@ private:
       (fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_) ||
       (!fixed_duration_mode && !arm_extension_complete);
     if (should_continue_forward) {
-      publishEefForwardAdvanceCommand(rpy_error);
+      publishEefForwardAdvanceCommand(rpy_error, continue_joint3_after_required);
       std::ostringstream status;
       status << "eef aligned; advancing forward before grasp: advanced_x="
              << advanced_x << "/" << eef_forward_distance_m_
@@ -1896,6 +1902,10 @@ private:
              << (min_advance_complete ? "true" : "false")
              << " joint3_extension_complete="
              << (joint3_extension_complete ? "true" : "false")
+             << " joint_based_extension_complete="
+             << (joint_based_extension_complete ? "true" : "false")
+             << " continue_joint3_after_required="
+             << (continue_joint3_after_required ? "true" : "false")
              << " arm_extension_complete="
              << (arm_extension_complete ? "true" : "false")
              << " gate_timeout=" << eef_forward_gate_timeout_s_
@@ -1939,6 +1949,8 @@ private:
              << (min_advance_complete ? "true" : "false")
              << " joint3_extension_complete="
              << (joint3_extension_complete ? "true" : "false")
+             << " joint_based_extension_complete="
+             << (joint_based_extension_complete ? "true" : "false")
              << " arm_extension_complete="
              << (arm_extension_complete ? "true" : "false")
              << " close_after_full_eef_forward_extension="
