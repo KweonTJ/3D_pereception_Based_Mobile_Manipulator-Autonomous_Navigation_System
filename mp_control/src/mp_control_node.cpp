@@ -4584,6 +4584,9 @@ private:
   double handoff_joint_settle_s_{0.4};
   double handoff_republish_period_s_{0.25};
   double handoff_rotate_angle_rad_{3.14159265358979323846};
+  bool handoff_center_joint1_before_rotate_{true};
+  double handoff_joint1_center_target_rad_{0.0};
+  double handoff_joint1_center_tolerance_rad_{0.03};
   double handoff_rotate_angular_speed_rad_s_{0.45};
   double handoff_release_settle_s_{0.5};
   std::vector<double> handoff_stay_joint_positions_{0.104311, 0.027612, -0.001534, -1.638291};
@@ -4701,6 +4704,8 @@ private:
   std::optional<std::array<double, 4>> handoff_place_controller_target_;
   std::optional<std::array<double, 4>> handoff_stay_controller_target_;
   std::optional<double> handoff_joint1_target_rad_;
+  bool handoff_joint1_centering_{false};
+  bool handoff_joint1_centered_for_rotate_{false};
   double eef_forward_start_x_m_{0.0};
 	};
 
