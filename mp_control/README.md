@@ -290,7 +290,7 @@ EEF 카메라는 그리퍼 폭을 보정하지 않는다. 그리퍼 폭은 전�
 
 실제 로봇에서 이 fixed-pose 전진은 `eef_forward_use_joint_nudge: true`일 때 joint trajectory로 보낸다. 로그에 `Very close to a singularity` 또는 `Close to a collision`이 반복되면 Servo twist가 막힌 것이므로, `/mp_control/status`의 `eef forward joint nudge`와 `/arm_controller/joint_trajectory_raw`, `/arm_controller/joint_trajectory`를 같이 확인한다. status에는 `controller_target`, `simultaneous_joints`, `joint4_deferred_until_joint3_complete`, `joint3_progress`, `joint3_complete`, `joint4_error`, `joint4_complete`, `controller_joint*_delta`, `raw_joint3_delta`, `rpy_roll_err`, `duration`, `configured_period`, `effective_period`, `eef_pose`, `joint4_pose`, `gripper_pose`가 같이 나온다. 정상이라면 `simultaneous_joints=joint2,joint3,joint4`가 찍히고, joint4 delta는 0 또는 작은 보정값으로 유지된다. `configured_period`가 `duration`보다 짧아도 코드가 `effective_period=max(duration, configured_period)`를 사용해 joint3 명령이 겹쳐 누적되지 않게 한다.
 
-파지가 시각적으로 확인되면 `handoff_after_grasp: true` 설정에 따라 후속 적재 동작으로 넘어간다. 순서는 `picked` 이벤트 발행, 현재 파지 자세에서 `joint1` 상대 180도 회전, 그리퍼 open, saved stay pose 복귀, `placed`/`loaded` 이벤트 발행이다. handoff 중에는 `/target/base_hold`를 켜서 전면 tracker가 `/cmd_vel`을 덮어쓰지 않게 한다.
+파지가 시각적으로 확인되면 `handoff_after_grasp: true` 설정에 따라 후속 적재 동작으로 넘어간다. 순서는 `picked` 이벤트 발행, 현재 파지 자세에서 로봇 몸체가 아니라 매니퓰레이터 `joint1`만 상대 180도 회전, 그리퍼 open, saved stay pose 복귀, `placed`/`loaded` 이벤트 발행이다. handoff 중에는 `/target/base_hold`를 켜서 전면 tracker가 `/cmd_vel`을 덮어쓰지 않게 한다. 현재 실제 리더 설정에서는 `loaded` 이후에도 `/target/base_hold=true`와 zero `/cmd_vel`을 유지하므로, 물체 close 이후 베이스 주행을 자동으로 재개하지 않는다.
 
 ## 전면-EEF RGB 삼각 측량
 

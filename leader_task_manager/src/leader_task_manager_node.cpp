@@ -229,6 +229,14 @@ private:
       return;
     }
 
+    if (
+      starts_with(stage, "HANDOFF") &&
+      contains_any(stage, {"RELEASE", "STAY", "LOADED"}))
+    {
+      set_loaded_platooning_state();
+      return;
+    }
+
     if (starts_with(stage, "HANDOFF") || stage == "WAIT_FOLLOWER") {
       set_cargo_state("GRASPED");
       set_task_state("WAIT_FOLLOWER");

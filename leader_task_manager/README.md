@@ -18,7 +18,16 @@
 - EEF pregrasp, joint pregrasp trajectory 대기, close visual bbox 기반 pregrasp: `PICKING`
 - grasp 완료: `WAIT_FOLLOWER`, cargo `GRASPED`, platoon `STANDBY`
 - handoff/place/loading: `WAIT_FOLLOWER` 또는 `PLACING_ON_FOLLOWER`
-- loaded 완료: `CARGO_LOADED`, cargo `LOADED`, platoon `FOLLOW`
+- loaded 완료: `CARGO_LOADED`, cargo `LOADED`, platoon `STANDBY`
+
+## 파지 이후 주행 재개 차단
+
+현재 실제 리더 실험에서는 물체 close/handoff 직후 로봇 베이스나 팔로워가 다시 움직이면 파지 자세가 틀어진다. 그래서 `resume_follow_after_loaded` 기본값을 `false`로 둔다.
+
+- `resume_follow_after_loaded: false`: `LOADED`, `PLACED`, `CARGO_LOADED` 이후 `/leader/platoon_mode=STANDBY`, `/leader/follower_enable=false`를 유지한다.
+- `resume_follow_after_loaded: true`: 기존처럼 loaded 이후 `/leader/platoon_mode=FOLLOW`로 복귀한다.
+
+즉 현재 기본 동작은 물체를 잡고 내려놓은 뒤에도 자동 주행을 재개하지 않는다.
 
 ## 2026-06-03 로그 반영
 
