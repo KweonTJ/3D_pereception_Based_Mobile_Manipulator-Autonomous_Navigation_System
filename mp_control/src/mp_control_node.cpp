@@ -3839,7 +3839,9 @@ private:
     return clamped;
   }
 
-  void publishHandoffJointTrajectory(const std::array<double, 4> & controller_target)
+  void publishHandoffJointTrajectory(
+    const std::array<double, 4> & controller_target,
+    bool preserve_current_non_joint1 = false)
   {
     const auto current = latestArmJointPositions();
     if (!current) {
@@ -3847,8 +3849,18 @@ private:
       return;
     }
 
-    const auto target = clampHandoffTarget(controller_target);
-    const auto raw_target = jointNudgeRawTargetFromControllerTarget(*current, target);
+    auto target = clampHandoffTarget(controller_target);
+    if (preserve_current_non_joint1) {
+      target[1] = (*current)[1];
+      target[2] = (*current)[2];
+      target[3] = (*current)[3];
+    }
+    auto raw_target = preserve_current_non_joint1 ?
+      target :
+      jointNudgeRawTargetFromControllerTarget(*current, target);
+    if (preserve_current_non_joint1) {
+      raw_target[2] = (*current)[2];
+    }
 
     trajectory_msgs::msg::JointTrajectory msg;
     const auto stamp = now();
@@ -3857,10 +3869,19 @@ private:
     appendJointTrajectoryPoint(msg, raw_target, handoff_joint_move_duration_s_);
     joint_trajectory_pub_->publish(msg);
     handoff_last_publish_stamp_ = stamp;
+
+    std::ostringstream status;
+    status << "handoff joint trajectory published: controller_target="
+           << formatJointArray(target)
+           << " raw_target=" << formatJointArray(raw_target)
+           << " preserve_current_non_joint1="
+           << (preserve_current_non_joint1 ? "true" : "false");
+    publishStatus(status.str());
   }
 
   void maybeRepublishHandoffJointTrajectory(
-    const std::optional<std::array<double, 4>> & controller_target)
+    const std::optional<std::array<double, 4>> & controller_target,
+    bool preserve_current_non_joint1 = false)
   {
     if (!controller_target || handoff_republish_period_s_ <= 0.0) {
       return;
@@ -3872,7 +3893,7 @@ private:
     {
       return;
     }
-    publishHandoffJointTrajectory(*controller_target);
+    publishHandoffJointTrajectory(*controller_target, preserve_current_non_joint1);
   }
 
   void updateHandoffLift()
