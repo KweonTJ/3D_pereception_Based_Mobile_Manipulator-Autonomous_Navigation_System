@@ -866,6 +866,8 @@ private:
     handoff_place_controller_target_.reset();
     handoff_stay_controller_target_.reset();
     handoff_joint1_target_rad_.reset();
+    handoff_joint1_centering_ = false;
+    handoff_joint1_centered_for_rotate_ = false;
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
     eef_refinement_use_bbox_center_ = false;
@@ -916,6 +918,8 @@ private:
     handoff_place_controller_target_.reset();
     handoff_stay_controller_target_.reset();
     handoff_joint1_target_rad_.reset();
+    handoff_joint1_centering_ = false;
+    handoff_joint1_centered_for_rotate_ = false;
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
     eef_refinement_use_bbox_center_ = false;
