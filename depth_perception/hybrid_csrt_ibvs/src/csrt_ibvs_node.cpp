@@ -831,7 +831,7 @@ cv::Rect CsrtIbvsNode::stabilizeTrackedBox(
   return clipped.value_or(tracker_bbox);
 }
 
-bool CsrtIbvsNode::isEefBboxFresh() const
+bool CsrtIbvsNode::isEefBboxFresh()
 {
   std::lock_guard<std::mutex> lock(eef_mutex_);
   if (!latest_eef_bbox_ || latest_eef_bbox_stamp_.nanoseconds() == 0) {
@@ -843,7 +843,7 @@ bool CsrtIbvsNode::isEefBboxFresh() const
 std::optional<double> CsrtIbvsNode::estimateTriangulatedObjectX(
   const cv::Rect & front_bbox,
   const cv::Size & front_image_size,
-  std::string * reason) const
+  std::string * reason)
 {
   static_cast<void>(front_image_size);
   const auto set_reason = [reason](const std::string & text) {
