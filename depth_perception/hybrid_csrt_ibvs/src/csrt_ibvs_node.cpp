@@ -301,6 +301,7 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
       pending_init_bbox_ = new_bbox;
       detector_reference_bbox_ = new_bbox;
       last_detector_bbox_stamp_ = receive_time;
+      min_depth_reached_ = false;
       status_text =
         state_ == TrackerState::TRACKING ?
         "bbox correction received; tracker will refresh on the next image" :
@@ -319,6 +320,35 @@ void CsrtIbvsNode::onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedP
   camera_cx_ = msg->k[2];
   camera_cy_ = msg->k[5];
   have_camera_info_ = fx_ > 1.0 && fy_ > 1.0;
+}
+
+void CsrtIbvsNode::onEefBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
+{
+  if (msg->data.size() < 4) {
+    return;
+  }
+
+  const auto x = static_cast<int>(std::lround(msg->data[0]));
+  const auto y = static_cast<int>(std::lround(msg->data[1]));
+  const auto w = static_cast<int>(std::lround(msg->data[2]));
+  const auto h = static_cast<int>(std::lround(msg->data[3]));
+  if (w < min_bbox_size_px_ || h < min_bbox_size_px_) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(eef_mutex_);
+  latest_eef_bbox_ = cv::Rect(x, y, w, h);
+  latest_eef_bbox_stamp_ = now();
+}
+
+void CsrtIbvsNode::onEefCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock(eef_mutex_);
+  eef_fx_ = msg->k[0];
+  eef_fy_ = msg->k[4];
+  eef_cx_ = msg->k[2];
+  eef_cy_ = msg->k[5];
+  have_eef_camera_info_ = eef_fx_ > 1.0 && eef_fy_ > 1.0;
 }
 
 void CsrtIbvsNode::onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg)
