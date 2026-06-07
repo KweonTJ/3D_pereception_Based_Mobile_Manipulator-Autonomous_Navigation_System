@@ -98,6 +98,7 @@ csrt_ibvs_node:
     triangulation_stop_x_m: 0.30
     triangulation_max_speed_mps: 0.04
     triangulation_gain: 0.4
+    triangulation_fallback_speed_mps: 0.012
     triangulation_timeout_s: 2.0
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
