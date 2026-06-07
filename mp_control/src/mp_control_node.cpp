@@ -490,6 +490,12 @@ private:
       declare_parameter<double>("handoff_republish_period_s", 0.25);
     handoff_rotate_angle_rad_ =
       declare_parameter<double>("handoff_rotate_angle_rad", 3.14159265358979323846);
+    handoff_center_joint1_before_rotate_ =
+      declare_parameter<bool>("handoff_center_joint1_before_rotate", true);
+    handoff_joint1_center_target_rad_ =
+      declare_parameter<double>("handoff_joint1_center_target_rad", 0.0);
+    handoff_joint1_center_tolerance_rad_ =
+      declare_parameter<double>("handoff_joint1_center_tolerance_rad", 0.03);
     handoff_rotate_angular_speed_rad_s_ =
       declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
     handoff_release_settle_s_ =
@@ -647,6 +653,12 @@ private:
       clampValue(eef_forward_min_advance_before_close_m_, 0.0, eef_forward_distance_m_);
     handoff_joint_move_duration_s_ = std::max(0.1, handoff_joint_move_duration_s_);
     handoff_joint_settle_s_ = std::max(0.0, handoff_joint_settle_s_);
+    handoff_joint1_center_target_rad_ = clampValue(
+      handoff_joint1_center_target_rad_,
+      joint_pregrasp_min_positions_[0],
+      joint_pregrasp_max_positions_[0]);
+    handoff_joint1_center_tolerance_rad_ =
+      clampValue(handoff_joint1_center_tolerance_rad_, 0.001, 0.30);
     handoff_rotate_angular_speed_rad_s_ =
       std::max(0.05, std::abs(handoff_rotate_angular_speed_rad_s_));
     handoff_release_settle_s_ = std::max(0.0, handoff_release_settle_s_);
