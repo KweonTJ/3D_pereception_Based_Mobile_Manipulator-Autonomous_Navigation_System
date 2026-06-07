@@ -2513,9 +2513,14 @@ private:
       -eef_refine_max_angular_speed_, eef_refine_max_angular_speed_);
   }
 
-  void publishEefForwardAdvanceCommand(const RpyError & rpy_error)
+  void publishEefForwardAdvanceCommand(
+    const RpyError & rpy_error,
+    bool allow_joint_nudge_after_joint3_complete)
   {
-    if (eef_forward_use_joint_nudge_ && publishEefForwardJointNudge(rpy_error)) {
+    if (
+      eef_forward_use_joint_nudge_ &&
+      publishEefForwardJointNudge(rpy_error, allow_joint_nudge_after_joint3_complete))
+    {
       return;
     }
 
@@ -2529,7 +2534,9 @@ private:
     twist_pub_->publish(cmd);
   }
 
-  bool publishEefForwardJointNudge(const RpyError & rpy_error)
+  bool publishEefForwardJointNudge(
+    const RpyError & rpy_error,
+    bool allow_after_joint3_complete)
   {
     const auto stamp = now();
     const double effective_nudge_period_s = std::max(
@@ -2559,7 +2566,10 @@ private:
     const bool defer_joint4 = staged_joint4 && !progress.joint3_complete;
     std::string joint_stage = defer_joint4 ? "joint2,joint3" : "joint4";
 
-    if (progress.available && progress.complete && !staged_joint4) {
+    if (
+      progress.available && progress.complete && !staged_joint4 &&
+      !allow_after_joint3_complete)
+    {
       publishStop();
       eef_forward_last_joint_nudge_stamp_ = stamp;
       std::ostringstream status;
@@ -2574,18 +2584,25 @@ private:
       return true;
     }
 
-    if (!staged_joint4 || !progress.joint3_complete) {
-      controller_target[1] = stepJointWithoutReversingTowardLimit(
-        (*current)[1],
-        eef_forward_joint2_delta_rad_,
-        joint_pregrasp_min_positions_[1],
-        joint_pregrasp_max_positions_[1]);
+    const bool continue_joint3_after_required =
+      allow_after_joint3_complete && progress.available && progress.joint3_complete;
+
+    if (!staged_joint4 || !progress.joint3_complete || continue_joint3_after_required) {
+      if (continue_joint3_after_required) {
+        controller_target[1] = (*current)[1];
+      } else {
+        controller_target[1] = stepJointWithoutReversingTowardLimit(
+          (*current)[1],
+          eef_forward_joint2_delta_rad_,
+          joint_pregrasp_min_positions_[1],
+          joint_pregrasp_max_positions_[1]);
+      }
       const double joint3_step = staged_joint4 ?
         std::min(std::abs(eef_forward_joint3_delta_rad_), joint3_remaining) :
         std::abs(eef_forward_joint3_delta_rad_);
       controller_target[2] = (*current)[2] + joint3_direction * joint3_step;
       if (!staged_joint4) {
-        joint_stage = "joint2,joint3,joint4";
+        joint_stage = continue_joint3_after_required ? "joint3,joint4" : "joint2,joint3,joint4";
       }
     } else {
       controller_target[1] = (*current)[1];
@@ -2663,6 +2680,10 @@ private:
            << " raw_target=" << formatJointArray(raw_target)
            << " controller_target=" << formatJointArray(controller_target)
            << " simultaneous_joints=" << joint_stage
+           << " allow_after_joint3_complete="
+           << (allow_after_joint3_complete ? "true" : "false")
+           << " continue_joint3_after_required="
+           << (continue_joint3_after_required ? "true" : "false")
            << " joint4_deferred_until_joint3_complete="
            << (defer_joint4 ? "true" : "false")
            << formatEefForwardJointProgress(progress)

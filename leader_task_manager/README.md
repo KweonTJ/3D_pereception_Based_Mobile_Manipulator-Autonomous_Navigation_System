@@ -29,6 +29,13 @@
 
 즉 현재 기본 동작은 물체를 잡고 내려놓은 뒤에도 자동 주행을 재개하지 않는다.
 
+`mp_control` handoff 로그는 `placed` 이벤트 직후에도 `handoff release: ...`,
+`handoff stay: ...` 상태를 이어서 낸다. 이 상태를 단순 handoff 진행 중으로
+처리하면 이미 `LOADED`로 바뀐 상태가 다시 `GRASPED/WAIT_FOLLOWER`로 되돌아가고,
+`/leader/follower_enable`도 다시 `true`가 된다. 현재 매핑은 `HANDOFF RELEASE`,
+`HANDOFF STAY`, `HANDOFF ... LOADED` 계열 상태를 loaded 완료 상태로 처리해서
+close 이후 로봇 주행이 다시 살아나지 않게 한다.
+
 ## 2026-06-03 로그 반영
 
 실제 리더 로그에서 `color triangulation unavailable; using close visual bbox for EEF pregrasp...`와 `waiting for joint pregrasp trajectory...`가 파지 단계 중에 반복되었다. 기존 매핑은 일부 문자열을 알 수 없는 상태로 처리해서, 리더 작업 상태가 `PICKING`에서 `MOVING`으로 흔들릴 수 있었다.
