@@ -51,15 +51,20 @@ private:
     geometry_msgs::msg::Twist base_cmd;
     geometry_msgs::msg::TwistStamped arm_cmd;
     std::optional<double> depth_m;
+    std::optional<double> triangulated_object_x_m;
+    std::string range_status;
     double x_error_norm{0.0};
     double y_error_norm{0.0};
     double area_ratio{0.0};
     bool depth_too_close{false};
+    bool using_triangulation{false};
   };
 
   void onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg);
   void onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg);
   void onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg);
+  void onEefBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg);
+  void onEefCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg);
   void onInitBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg);
   void onBaseHold(const std_msgs::msg::Bool::ConstSharedPtr msg);
   void watchdog();
@@ -79,6 +84,11 @@ private:
     const rclcpp::Time & current_time) const;
   IbvsResult computeIbvsCommand(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp);
   std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
+  std::optional<double> estimateTriangulatedObjectX(
+    const cv::Rect & front_bbox,
+    const cv::Size & front_image_size,
+    std::string * reason = nullptr) const;
+  bool isEefBboxFresh() const;
   std::optional<double> pixelToMeters(const cv::Mat & depth, const std::string & encoding, int row, int col) const;
   void publishDebugImage(const sensor_msgs::msg::Image::ConstSharedPtr & src_msg, const cv::Mat & frame, const cv::Rect & bbox, const IbvsResult & ibvs, bool tracking_ok) const;
   void publishDebugImageNoTrack(
@@ -99,6 +109,8 @@ private:
   std::string image_topic_;
   std::string depth_topic_;
   std::string camera_info_topic_;
+  std::string eef_tracked_bbox_topic_;
+  std::string eef_camera_info_topic_;
   std::string init_bbox_topic_;
   std::string tracked_bbox_topic_;
   std::string cmd_vel_topic_;
@@ -152,6 +164,21 @@ private:
   double max_angular_z_{0.55};
   double max_arm_linear_{0.025};
 
+  // Close-range triangulation parameters
+  bool use_triangulation_after_min_depth_{false};
+  bool use_eef_front_camera_extrinsic_override_{false};
+  double triangulation_start_depth_m_{0.47};
+  double triangulation_stop_x_m_{0.30};
+  double triangulation_max_speed_mps_{0.04};
+  double triangulation_gain_{0.4};
+  double triangulation_timeout_s_{2.0};
+  double triangulation_min_range_m_{0.06};
+  double triangulation_max_range_m_{1.0};
+  double triangulation_max_ray_gap_m_{0.08};
+  double eef_front_camera_offset_x_m_{-0.05};
+  double eef_front_camera_offset_y_m_{0.0};
+  double eef_front_camera_offset_z_m_{0.15};
+
   // Depth parameters
   int depth_roi_radius_px_{6};
   double depth_bbox_inner_scale_{0.7};
@@ -166,6 +193,8 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr eef_bbox_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr eef_camera_info_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr init_bbox_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr base_hold_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
@@ -190,6 +219,7 @@ private:
   rclcpp::Time last_detector_bbox_stamp_;
   bool stop_sent_{true};
   std::atomic_bool base_hold_active_{false};
+  bool min_depth_reached_{false};
 
   mutable std::mutex bbox_mutex_;
   std::optional<cv::Rect> pending_init_bbox_;
@@ -205,6 +235,15 @@ private:
   double fy_{0.0};
   double camera_cx_{0.0};
   double camera_cy_{0.0};
+
+  mutable std::mutex eef_mutex_;
+  std::optional<cv::Rect> latest_eef_bbox_;
+  rclcpp::Time latest_eef_bbox_stamp_;
+  bool have_eef_camera_info_{false};
+  double eef_fx_{0.0};
+  double eef_fy_{0.0};
+  double eef_cx_{0.0};
+  double eef_cy_{0.0};
 };
 
 }  // namespace hybrid_csrt_ibvs
