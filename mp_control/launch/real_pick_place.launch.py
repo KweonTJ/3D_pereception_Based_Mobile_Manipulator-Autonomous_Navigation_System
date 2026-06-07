@@ -370,7 +370,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             "move_to_stay_pose",
-            default_value="true",
+            default_value="false",
             description="Move the manipulator to the saved stay pose after startup.",
         ),
         DeclareLaunchArgument(
