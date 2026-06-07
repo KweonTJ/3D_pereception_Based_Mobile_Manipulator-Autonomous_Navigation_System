@@ -4595,6 +4595,7 @@ private:
   std::optional<std::array<double, 4>> handoff_lift_controller_target_;
   std::optional<std::array<double, 4>> handoff_place_controller_target_;
   std::optional<std::array<double, 4>> handoff_stay_controller_target_;
+  std::optional<double> handoff_joint1_target_rad_;
   double eef_forward_start_x_m_{0.0};
 	};
 
