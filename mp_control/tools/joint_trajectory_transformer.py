@@ -31,6 +31,10 @@ class JointTrajectoryTransformer(Node):
             "roll_compensation_joint", "joint4").value
         self.max_reversed_joint_delta_rad = float(
             self.declare_parameter("max_reversed_joint_delta_rad", 0.12).value)
+        self.reversed_joint_min_position_rad = float(
+            self.declare_parameter("reversed_joint_min_position_rad", -1.0e9).value)
+        self.reversed_joint_max_position_rad = float(
+            self.declare_parameter("reversed_joint_max_position_rad", 1.0e9).value)
 
         if self.input_topic == self.output_topic:
             raise RuntimeError("input_topic and output_topic must be different")
@@ -107,6 +111,23 @@ class JointTrajectoryTransformer(Node):
                                 throttle_duration_sec=1.0,
                             )
                         mirrored_value = reference + limited_delta
+                    clamped_value = max(
+                        self.reversed_joint_min_position_rad,
+                        min(self.reversed_joint_max_position_rad, mirrored_value))
+                    if abs(clamped_value - mirrored_value) > 1.0e-9:
+                        self.get_logger().warn(
+                            "clamping mirrored %s position %.4f -> %.4f rad "
+                            "within [%.4f, %.4f]"
+                            % (
+                                joint_name,
+                                mirrored_value,
+                                clamped_value,
+                                self.reversed_joint_min_position_rad,
+                                self.reversed_joint_max_position_rad,
+                            ),
+                            throttle_duration_sec=1.0,
+                        )
+                    mirrored_value = clamped_value
                     point.positions[index] = mirrored_value
                     self._preserve_roll_value(
                         point.positions,
