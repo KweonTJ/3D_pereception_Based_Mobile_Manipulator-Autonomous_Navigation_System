@@ -1030,14 +1030,64 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     (!result.depth_m || straight_approach_depth_m_ <= 0.0 || *result.depth_m <= straight_approach_depth_m_);
 
   if (result.depth_m) {
+    if (use_triangulation_after_min_depth_ &&
+        *result.depth_m <= triangulation_start_depth_m_ + depth_deadband_m_)
+    {
+      min_depth_reached_ = true;
+      result.range_status = "depth min reached; switching to triangulation mode";
+    }
     if (*result.depth_m < emergency_stop_depth_m_) {
       result.depth_too_close = true;
       linear_x = 0.0;
       angular_z = 0.0;
+      if (result.range_status.empty()) {
+        std::ostringstream status;
+        status << "depth stop: depth=" << *result.depth_m
+               << " emergency=" << emergency_stop_depth_m_;
+        result.range_status = status.str();
+      }
     } else {
       const double depth_error = *result.depth_m - desired_depth_m_;
       if (std::abs(depth_error) > depth_deadband_m_) {
         linear_x = linear_gain_ * depth_error;
+      }
+      if (result.range_status.empty()) {
+        std::ostringstream status;
+        status << "depth approach: depth=" << *result.depth_m
+               << " target=" << desired_depth_m_
+               << " vx=" << linear_x;
+        result.range_status = status.str();
+      }
+    }
+  } else if (use_triangulation_after_min_depth_ && min_depth_reached_) {
+    result.using_triangulation = true;
+    std::string tri_reason;
+    auto triangulated_x = estimateTriangulatedObjectX(bbox, image_size, &tri_reason);
+    if (!triangulated_x) {
+      linear_x = 0.0;
+      angular_z = 0.0;
+      result.range_status = "triangulation waiting: " + tri_reason;
+    } else {
+      result.triangulated_object_x_m = triangulated_x;
+      const double error_x = *triangulated_x - triangulation_stop_x_m_;
+      if (error_x <= 0.0) {
+        linear_x = 0.0;
+        angular_z = 0.0;
+        std::ostringstream status;
+        status << "triangulation stop reached: object_x=" << *triangulated_x
+               << " target=" << triangulation_stop_x_m_;
+        result.range_status = status.str();
+      } else {
+        linear_x = clampValue(
+          triangulation_gain_ * error_x,
+          0.0,
+          triangulation_max_speed_mps_);
+        std::ostringstream status;
+        status << "triangulation approach: object_x=" << *triangulated_x
+               << " target=" << triangulation_stop_x_m_
+               << " vx=" << linear_x
+               << " " << tri_reason;
+        result.range_status = status.str();
       }
     }
   } else if (use_area_fallback_) {
@@ -1045,8 +1095,15 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     if (std::abs(area_error) > area_deadband_ratio_) {
       linear_x = area_gain_ * area_error;
     }
+    std::ostringstream status;
+    status << "area fallback: area=" << result.area_ratio
+           << " target=" << desired_area_ratio_
+           << " vx=" << linear_x;
+    result.range_status = status.str();
   } else {
+    linear_x = 0.0;
     angular_z = 0.0;
+    result.range_status = "no valid depth; area fallback disabled";
   }
 
   if (straight_depth_approach) {
