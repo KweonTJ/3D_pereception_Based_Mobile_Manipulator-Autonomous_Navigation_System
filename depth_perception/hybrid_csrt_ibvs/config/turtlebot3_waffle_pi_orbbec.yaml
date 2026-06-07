@@ -31,12 +31,13 @@ csrt_ibvs_node:
     use_area_fallback: true
     stop_when_lost: true
     allow_reverse: false
-    # YOLO publishes init bboxes continuously and owns the active bbox while it
-    # is fresh. CSRT remains a short dropout backup, not the source of bbox drift.
+    # YOLO selects the target object, then CSRT owns the active bbox.  Continuous
+    # detector updates are ignored while CSRT is tracking so a later YOLO
+    # false-positive cannot replace the box target.
     reinitialize_while_tracking: false
-    accept_detector_bbox_while_tracking: true
+    accept_detector_bbox_while_tracking: false
     lock_tracked_bbox_size: true
-    detector_bbox_override_timeout_s: 2.5
+    detector_bbox_override_timeout_s: 0.0
     reinit_min_iou: 0.10
     reinit_max_center_jump_ratio: 0.35
     enable_base_yaw: true
