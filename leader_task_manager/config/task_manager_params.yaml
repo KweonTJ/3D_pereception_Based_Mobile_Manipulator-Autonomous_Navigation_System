@@ -16,3 +16,6 @@ leader_task_manager:
     initial_platoon_mode: "FOLLOW"
     initial_follower_enable: true
     follow_while_idle: true
+    # 물체 close/handoff 이후 리더/팔로워 주행을 자동 재개하지 않는다.
+    # 다시 자동 추종으로 복귀시키려면 true로 변경한다.
+    resume_follow_after_loaded: false
