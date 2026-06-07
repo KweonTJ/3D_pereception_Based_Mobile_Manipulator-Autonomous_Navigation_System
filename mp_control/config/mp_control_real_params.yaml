@@ -235,6 +235,9 @@ mp_control_node:
     handoff_joint_settle_s: 0.4
     handoff_republish_period_s: 0.25
     handoff_rotate_angle_rad: 3.14159265
+    handoff_center_joint1_before_rotate: true
+    handoff_joint1_center_target_rad: 0.0
+    handoff_joint1_center_tolerance_rad: 0.03
     handoff_rotate_angular_speed_rad_s: 0.45
     handoff_release_settle_s: 0.5
     handoff_stay_joint_positions: [0.104311, 0.027612, -0.001534, -1.638291]
