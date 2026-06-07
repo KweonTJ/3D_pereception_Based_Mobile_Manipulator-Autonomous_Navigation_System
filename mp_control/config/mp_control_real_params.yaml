@@ -137,7 +137,7 @@ mp_control_node:
     # carries the arm load and the real motor torque loop can break.
     pregrasp_joint3_lead_enabled: true
     pregrasp_joint3_lead_duration_ratio: 0.45
-    pregrasp_joint3_lead_fraction: 0.5
+    pregrasp_joint3_lead_fraction: 0.25
     # Keep this as 1 after the joint3 lead point; extra interpolation can make
     # the arm look like it is stepping through joint2 -> joint3 -> joint4.
     pregrasp_sync_steps: 1
