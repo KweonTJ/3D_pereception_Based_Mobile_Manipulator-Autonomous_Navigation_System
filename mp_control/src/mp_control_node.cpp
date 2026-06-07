@@ -3939,13 +3939,56 @@ private:
         publishStatus("handoff joint1 turn waiting for joint states");
         return;
       }
+      // std::array<double, 4> target = *current;
+      // target[0] += handoff_rotate_angle_rad_;
+      // target[0] = clampValue(
+      //   target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
+      // handoff_joint1_target_rad_ = target[0];
+      // handoff_lift_controller_target_ = clampHandoffTarget(target);
+      // publishHandoffJointTrajectory(*handoff_lift_controller_target_, true);
       std::array<double, 4> target = *current;
-      target[0] += handoff_rotate_angle_rad_;
-      target[0] = clampValue(
-        target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
+
+      const double current_joint1 = (*current)[0];
+      const double rotate_abs = std::abs(handoff_rotate_angle_rad_);
+
+      const double positive_target = current_joint1 + rotate_abs;
+      const double negative_target = current_joint1 - rotate_abs;
+
+      const double joint1_min = joint_pregrasp_min_positions_[0];
+      const double joint1_max = joint_pregrasp_max_positions_[0];
+
+      const bool positive_available = positive_target <= joint1_max;
+      const bool negative_available = negative_target >= joint1_min;
+
+      if (positive_available) {
+        target[0] = positive_target;
+      } else if (negative_available) {
+        target[0] = negative_target;
+      } else {
+        // 이론상 joint range가 2*pi보다 작을 때만 여기로 들어옴.
+        // 안전 fallback: 기존 방식처럼 clamp.
+        target[0] = clampValue(
+          positive_target,
+          joint1_min,
+          joint1_max);
+      }
+
       handoff_joint1_target_rad_ = target[0];
       handoff_lift_controller_target_ = clampHandoffTarget(target);
       publishHandoffJointTrajectory(*handoff_lift_controller_target_, true);
+
+      std::ostringstream status;
+      status << "handoff joint1 turn: rotating manipulator joint1 toward follower"
+            << " current_joint1=" << current_joint1
+            << " target_joint1=" << target[0]
+            << " requested_abs_delta=" << rotate_abs
+            << " actual_delta=" << (target[0] - current_joint1)
+            << " joint1_limit=[" << joint1_min << ", " << joint1_max << "]"
+            << " positive_available=" << (positive_available ? "true" : "false")
+            << " negative_available=" << (negative_available ? "true" : "false")
+            << " target=" << formatJointArray(*handoff_lift_controller_target_);
+      publishStatus(status.str(), true);
+      return;
       handoff_stage_start_stamp_ = stamp;
       publishStatus(
         "handoff joint1 turn: rotating manipulator joint1 toward follower; target=" +
