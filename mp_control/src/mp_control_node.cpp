@@ -3971,6 +3971,29 @@ private:
       }
       std::array<double, 4> target = *current;
       const double initial_joint1 = (*current)[0];
+      if (
+        handoff_center_joint1_before_rotate_ &&
+        !handoff_joint1_centered_for_rotate_ &&
+        std::abs(initial_joint1 - handoff_joint1_center_target_rad_) >
+        handoff_joint1_center_tolerance_rad_)
+      {
+        target[0] = handoff_joint1_center_target_rad_;
+        handoff_lift_controller_target_ = clampHandoffTarget(target);
+        handoff_joint1_centering_ = true;
+        publishHandoffJointTrajectory(*handoff_lift_controller_target_, true);
+        handoff_stage_start_stamp_ = stamp;
+        const double center_delta = (*handoff_lift_controller_target_)[0] - initial_joint1;
+        const double center_delta_deg = center_delta * 180.0 / M_PI;
+        publishStatus(
+          "handoff joint1 center: aligning joint1 before same-direction 180deg turn; target=" +
+          formatJointArray(*handoff_lift_controller_target_) +
+          " joint1_delta_deg=" + std::to_string(center_delta_deg),
+          true);
+        return;
+      }
+
+      handoff_joint1_centering_ = false;
+      handoff_joint1_centered_for_rotate_ = true;
       target[0] = chooseHandoffJoint1Target(initial_joint1);
       handoff_joint1_target_rad_ = target[0];
       handoff_lift_controller_target_ = clampHandoffTarget(target);
@@ -3991,6 +4014,17 @@ private:
     maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
     if ((stamp - handoff_stage_start_stamp_).seconds() >=
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
+      if (handoff_joint1_centering_) {
+        handoff_joint1_centering_ = false;
+        handoff_joint1_centered_for_rotate_ = true;
+        handoff_lift_controller_target_.reset();
+        handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        publishStatus(
+          "handoff joint1 center complete; starting same-direction 180deg joint1 turn",
+          true);
+        return;
+      }
       stage_ = GraspStage::HANDOFF_PLACE;
       handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
