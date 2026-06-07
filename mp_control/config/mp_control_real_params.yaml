@@ -177,7 +177,7 @@ mp_control_node:
     # joint2, joint3, and joint4 are sent in one trajectory point so joint4
     # never enters a joint4-only correction loop near the base frame.
     eef_forward_use_joint_nudge: true
-    eef_forward_joint2_delta_rad: 0.025
+    eef_forward_joint2_delta_rad: 0.015
     eef_forward_joint3_delta_rad: -0.035
     eef_forward_joint_nudge_duration_s: 0.75
     eef_forward_joint_nudge_period_s: 0.80
@@ -187,7 +187,7 @@ mp_control_node:
     # Keep staged joint4 disabled on the real robot. The staged mode can leave
     # joint2/joint3 fixed while joint4 alone keeps pushing into the base frame.
     eef_forward_joint4_after_joint3_complete: false
-    eef_forward_joint3_complete_delta_rad: 0.14
+    eef_forward_joint3_complete_delta_rad: 0.18
     eef_forward_joint3_complete_tolerance_rad: 0.015
     eef_forward_joint4_finish_tolerance_rad: 0.08
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
@@ -232,6 +232,7 @@ mp_control_node:
     handoff_place_joint2_delta_rad: 0.0
     handoff_joint_move_duration_s: 1.0
     handoff_joint_settle_s: 0.4
+    handoff_republish_period_s: 0.25
     handoff_rotate_angle_rad: 3.14159265
     handoff_rotate_angular_speed_rad_s: 0.45
     handoff_release_settle_s: 0.5
