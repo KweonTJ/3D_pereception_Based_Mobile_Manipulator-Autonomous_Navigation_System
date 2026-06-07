@@ -707,7 +707,7 @@ private:
         width,
         height,
         now()};
-      should_auto_start = auto_start_on_bbox_ && !active_ && !done_;
+      should_auto_start = auto_start_on_bbox_ && !active_ && !done_ && !safety_abort_latched_;
     }
 
     if (should_auto_start) {
@@ -813,14 +813,18 @@ private:
       publishBaseStop();
       publishBaseHold(true);
       publishEefAutoInitEnable(false);
-      publishStatus(
-        "start ignored after EEF forward safety abort; publish true to /mp_control/cancel or relaunch before retry",
-        true);
+      if (!safety_abort_ignore_reported_) {
+        safety_abort_ignore_reported_ = true;
+        publishStatus(
+          "start ignored after EEF forward safety abort; publish true to /mp_control/cancel or relaunch before retry",
+          true);
+      }
       return;
     }
 
     active_ = true;
     done_ = false;
+    safety_abort_ignore_reported_ = false;
     close_sent_ = false;
     eef_bbox_seen_after_close_ = false;
     open_sent_ = false;
@@ -869,6 +873,7 @@ private:
   void cancelSequence(const std::string & reason)
   {
     safety_abort_latched_ = false;
+    safety_abort_ignore_reported_ = false;
     active_ = false;
     done_ = false;
     eef_bbox_seen_after_close_ = false;
@@ -2461,6 +2466,7 @@ private:
     const geometry_msgs::msg::TransformStamped & eef_tf)
   {
     safety_abort_latched_ = true;
+    safety_abort_ignore_reported_ = false;
     active_ = false;
     done_ = false;
     close_sent_ = false;
@@ -4539,6 +4545,7 @@ private:
 	  bool joint_pregrasp_done_{false};
   bool eef_forward_advance_active_{false};
   bool safety_abort_latched_{false};
+  bool safety_abort_ignore_reported_{false};
   std::optional<double> front_bbox_area_at_eef_forward_start_;
   std::optional<double> eef_bbox_area_at_eef_forward_start_;
   std::optional<std::array<double, 4>> eef_forward_start_joint_positions_;
