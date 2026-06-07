@@ -1855,20 +1855,12 @@ private:
     const bool arm_extension_complete =
       distance_extension_complete ||
       joint_based_extension_complete;
-    const bool joint3_limit_reached_without_advance =
-      joint3_extension_complete &&
+    const bool continue_joint3_after_required =
+      joint_progress_gate_enabled &&
+      joint_progress.available &&
+      joint_progress.joint3_complete &&
       !min_advance_complete &&
       !distance_extension_complete;
-    if (joint3_limit_reached_without_advance) {
-      abortEefForwardAdvance(
-        "EEF forward aborted: joint3 extension limit reached before EEF advance; possible collision or kinematic stall",
-        advanced_x,
-        elapsed_s,
-        joint_progress,
-        eef_tf);
-      return;
-    }
-    const bool continue_joint3_after_required = false;
     const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
     const bool elapsed_enough_for_close =
       !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
