@@ -174,7 +174,7 @@ mp_control_node:
     # joint2, joint3, and joint4 are sent in one trajectory point so joint4
     # never enters a joint4-only correction loop near the base frame.
     eef_forward_use_joint_nudge: true
-    eef_forward_joint2_delta_rad: 0.015
+    eef_forward_joint2_delta_rad: 0.020
     eef_forward_joint3_delta_rad: -0.035
     eef_forward_joint_nudge_duration_s: 0.75
     eef_forward_joint_nudge_period_s: 0.80
