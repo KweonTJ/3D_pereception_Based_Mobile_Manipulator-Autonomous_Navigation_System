@@ -826,6 +826,164 @@ cv::Rect CsrtIbvsNode::stabilizeTrackedBox(
   return clipped.value_or(tracker_bbox);
 }
 
+bool CsrtIbvsNode::isEefBboxFresh() const
+{
+  std::lock_guard<std::mutex> lock(eef_mutex_);
+  if (!latest_eef_bbox_ || latest_eef_bbox_stamp_.nanoseconds() == 0) {
+    return false;
+  }
+  return (get_clock()->now() - latest_eef_bbox_stamp_).seconds() <= triangulation_timeout_s_;
+}
+
+std::optional<double> CsrtIbvsNode::estimateTriangulatedObjectX(
+  const cv::Rect & front_bbox,
+  const cv::Size & front_image_size,
+  std::string * reason) const
+{
+  static_cast<void>(front_image_size);
+  const auto set_reason = [reason](const std::string & text) {
+    if (reason) {
+      *reason = text;
+    }
+  };
+
+  if (!use_eef_front_camera_extrinsic_override_) {
+    set_reason("EEF-front extrinsic override disabled");
+    return std::nullopt;
+  }
+
+  bool have_front_info = false;
+  double front_fx = 0.0;
+  double front_fy = 0.0;
+  double front_cx = 0.0;
+  double front_cy = 0.0;
+  {
+    std::lock_guard<std::mutex> lock(camera_info_mutex_);
+    have_front_info = have_camera_info_;
+    front_fx = fx_;
+    front_fy = fy_;
+    front_cx = camera_cx_;
+    front_cy = camera_cy_;
+  }
+  if (!have_front_info || front_fx <= 1.0 || front_fy <= 1.0) {
+    set_reason("missing front camera info");
+    return std::nullopt;
+  }
+
+  cv::Rect eef_bbox;
+  double eef_fx = 0.0;
+  double eef_fy = 0.0;
+  double eef_cx = 0.0;
+  double eef_cy = 0.0;
+  {
+    std::lock_guard<std::mutex> lock(eef_mutex_);
+    if (!latest_eef_bbox_) {
+      set_reason("missing eef bbox");
+      return std::nullopt;
+    }
+    if (latest_eef_bbox_stamp_.nanoseconds() == 0 ||
+        (get_clock()->now() - latest_eef_bbox_stamp_).seconds() > triangulation_timeout_s_)
+    {
+      set_reason("stale eef bbox");
+      return std::nullopt;
+    }
+    if (!have_eef_camera_info_ || eef_fx_ <= 1.0 || eef_fy_ <= 1.0) {
+      set_reason("missing eef camera info");
+      return std::nullopt;
+    }
+    eef_bbox = *latest_eef_bbox_;
+    eef_fx = eef_fx_;
+    eef_fy = eef_fy_;
+    eef_cx = eef_cx_;
+    eef_cy = eef_cy_;
+  }
+
+  const auto normalize = [](const cv::Point3d & ray) -> std::optional<cv::Point3d> {
+    const double length = std::sqrt(ray.dot(ray));
+    if (!std::isfinite(length) || length < 1e-9) {
+      return std::nullopt;
+    }
+    return cv::Point3d(ray.x / length, ray.y / length, ray.z / length);
+  };
+
+  const double front_u = static_cast<double>(front_bbox.x) + 0.5 * static_cast<double>(front_bbox.width);
+  const double front_v = static_cast<double>(front_bbox.y) + 0.5 * static_cast<double>(front_bbox.height);
+  const double eef_u = static_cast<double>(eef_bbox.x) + 0.5 * static_cast<double>(eef_bbox.width);
+  const double eef_v = static_cast<double>(eef_bbox.y) + 0.5 * static_cast<double>(eef_bbox.height);
+
+  auto front_direction = normalize(cv::Point3d(
+    (front_u - front_cx) / front_fx,
+    (front_v - front_cy) / front_fy,
+    1.0));
+  auto eef_direction = normalize(cv::Point3d(
+    (eef_u - eef_cx) / eef_fx,
+    (eef_v - eef_cy) / eef_fy,
+    1.0));
+  if (!front_direction || !eef_direction) {
+    set_reason("invalid triangulation ray");
+    return std::nullopt;
+  }
+
+  const cv::Point3d front_origin(0.0, 0.0, 0.0);
+  // Config offsets are measured in base_link axes: x forward, y left, z up.
+  // Camera optical axes are x right, y down, z forward.
+  const cv::Point3d eef_origin(
+    -eef_front_camera_offset_y_m_,
+    -eef_front_camera_offset_z_m_,
+    eef_front_camera_offset_x_m_);
+
+  const cv::Point3d w0 = front_origin - eef_origin;
+  const double a = front_direction->dot(*front_direction);
+  const double b = front_direction->dot(*eef_direction);
+  const double c = eef_direction->dot(*eef_direction);
+  const double d = front_direction->dot(w0);
+  const double e = eef_direction->dot(w0);
+  const double denom = a * c - b * b;
+  if (std::abs(denom) < 1e-6) {
+    set_reason("camera rays nearly parallel");
+    return std::nullopt;
+  }
+
+  const double front_range = (b * e - c * d) / denom;
+  const double eef_range = (a * e - b * d) / denom;
+  if (front_range < triangulation_min_range_m_ || front_range > triangulation_max_range_m_ ||
+      eef_range < triangulation_min_range_m_ || eef_range > triangulation_max_range_m_) {
+    std::ostringstream status;
+    status << "triangulation range front=" << front_range << " eef=" << eef_range;
+    set_reason(status.str());
+    return std::nullopt;
+  }
+
+  const cv::Point3d front_point = front_origin + (*front_direction * front_range);
+  const cv::Point3d eef_point = eef_origin + (*eef_direction * eef_range);
+  const cv::Point3d gap = front_point - eef_point;
+  const double ray_gap = std::sqrt(gap.dot(gap));
+  if (!std::isfinite(ray_gap) || ray_gap > triangulation_max_ray_gap_m_) {
+    std::ostringstream status;
+    status << "ray gap too large " << ray_gap;
+    set_reason(status.str());
+    return std::nullopt;
+  }
+
+  const cv::Point3d object = (front_point + eef_point) * 0.5;
+  const double object_x = object.z;
+  if (!std::isfinite(object_x) ||
+      object_x < triangulation_min_range_m_ ||
+      object_x > triangulation_max_range_m_) {
+    std::ostringstream status;
+    status << "triangulation object_x out of range " << object_x;
+    set_reason(status.str());
+    return std::nullopt;
+  }
+
+  if (reason) {
+    std::ostringstream status;
+    status << "object_x=" << object_x << " ray_gap=" << ray_gap;
+    *reason = status.str();
+  }
+  return object_x;
+}
+
 CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp)
 {
