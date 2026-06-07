@@ -3939,8 +3939,11 @@ private:
       }
       std::array<double, 4> target = *current;
       target[0] += handoff_rotate_angle_rad_;
+      target[0] = clampValue(
+        target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
+      handoff_joint1_target_rad_ = target[0];
       handoff_lift_controller_target_ = clampHandoffTarget(target);
-      publishHandoffJointTrajectory(*handoff_lift_controller_target_);
+      publishHandoffJointTrajectory(*handoff_lift_controller_target_, true);
       handoff_stage_start_stamp_ = stamp;
       publishStatus(
         "handoff joint1 turn: rotating manipulator joint1 toward follower; target=" +
@@ -3950,7 +3953,7 @@ private:
 
     publishStop();
     publishBaseStop();
-    maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_);
+    maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
     if ((stamp - handoff_stage_start_stamp_).seconds() >=
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
       stage_ = GraspStage::HANDOFF_PLACE;
@@ -3967,6 +3970,14 @@ private:
       std::array<double, 4> target{};
       if (handoff_lift_controller_target_) {
         target = *handoff_lift_controller_target_;
+      } else if (handoff_joint1_target_rad_) {
+        const auto current = latestArmJointPositions();
+        if (!current) {
+          publishStatus("handoff place waiting for joint states");
+          return;
+        }
+        target = *current;
+        target[0] = *handoff_joint1_target_rad_;
       } else {
         const auto current = latestArmJointPositions();
         if (!current) {
@@ -3977,7 +3988,9 @@ private:
       }
       target[1] += handoff_place_joint2_delta_rad_;
       handoff_place_controller_target_ = clampHandoffTarget(target);
-      publishHandoffJointTrajectory(*handoff_place_controller_target_);
+      publishHandoffJointTrajectory(
+        *handoff_place_controller_target_,
+        std::abs(handoff_place_joint2_delta_rad_) <= 1.0e-9);
       handoff_stage_start_stamp_ = stamp;
       publishStatus(
         "handoff place: settling before release; target=" +
@@ -3987,7 +4000,9 @@ private:
 
     publishStop();
     publishBaseStop();
-    maybeRepublishHandoffJointTrajectory(handoff_place_controller_target_);
+    maybeRepublishHandoffJointTrajectory(
+      handoff_place_controller_target_,
+      std::abs(handoff_place_joint2_delta_rad_) <= 1.0e-9);
     if ((stamp - handoff_stage_start_stamp_).seconds() >=
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
       stage_ = GraspStage::HANDOFF_RELEASE;
