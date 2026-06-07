@@ -97,6 +97,10 @@ class AutoInitBbox(Node):
             self.declare_parameter("yolo_center_score_weight", 0.35).value)
         self.yolo_area_score_weight = float(
             self.declare_parameter("yolo_area_score_weight", 0.25).value)
+        self.bbox_padding_scale_x = max(
+            1.0, float(self.declare_parameter("bbox_padding_scale_x", 1.0).value))
+        self.bbox_padding_scale_y = max(
+            1.0, float(self.declare_parameter("bbox_padding_scale_y", 1.0).value))
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -285,7 +289,7 @@ class AutoInitBbox(Node):
             self.throttled_waiting_status(f"target pixels too small: {pixels}")
             return
 
-        x_min, y_min, width, height, pixels = bbox
+        x_min, y_min, width, height, pixels = self.expand_bbox(bbox, image_width, image_height)
         area_ratio = (width * height) / float(max(1, image_width * image_height))
 
         if width < self.min_bbox_width_px or height < self.min_bbox_height_px:
@@ -309,6 +313,44 @@ class AutoInitBbox(Node):
         self.publish_bbox_repeated(bbox_msg)
         self.last_publish_time = time.monotonic()
         self.published = True
+
+    def expand_bbox(self, bbox, image_width, image_height):
+        x_min, y_min, width, height, pixels = bbox
+        scale_x = self.bbox_padding_scale_x
+        scale_y = self.bbox_padding_scale_y
+        if scale_x <= 1.0 and scale_y <= 1.0:
+            return x_min, y_min, width, height, pixels
+
+        image_width = float(max(1, image_width))
+        image_height = float(max(1, image_height))
+        center_x = float(x_min) + 0.5 * float(width)
+        center_y = float(y_min) + 0.5 * float(height)
+        padded_width = min(image_width, max(1.0, float(width) * scale_x))
+        padded_height = min(image_height, max(1.0, float(height) * scale_y))
+
+        x0 = center_x - 0.5 * padded_width
+        x1 = center_x + 0.5 * padded_width
+        y0 = center_y - 0.5 * padded_height
+        y1 = center_y + 0.5 * padded_height
+
+        if x0 < 0.0:
+            x1 -= x0
+            x0 = 0.0
+        if x1 > image_width:
+            x0 -= x1 - image_width
+            x1 = image_width
+        if y0 < 0.0:
+            y1 -= y0
+            y0 = 0.0
+        if y1 > image_height:
+            y0 -= y1 - image_height
+            y1 = image_height
+
+        x0 = float(np.clip(x0, 0.0, image_width - 1.0))
+        y0 = float(np.clip(y0, 0.0, image_height - 1.0))
+        x1 = float(np.clip(x1, x0 + 1.0, image_width))
+        y1 = float(np.clip(y1, y0 + 1.0, image_height))
+        return x0, y0, x1 - x0, y1 - y0, pixels
 
     def throttled_waiting_status(self, reason):
         now = time.monotonic()
