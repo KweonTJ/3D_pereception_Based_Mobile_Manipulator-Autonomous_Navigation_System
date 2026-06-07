@@ -124,6 +124,9 @@ public:
     joint_trajectory_pub_ =
       create_publisher<trajectory_msgs::msg::JointTrajectory>(
       joint_trajectory_topic_, default_qos);
+    handoff_joint_trajectory_pub_ =
+      create_publisher<trajectory_msgs::msg::JointTrajectory>(
+      handoff_joint_trajectory_topic_, default_qos);
     status_pub_ = create_publisher<std_msgs::msg::String>(status_topic_, status_qos);
     cargo_event_pub_ = create_publisher<std_msgs::msg::String>(cargo_event_topic_, default_qos);
     cargo_current_id_pub_ =
