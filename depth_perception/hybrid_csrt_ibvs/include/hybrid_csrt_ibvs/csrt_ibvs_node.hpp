@@ -179,6 +179,15 @@ private:
   double eef_front_camera_offset_x_m_{-0.05};
   double eef_front_camera_offset_y_m_{0.0};
   double eef_front_camera_offset_z_m_{0.15};
+  bool use_eef_front_camera_optical_offset_{false};
+  double eef_front_camera_optical_offset_x_m_{0.0};
+  double eef_front_camera_optical_offset_y_m_{-0.15};
+  double eef_front_camera_optical_offset_z_m_{-0.05};
+  bool triangulation_flip_front_x_{false};
+  bool triangulation_flip_front_y_{false};
+  bool triangulation_flip_eef_x_{false};
+  bool triangulation_flip_eef_y_{false};
+  bool triangulation_flip_eef_z_{false};
 
   // Depth parameters
   int depth_roi_radius_px_{6};
