@@ -154,6 +154,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint4_after_joint3_complete`: 실제 리더에서는 `false`다. 이 값을 `true`로 두면 joint3 완료 후 joint2/joint3이 멈추고 joint4만 반복되는 루프가 생길 수 있다. 현재 코드에는 해당 joint4-only loop가 감지되면 즉시 abort하는 방어도 들어가 있다.
 - `eef_forward_joint3_complete_delta_rad`: final forward 시작 시점의 joint3 기준으로 추가 전개 완료를 판단하는 controller 기준 절대 변화량이다. 현재 값은 `0.14 rad`다. 직전 로그에서 `joint3_progress=0.135/0.25`까지 갔지만 timeout으로 abort되어, 실제 전개 가능한 범위에 맞게 기준을 낮췄다.
 - `eef_forward_joint3_complete_tolerance_rad / eef_forward_joint4_finish_tolerance_rad`: joint3 완료와 joint4 보조 보정 허용 오차다. joint4는 close를 막는 필수 gate가 아니므로 실제 설정은 `joint4_finish=0.08 rad`로 완화한다.
+- `joint3_complete=true`가 된 뒤에도 `advanced_x`가 최소 전진량에 못 미치면 joint3를 계속 추가 전개하지 않는다. 이 경우는 팔 전개가 물체 방향 EEF 전진으로 변환되지 않은 충돌/기구학 stall 상황으로 보고 safety abort를 건다. abort 후에는 `/mp_control/start` 재입력을 무시하므로 `/mp_control/cancel`을 보내거나 런치를 재시작한 뒤 다시 시도한다.
 - `eef_forward_joint3_first_duration_ratio`: 기존 순차 전개 호환용 파라미터다. 현재 실제 리더의 final nudge는 joint2/joint3/joint4를 같은 trajectory point로 보내므로 이 값이 주 동작을 결정하지 않는다.
 - `eef_forward_joint_nudge_duration_s / eef_forward_joint_nudge_period_s`: 추가 전진 trajectory 시간과 재발행 주기다. 실제 설정은 `0.75 s / 0.80 s`다. trajectory가 끝나기 전 다음 목표가 겹치면 joint3가 급전개처럼 보이므로, 코드에서도 effective period를 duration 이상으로 강제한다.
 - `eef_forward_roll_joint*_weight`: 추가 전진에서 그리퍼 roll proxy를 계산하는 조인트 가중치다. 현재 실제 설정은 `eef_forward_roll_joint3_weight: 0.0`, `eef_forward_roll_joint4_weight: 1.0`이다. joint3 전개량을 joint4 목표에 직접 반영하지 않아, joint4가 final reach를 막는 gate가 되거나 반복 보정으로 베이스 쪽에 충돌하는 상황을 피한다.
