@@ -846,6 +846,7 @@ private:
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
     handoff_stay_controller_target_.reset();
+    handoff_joint1_target_rad_.reset();
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
     eef_refinement_use_bbox_center_ = false;
@@ -895,6 +896,7 @@ private:
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
     handoff_stay_controller_target_.reset();
+    handoff_joint1_target_rad_.reset();
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
     eef_refinement_use_bbox_center_ = false;
@@ -2478,6 +2480,7 @@ private:
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
     handoff_stay_controller_target_.reset();
+    handoff_joint1_target_rad_.reset();
     publishStop();
     publishBaseStop();
     publishBaseHold(true);
