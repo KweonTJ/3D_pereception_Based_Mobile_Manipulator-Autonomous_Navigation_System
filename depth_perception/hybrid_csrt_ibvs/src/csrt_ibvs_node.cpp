@@ -451,6 +451,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
     if (lost_count_ >= loss_frame_limit_) {
       resetTracker();
       state_ = TrackerState::LOST;
+      min_depth_reached_ = false;
       if (stop_when_lost_) {
         publishStop(true);
       }
@@ -1143,6 +1144,7 @@ void CsrtIbvsNode::watchdog()
   if (age_s > watchdog_timeout_s_) {
     resetTracker();
     state_ = TrackerState::LOST;
+    min_depth_reached_ = false;
     if (stop_when_lost_) {
       publishStop(true);
     }
