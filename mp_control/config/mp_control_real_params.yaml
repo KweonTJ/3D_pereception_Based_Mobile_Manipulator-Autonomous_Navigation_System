@@ -256,7 +256,7 @@ mp_control_node:
     eef_front_camera_offset_x_m: -0.05
     eef_front_camera_offset_y_m: 0.0
     eef_front_camera_offset_z_m: 0.15
-    color_triangulation_base_stop_object_x_m: 0.23
+    color_triangulation_base_stop_object_x_m: 0.30
     color_triangulation_min_object_x_m: 0.05
 
     gripper_open_position: 0.019
