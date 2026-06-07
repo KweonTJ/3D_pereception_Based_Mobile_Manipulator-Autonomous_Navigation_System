@@ -171,6 +171,7 @@ private:
   double triangulation_stop_x_m_{0.30};
   double triangulation_max_speed_mps_{0.04};
   double triangulation_gain_{0.4};
+  double triangulation_fallback_speed_mps_{0.012};
   double triangulation_timeout_s_{2.0};
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
