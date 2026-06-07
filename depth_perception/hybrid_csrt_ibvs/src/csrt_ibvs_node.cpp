@@ -687,10 +687,6 @@ cv::Rect CsrtIbvsNode::stabilizeTrackedBox(
   const cv::Size & image_size,
   const rclcpp::Time & current_time) const
 {
-  if (!lock_tracked_bbox_size_) {
-    return tracker_bbox;
-  }
-
   std::optional<cv::Rect> detector_reference;
   rclcpp::Time detector_stamp(0, 0, get_clock()->get_clock_type());
   {
@@ -714,8 +710,25 @@ cv::Rect CsrtIbvsNode::stabilizeTrackedBox(
     }
   }
 
-  const int width = clampValue(detector_reference->width, min_bbox_size_px_, image_size.width);
-  const int height = clampValue(detector_reference->height, min_bbox_size_px_, image_size.height);
+  int width = tracker_bbox.width;
+  int height = tracker_bbox.height;
+
+  if (lock_tracked_bbox_size_) {
+    width = detector_reference->width;
+    height = detector_reference->height;
+  } else if (min_tracked_bbox_size_ratio_ > 0.0) {
+    const int min_width = static_cast<int>(std::lround(
+      static_cast<double>(detector_reference->width) * min_tracked_bbox_size_ratio_));
+    const int min_height = static_cast<int>(std::lround(
+      static_cast<double>(detector_reference->height) * min_tracked_bbox_size_ratio_));
+    width = std::max(width, min_width);
+    height = std::max(height, min_height);
+  } else {
+    return tracker_bbox;
+  }
+
+  width = clampValue(width, min_bbox_size_px_, image_size.width);
+  height = clampValue(height, min_bbox_size_px_, image_size.height);
   const double center_x =
     static_cast<double>(tracker_bbox.x) + 0.5 * static_cast<double>(tracker_bbox.width);
   const double center_y =
