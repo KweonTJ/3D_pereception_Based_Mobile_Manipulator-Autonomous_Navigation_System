@@ -29,6 +29,10 @@ csrt_ibvs_node:
     # If bbox tracking is valid but Astra depth is missing inside that bbox,
     # keep moving cautiously from bbox area instead of freezing in place.
     use_area_fallback: true
+    # Do not drive forward from bbox size alone until the current target has
+    # produced at least one valid depth sample. This prevents a tiny/incorrect
+    # YOLO init bbox from sending the leader straight into the object.
+    area_fallback_requires_valid_depth: true
     stop_when_lost: true
     allow_reverse: false
     # YOLO initializes the target, then CSRT owns the active bbox while tracking.
