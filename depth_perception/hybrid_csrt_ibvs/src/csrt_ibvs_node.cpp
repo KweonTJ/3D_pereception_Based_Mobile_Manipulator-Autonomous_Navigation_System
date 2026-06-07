@@ -135,6 +135,8 @@ void CsrtIbvsNode::readParameters()
   image_topic_ = declare_parameter<std::string>("image_topic", "/camera/color/image_raw");
   depth_topic_ = declare_parameter<std::string>("depth_topic", "/camera/depth/image_raw");
   camera_info_topic_ = declare_parameter<std::string>("camera_info_topic", "/camera/color/camera_info");
+  eef_tracked_bbox_topic_ = declare_parameter<std::string>("eef_tracked_bbox_topic", "/target/eef_tracked_bbox");
+  eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
   init_bbox_topic_ = declare_parameter<std::string>("init_bbox_topic", "/target/init_bbox");
   tracked_bbox_topic_ = declare_parameter<std::string>("tracked_bbox_topic", "/target/tracked_bbox");
   cmd_vel_topic_ = declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
@@ -186,6 +188,33 @@ void CsrtIbvsNode::readParameters()
   max_angular_z_ = declare_parameter<double>("max_angular_z", 0.55);
   max_arm_linear_ = declare_parameter<double>("max_arm_linear", 0.025);
 
+  use_triangulation_after_min_depth_ =
+    declare_parameter<bool>("use_triangulation_after_min_depth", false);
+  use_eef_front_camera_extrinsic_override_ =
+    declare_parameter<bool>("use_eef_front_camera_extrinsic_override", false);
+  triangulation_start_depth_m_ =
+    declare_parameter<double>("triangulation_start_depth_m", 0.47);
+  triangulation_stop_x_m_ =
+    declare_parameter<double>("triangulation_stop_x_m", 0.30);
+  triangulation_max_speed_mps_ =
+    declare_parameter<double>("triangulation_max_speed_mps", 0.04);
+  triangulation_gain_ =
+    declare_parameter<double>("triangulation_gain", 0.4);
+  triangulation_timeout_s_ =
+    declare_parameter<double>("triangulation_timeout_s", 2.0);
+  triangulation_min_range_m_ =
+    declare_parameter<double>("triangulation_min_range_m", 0.06);
+  triangulation_max_range_m_ =
+    declare_parameter<double>("triangulation_max_range_m", 1.0);
+  triangulation_max_ray_gap_m_ =
+    declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
+  eef_front_camera_offset_x_m_ =
+    declare_parameter<double>("eef_front_camera_offset_x_m", -0.05);
+  eef_front_camera_offset_y_m_ =
+    declare_parameter<double>("eef_front_camera_offset_y_m", 0.0);
+  eef_front_camera_offset_z_m_ =
+    declare_parameter<double>("eef_front_camera_offset_z_m", 0.15);
+
   depth_roi_radius_px_ = declare_parameter<int>("depth_roi_radius_px", 6);
   depth_bbox_inner_scale_ = declare_parameter<double>("depth_bbox_inner_scale", 0.7);
   depth_sample_percentile_ = declare_parameter<double>("depth_sample_percentile", 25.0);
@@ -202,6 +231,14 @@ void CsrtIbvsNode::readParameters()
   max_linear_x_ = std::max(0.0, max_linear_x_);
   max_angular_z_ = std::max(0.0, max_angular_z_);
   max_arm_linear_ = std::max(0.0, max_arm_linear_);
+  triangulation_start_depth_m_ = std::max(0.0, triangulation_start_depth_m_);
+  triangulation_stop_x_m_ = std::max(0.01, triangulation_stop_x_m_);
+  triangulation_max_speed_mps_ = std::max(0.0, triangulation_max_speed_mps_);
+  triangulation_gain_ = std::max(0.0, triangulation_gain_);
+  triangulation_timeout_s_ = std::max(0.1, triangulation_timeout_s_);
+  triangulation_min_range_m_ = std::max(0.0, triangulation_min_range_m_);
+  triangulation_max_range_m_ = std::max(triangulation_min_range_m_ + 0.01, triangulation_max_range_m_);
+  triangulation_max_ray_gap_m_ = std::max(0.001, triangulation_max_ray_gap_m_);
   straight_approach_depth_m_ = std::max(0.0, straight_approach_depth_m_);
   min_forward_approach_x_ = std::max(0.0, min_forward_approach_x_);
   reinit_min_iou_ = clampValue(reinit_min_iou_, 0.0, 1.0);
