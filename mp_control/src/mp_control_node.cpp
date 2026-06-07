@@ -3861,25 +3861,19 @@ private:
       target[2] = (*current)[2];
       target[3] = (*current)[3];
     }
-    auto raw_target = preserve_current_non_joint1 ?
-      target :
-      jointNudgeRawTargetFromControllerTarget(*current, target);
-    if (preserve_current_non_joint1) {
-      raw_target[2] = (*current)[2];
-    }
 
     trajectory_msgs::msg::JointTrajectory msg;
     const auto stamp = now();
     msg.header.stamp = stamp;
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
-    appendJointTrajectoryPoint(msg, raw_target, handoff_joint_move_duration_s_);
-    joint_trajectory_pub_->publish(msg);
+    appendJointTrajectoryPoint(msg, target, handoff_joint_move_duration_s_);
+    handoff_joint_trajectory_pub_->publish(msg);
     handoff_last_publish_stamp_ = stamp;
 
     std::ostringstream status;
     status << "handoff joint trajectory published: controller_target="
            << formatJointArray(target)
-           << " raw_target=" << formatJointArray(raw_target)
+           << " direct_topic=" << handoff_joint_trajectory_topic_
            << " preserve_current_non_joint1="
            << (preserve_current_non_joint1 ? "true" : "false");
     publishStatus(status.str());
