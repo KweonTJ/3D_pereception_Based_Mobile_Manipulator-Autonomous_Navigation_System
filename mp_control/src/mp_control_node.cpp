@@ -139,6 +139,7 @@ public:
       create_publisher<std_msgs::msg::Bool>(base_hold_topic_, init_bbox_qos);
     gripper_client_ = rclcpp_action::create_client<GripperCommand>(this, gripper_action_name_);
     servo_start_client_ = create_client<Trigger>("/servo_node/start_servo");
+    servo_stop_client_ = create_client<Trigger>("/servo_node/stop_servo");
 
     if (auto_start_) {
       startSequence();
