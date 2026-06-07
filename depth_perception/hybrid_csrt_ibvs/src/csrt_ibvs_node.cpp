@@ -141,6 +141,7 @@ void CsrtIbvsNode::readParameters()
   accept_detector_bbox_while_tracking_ = declare_parameter<bool>("accept_detector_bbox_while_tracking", true);
   lock_tracked_bbox_size_ = declare_parameter<bool>("lock_tracked_bbox_size", true);
   detector_bbox_override_timeout_s_ = declare_parameter<double>("detector_bbox_override_timeout_s", 0.75);
+  min_tracked_bbox_size_ratio_ = declare_parameter<double>("min_tracked_bbox_size_ratio", 0.0);
   force_straight_approach_ = declare_parameter<bool>("force_straight_approach", false);
   enable_base_yaw_ = declare_parameter<bool>("enable_base_yaw", false);
   reinit_min_iou_ = declare_parameter<double>("reinit_min_iou", 0.02);
@@ -192,6 +193,7 @@ void CsrtIbvsNode::readParameters()
   reinit_min_iou_ = clampValue(reinit_min_iou_, 0.0, 1.0);
   reinit_max_center_jump_ratio_ = std::max(0.01, reinit_max_center_jump_ratio_);
   detector_bbox_override_timeout_s_ = std::max(0.0, detector_bbox_override_timeout_s_);
+  min_tracked_bbox_size_ratio_ = clampValue(min_tracked_bbox_size_ratio_, 0.0, 1.0);
   depth_bbox_inner_scale_ = clampValue(depth_bbox_inner_scale_, 0.1, 1.0);
   depth_sample_percentile_ = clampValue(depth_sample_percentile_, 0.0, 100.0);
   depth_min_valid_pixels_ = std::max(1, depth_min_valid_pixels_);
