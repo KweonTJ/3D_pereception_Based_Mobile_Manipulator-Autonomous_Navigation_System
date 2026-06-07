@@ -93,6 +93,10 @@ class AutoInitBbox(Node):
             self.declare_parameter("yolo_min_area_ratio_change", 0.50).value)
         self.yolo_max_area_ratio_change = float(
             self.declare_parameter("yolo_max_area_ratio_change", 1.80).value)
+        self.yolo_center_score_weight = float(
+            self.declare_parameter("yolo_center_score_weight", 0.35).value)
+        self.yolo_area_score_weight = float(
+            self.declare_parameter("yolo_area_score_weight", 0.25).value)
 
         self.publish_repeat = int(self.declare_parameter("publish_repeat", 5).value)
         self.repeat_period_s = float(self.declare_parameter("repeat_period_s", 0.12).value)
@@ -700,7 +704,12 @@ class AutoInitBbox(Node):
                 center_x - image_center_x,
                 center_y - image_center_y) / image_diag
             center_score = 1.0 - min(1.0, center_distance)
-            score = confidence * (0.65 + 0.35 * center_score)
+            area_score = min(1.0, area_ratio / max(0.01, self.max_bbox_area_ratio))
+            center_weight = max(0.0, self.yolo_center_score_weight)
+            area_weight = max(0.0, self.yolo_area_score_weight)
+            base_weight = max(0.0, 1.0 - center_weight - area_weight)
+            score = confidence * (
+                base_weight + center_weight * center_score + area_weight * area_score)
             candidate = (x0, y0, width, height, int(width * height), confidence, cls_name, score)
             candidates.append(candidate)
             if score > best_score:
