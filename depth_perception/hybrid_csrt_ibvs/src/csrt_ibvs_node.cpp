@@ -200,6 +200,8 @@ void CsrtIbvsNode::readParameters()
     declare_parameter<double>("triangulation_max_speed_mps", 0.04);
   triangulation_gain_ =
     declare_parameter<double>("triangulation_gain", 0.4);
+  triangulation_fallback_speed_mps_ =
+    declare_parameter<double>("triangulation_fallback_speed_mps", 0.012);
   triangulation_timeout_s_ =
     declare_parameter<double>("triangulation_timeout_s", 2.0);
   triangulation_min_range_m_ =
@@ -235,6 +237,8 @@ void CsrtIbvsNode::readParameters()
   triangulation_stop_x_m_ = std::max(0.01, triangulation_stop_x_m_);
   triangulation_max_speed_mps_ = std::max(0.0, triangulation_max_speed_mps_);
   triangulation_gain_ = std::max(0.0, triangulation_gain_);
+  triangulation_fallback_speed_mps_ =
+    clampValue(triangulation_fallback_speed_mps_, 0.0, triangulation_max_speed_mps_);
   triangulation_timeout_s_ = std::max(0.1, triangulation_timeout_s_);
   triangulation_min_range_m_ = std::max(0.0, triangulation_min_range_m_);
   triangulation_max_range_m_ = std::max(triangulation_min_range_m_ + 0.01, triangulation_max_range_m_);
@@ -1069,9 +1073,24 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     std::string tri_reason;
     auto triangulated_x = estimateTriangulatedObjectX(bbox, image_size, &tri_reason);
     if (!triangulated_x) {
-      linear_x = 0.0;
-      angular_z = 0.0;
-      result.range_status = "triangulation waiting: " + tri_reason;
+      const double area_error = desired_area_ratio_ - result.area_ratio;
+      if (triangulation_fallback_speed_mps_ > 0.0 &&
+          area_error > area_deadband_ratio_) {
+        linear_x = clampValue(
+          area_gain_ * area_error,
+          0.0,
+          triangulation_fallback_speed_mps_);
+        std::ostringstream status;
+        status << "triangulation fallback approach: " << tri_reason
+               << " area=" << result.area_ratio
+               << " target_area=" << desired_area_ratio_
+               << " vx=" << linear_x;
+        result.range_status = status.str();
+      } else {
+        linear_x = 0.0;
+        angular_z = 0.0;
+        result.range_status = "triangulation waiting: " + tri_reason;
+      }
     } else {
       result.triangulated_object_x_m = triangulated_x;
       const double error_x = *triangulated_x - triangulation_stop_x_m_;
