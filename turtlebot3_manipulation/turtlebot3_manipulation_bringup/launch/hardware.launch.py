@@ -104,6 +104,7 @@ def generate_launch_description():
     use_camera_driver_tf = LaunchConfiguration('use_camera_driver_tf')
     start_camera = LaunchConfiguration('start_camera')
     move_to_stay_pose = LaunchConfiguration('move_to_stay_pose')
+    stay_pose_joint_trajectory_topic = LaunchConfiguration('stay_pose_joint_trajectory_topic')
     start_state_relays = LaunchConfiguration('start_state_relays')
     use_eef_usb_camera = LaunchConfiguration('use_eef_usb_camera')
     eef_usb_camera_parent = LaunchConfiguration('eef_usb_camera_parent')
@@ -214,8 +215,13 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'move_to_stay_pose',
-            default_value='false',
+            default_value='true',
             description='Move the manipulator to the saved stay pose after the arm controller starts.'),
+
+        DeclareLaunchArgument(
+            'stay_pose_joint_trajectory_topic',
+            default_value='/arm_controller/joint_trajectory',
+            description='JointTrajectory topic used by the startup stay-pose command.'),
 
         DeclareLaunchArgument(
             'start_state_relays',
@@ -249,6 +255,7 @@ def generate_launch_description():
                 'eef_usb_camera_xyz': eef_usb_camera_xyz,
                 'eef_usb_camera_rpy': eef_usb_camera_rpy,
                 'move_to_stay_pose': move_to_stay_pose,
+                'stay_pose_joint_trajectory_topic': stay_pose_joint_trajectory_topic,
             }.items(),
         ),
 

@@ -119,8 +119,16 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             'move_to_stay_pose',
-            default_value='false',
+            default_value='true',
             description='Move the manipulator to the saved stay pose after the arm controller starts.'
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'stay_pose_joint_trajectory_topic',
+            default_value='/arm_controller/joint_trajectory',
+            description='JointTrajectory topic used by the startup stay-pose command.'
         )
     )
 
@@ -135,6 +143,7 @@ def generate_launch_description():
     eef_usb_camera_xyz = LaunchConfiguration('eef_usb_camera_xyz')
     eef_usb_camera_rpy = LaunchConfiguration('eef_usb_camera_rpy')
     move_to_stay_pose = LaunchConfiguration('move_to_stay_pose')
+    stay_pose_joint_trajectory_topic = LaunchConfiguration('stay_pose_joint_trajectory_topic')
 
     urdf_file = Command(
         [
@@ -274,7 +283,7 @@ def generate_launch_description():
             'topic',
             'pub',
             '--once',
-            '/arm_controller/joint_trajectory',
+            stay_pose_joint_trajectory_topic,
             'trajectory_msgs/msg/JointTrajectory',
             stay_pose_msg,
         ],
