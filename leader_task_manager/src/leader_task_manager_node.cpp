@@ -147,6 +147,19 @@ private:
       return;
     }
 
+    if (
+      contains_any(stage, {
+        "SAFETY ABORT", "EEF FORWARD ABORTED",
+        "START IGNORED AFTER EEF FORWARD SAFETY ABORT"}))
+    {
+      mp_control_active_ = false;
+      set_task_state("ERROR");
+      set_cargo_state("ERROR");
+      set_follower_enable(false);
+      set_platoon_mode("STOP");
+      return;
+    }
+
     if (starts_with(stage, "READY") || stage == "DETECTED") {
       mp_control_active_ = false;
       set_task_state("IDLE");
