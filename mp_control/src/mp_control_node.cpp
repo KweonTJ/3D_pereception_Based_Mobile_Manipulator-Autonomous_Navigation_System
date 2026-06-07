@@ -806,6 +806,19 @@ private:
 
   void startSequence()
   {
+    if (safety_abort_latched_) {
+      active_ = false;
+      done_ = false;
+      publishStop();
+      publishBaseStop();
+      publishBaseHold(true);
+      publishEefAutoInitEnable(false);
+      publishStatus(
+        "start ignored after EEF forward safety abort; publish true to /mp_control/cancel or relaunch before retry",
+        true);
+      return;
+    }
+
     active_ = true;
     done_ = false;
     close_sent_ = false;
@@ -855,6 +868,7 @@ private:
 
   void cancelSequence(const std::string & reason)
   {
+    safety_abort_latched_ = false;
     active_ = false;
     done_ = false;
     eef_bbox_seen_after_close_ = false;
@@ -1836,10 +1850,20 @@ private:
     const bool arm_extension_complete =
       distance_extension_complete ||
       joint_based_extension_complete;
-    const bool continue_joint3_after_required =
+    const bool joint3_limit_reached_without_advance =
       joint3_extension_complete &&
       !min_advance_complete &&
       !distance_extension_complete;
+    if (joint3_limit_reached_without_advance) {
+      abortEefForwardAdvance(
+        "EEF forward aborted: joint3 extension limit reached before EEF advance; possible collision or kinematic stall",
+        advanced_x,
+        elapsed_s,
+        joint_progress,
+        eef_tf);
+      return;
+    }
+    const bool continue_joint3_after_required = false;
     const bool fixed_duration_mode = eef_forward_fixed_duration_s_ > 0.0;
     const bool elapsed_enough_for_close =
       !fixed_duration_mode || elapsed_s >= eef_forward_fixed_duration_s_;
@@ -2436,9 +2460,26 @@ private:
     const EefForwardJointProgress & joint_progress,
     const geometry_msgs::msg::TransformStamped & eef_tf)
   {
+    safety_abort_latched_ = true;
     active_ = false;
+    done_ = false;
+    close_sent_ = false;
+    open_sent_ = false;
     eef_forward_advance_active_ = false;
     stable_cycles_ = 0;
+    object_pregrasp_horizontal_done_ = false;
+    joint_pregrasp_sent_ = false;
+    joint_pregrasp_done_ = false;
+    joint_pregrasp_target_.reset();
+    joint_pregrasp_controller_target_.reset();
+    joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    eef_forward_last_joint_nudge_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    eef_forward_start_joint_positions_.reset();
+    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handoff_lift_controller_target_.reset();
+    handoff_place_controller_target_.reset();
+    handoff_stay_controller_target_.reset();
     publishStop();
     publishBaseStop();
     publishBaseHold(true);
@@ -4497,6 +4538,7 @@ private:
 	  bool joint_pregrasp_sent_{false};
 	  bool joint_pregrasp_done_{false};
   bool eef_forward_advance_active_{false};
+  bool safety_abort_latched_{false};
   std::optional<double> front_bbox_area_at_eef_forward_start_;
   std::optional<double> eef_bbox_area_at_eef_forward_start_;
   std::optional<std::array<double, 4>> eef_forward_start_joint_positions_;
