@@ -3755,6 +3755,7 @@ private:
     publishBaseStop();
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
+    handoff_stay_controller_target_.reset();
     stage_ = GraspStage::HANDOFF_ROTATE;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -3957,17 +3958,18 @@ private:
       for (std::size_t i = 0; i < target.size(); ++i) {
         target[i] = handoff_stay_joint_positions_[i];
       }
-      publishHandoffJointTrajectory(target);
+      handoff_stay_controller_target_ = clampHandoffTarget(target);
+      publishHandoffJointTrajectory(*handoff_stay_controller_target_);
       handoff_stage_start_stamp_ = stamp;
       publishStatus(
         "handoff stay: moving manipulator back to saved stay pose; target=" +
-        formatJointArray(target), true);
+        formatJointArray(*handoff_stay_controller_target_), true);
       return;
     }
 
     publishStop();
     publishBaseStop();
-    maybeRepublishHandoffJointTrajectory(handoff_place_controller_target_);
+    maybeRepublishHandoffJointTrajectory(handoff_stay_controller_target_);
     if ((stamp - handoff_stage_start_stamp_).seconds() <
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
       publishStatus("handoff stay: waiting for manipulator stay pose settle");
@@ -4510,6 +4512,7 @@ private:
   rclcpp::Time handoff_stage_start_stamp_;
   std::optional<std::array<double, 4>> handoff_lift_controller_target_;
   std::optional<std::array<double, 4>> handoff_place_controller_target_;
+  std::optional<std::array<double, 4>> handoff_stay_controller_target_;
   double eef_forward_start_x_m_{0.0};
 	};
 
