@@ -53,6 +53,7 @@ pregrasp_roll_joint2_weight: 1.0
 pregrasp_roll_joint3_weight: 1.0
 pregrasp_roll_joint4_weight: 1.0
 pregrasp_reverse_joint3_delta: true
+max_reversed_joint_delta_rad: 0.12
 pregrasp_hold_current_duration_s: 0.0
 pregrasp_move_duration_s: 1.6
 pregrasp_joint3_lead_enabled: true
@@ -72,13 +73,13 @@ eef_forward_fixed_duration_s: 0.0
 eef_forward_gate_timeout_s: 20.0
 eef_forward_start_tolerance_px: 90.0
 eef_forward_use_joint_nudge: true
-eef_forward_joint2_delta_rad: 0.025
+eef_forward_joint2_delta_rad: 0.015
 eef_forward_joint3_delta_rad: -0.035
 eef_forward_joint_nudge_duration_s: 0.75
 eef_forward_joint_nudge_period_s: 0.80
 eef_forward_joint3_first_duration_ratio: 0.65
 eef_forward_joint4_after_joint3_complete: false
-eef_forward_joint3_complete_delta_rad: 0.14
+eef_forward_joint3_complete_delta_rad: 0.18
 eef_forward_joint3_complete_tolerance_rad: 0.015
 eef_forward_joint4_finish_tolerance_rad: 0.08
 eef_forward_roll_joint2_weight: 0.0
@@ -100,6 +101,7 @@ close_after_full_eef_forward_extension: true
 handoff_after_grasp: true
 handoff_lift_joint2_delta_rad: 0.0
 handoff_place_joint2_delta_rad: 0.0
+handoff_republish_period_s: 0.25
 handoff_rotate_angle_rad: 3.14159265
 handoff_rotate_angular_speed_rad_s: 0.45
 handoff_stay_joint_positions: [0.104311, 0.027612, -0.001534, -1.638291]
@@ -114,6 +116,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 의미:
 
 - `0.60 m`: 전면 depth가 아직 유효할 때 EEF YOLO를 미리 켠다.
+- `max_reversed_joint_delta_rad`: `joint_trajectory_transformer.py`가 joint3 delta mirror를 적용할 때 한 번에 바뀌는 controller 출력 delta를 `0.12 rad`로 제한한다. raw trajectory에 `joint3=-0.94` 같은 절대 목표가 들어와도 `/arm_controller/joint_trajectory`에서 `-5 rad`대로 튀지 않게 막기 위한 실제 로봇 안전장치다.
 - `0.47 m`: 이 거리부터 전면 depth를 새 물체 거리 추정에 신뢰하지 않는다.
 - `0.08 / 0.40`: 전면 bbox가 이미지 면적 8% 이상이거나 높이 40% 이상이면 depth 대기를 끝내고 근접 RGB/EEF handoff 경로로 넘어간다.
 - `0.23 m`: 컬러 삼각 측량 기반 베이스 접근 목표 거리다. 직전 로그에서 전면 bbox가 화면을 크게 채운 상태에서 `0.185 m`까지 붙은 뒤 final forward가 이어져 박스와 충돌했기 때문에, 베이스 정지 거리를 23 cm로 되돌렸다. `arm_start_max_object_x_m`도 같은 `0.23 m`로 맞춰 이 거리 이후 팔 파지 단계로 넘어간다. 단, 전면 bbox가 close-range handoff 크기를 넘고 EEF bbox가 fresh하면 실제 시각적으로 가까운 상태로 보고, 거리 추정값이 `0.23 m`보다 약간 크게 나와도 joint pregrasp를 시작한다. 전면 bbox 크기 기반 3D point 변환이 TF 문제로 실패해도, 기존 depth reference가 남아 있으면 bbox 크기 close 판정만으로도 pregrasp를 허용한다.
