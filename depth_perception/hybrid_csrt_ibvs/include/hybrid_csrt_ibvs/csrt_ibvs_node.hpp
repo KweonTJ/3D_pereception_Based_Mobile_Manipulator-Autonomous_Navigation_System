@@ -87,8 +87,8 @@ private:
   std::optional<double> estimateTriangulatedObjectX(
     const cv::Rect & front_bbox,
     const cv::Size & front_image_size,
-    std::string * reason = nullptr) const;
-  bool isEefBboxFresh() const;
+    std::string * reason = nullptr);
+  bool isEefBboxFresh();
   std::optional<double> pixelToMeters(const cv::Mat & depth, const std::string & encoding, int row, int col) const;
   void publishDebugImage(const sensor_msgs::msg::Image::ConstSharedPtr & src_msg, const cv::Mat & frame, const cv::Rect & bbox, const IbvsResult & ibvs, bool tracking_ok) const;
   void publishDebugImageNoTrack(
