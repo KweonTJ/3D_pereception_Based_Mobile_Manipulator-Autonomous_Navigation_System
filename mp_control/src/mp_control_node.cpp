@@ -3898,6 +3898,33 @@ private:
     publishHandoffJointTrajectory(*controller_target, preserve_current_non_joint1);
   }
 
+  double chooseHandoffJoint1Target(double current_joint1) const
+  {
+    const double min_joint1 = joint_pregrasp_min_positions_[0];
+    const double max_joint1 = joint_pregrasp_max_positions_[0];
+    const double requested_delta = handoff_rotate_angle_rad_;
+    const double same_direction_target = current_joint1 + requested_delta;
+    const double opposite_direction_target = current_joint1 - requested_delta;
+
+    const bool same_direction_valid =
+      same_direction_target >= min_joint1 && same_direction_target <= max_joint1;
+    const bool opposite_direction_valid =
+      opposite_direction_target >= min_joint1 && opposite_direction_target <= max_joint1;
+
+    if (same_direction_valid) {
+      return same_direction_target;
+    }
+    if (opposite_direction_valid) {
+      return opposite_direction_target;
+    }
+
+    const double same_clamped = clampValue(same_direction_target, min_joint1, max_joint1);
+    const double opposite_clamped = clampValue(opposite_direction_target, min_joint1, max_joint1);
+    const double same_delta = std::abs(same_clamped - current_joint1);
+    const double opposite_delta = std::abs(opposite_clamped - current_joint1);
+    return same_delta >= opposite_delta ? same_clamped : opposite_clamped;
+  }
+
   void updateHandoffLift()
   {
     const auto stamp = now();
@@ -3940,16 +3967,19 @@ private:
         return;
       }
       std::array<double, 4> target = *current;
-      target[0] += handoff_rotate_angle_rad_;
-      target[0] = clampValue(
-        target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
+      const double initial_joint1 = (*current)[0];
+      target[0] = chooseHandoffJoint1Target(initial_joint1);
       handoff_joint1_target_rad_ = target[0];
       handoff_lift_controller_target_ = clampHandoffTarget(target);
       publishHandoffJointTrajectory(*handoff_lift_controller_target_, true);
       handoff_stage_start_stamp_ = stamp;
+      const double planned_delta = (*handoff_lift_controller_target_)[0] - initial_joint1;
+      const double planned_delta_deg = planned_delta * 180.0 / M_PI;
       publishStatus(
         "handoff joint1 turn: rotating manipulator joint1 toward follower; target=" +
-        formatJointArray(*handoff_lift_controller_target_), true);
+        formatJointArray(*handoff_lift_controller_target_) +
+        " joint1_delta_deg=" + std::to_string(planned_delta_deg),
+        true);
       return;
     }
 
