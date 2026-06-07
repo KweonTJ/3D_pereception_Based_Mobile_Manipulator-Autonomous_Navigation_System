@@ -4401,6 +4401,7 @@ private:
   double handoff_place_joint2_delta_rad_{-0.20};
   double handoff_joint_move_duration_s_{1.0};
   double handoff_joint_settle_s_{0.4};
+  double handoff_republish_period_s_{0.25};
   double handoff_rotate_angle_rad_{3.14159265358979323846};
   double handoff_rotate_angular_speed_rad_s_{0.45};
   double handoff_release_settle_s_{0.5};
@@ -4510,6 +4511,7 @@ private:
   rclcpp::Time eef_forward_last_joint_nudge_stamp_;
   rclcpp::Time eef_forward_start_stamp_;
   rclcpp::Time handoff_stage_start_stamp_;
+  rclcpp::Time handoff_last_publish_stamp_;
   std::optional<std::array<double, 4>> handoff_lift_controller_target_;
   std::optional<std::array<double, 4>> handoff_place_controller_target_;
   std::optional<std::array<double, 4>> handoff_stay_controller_target_;
