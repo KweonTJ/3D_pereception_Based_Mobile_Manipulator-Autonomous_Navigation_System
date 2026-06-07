@@ -43,12 +43,14 @@ public:
     declare_parameter<std::string>("initial_platoon_mode", "FOLLOW");
     declare_parameter<bool>("initial_follower_enable", true);
     declare_parameter<bool>("follow_while_idle", true);
+    declare_parameter<bool>("resume_follow_after_loaded", false);
 
     task_state_ = get_parameter("initial_task_state").as_string();
     cargo_state_ = get_parameter("initial_cargo_state").as_string();
     platoon_mode_ = get_parameter("initial_platoon_mode").as_string();
     follower_enable_ = get_parameter("initial_follower_enable").as_bool();
     follow_while_idle_ = get_parameter("follow_while_idle").as_bool();
+    resume_follow_after_loaded_ = get_parameter("resume_follow_after_loaded").as_bool();
 
     const auto state_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
     task_state_pub_ = create_publisher<std_msgs::msg::String>(
@@ -236,18 +238,12 @@ private:
     }
 
     if (stage == "CARGO_LOADED" || contains_any(stage, {"PLACE_DONE", "LOAD_DONE", "LOADED"})) {
-      set_task_state("CARGO_LOADED");
-      set_cargo_state("LOADED");
-      set_follower_enable(true);
-      set_platoon_mode("FOLLOW");
+      set_loaded_platooning_state();
       return;
     }
 
     if (stage == "STAY") {
-      set_task_state("CARGO_LOADED");
-      set_cargo_state("LOADED");
-      set_follower_enable(true);
-      set_platoon_mode("FOLLOW");
+      set_loaded_platooning_state();
       return;
     }
 
@@ -272,10 +268,7 @@ private:
     }
 
     if (stage == "POST_PLACE_ARRIVED") {
-      set_task_state("CARGO_LOADED");
-      set_cargo_state("LOADED");
-      set_follower_enable(true);
-      set_platoon_mode("FOLLOW");
+      set_loaded_platooning_state();
       return;
     }
 
@@ -321,10 +314,7 @@ private:
     }
 
     if (contains_any(event, {"LOADED", "LOAD_DONE", "PLACED"})) {
-      set_cargo_state("LOADED");
-      set_task_state("CARGO_LOADED");
-      set_follower_enable(true);
-      set_platoon_mode("FOLLOW");
+      set_loaded_platooning_state();
       return;
     }
 
@@ -366,6 +356,19 @@ private:
     } else {
       set_follower_enable(false);
       set_platoon_mode("STOP");
+    }
+  }
+
+  void set_loaded_platooning_state()
+  {
+    set_task_state("CARGO_LOADED");
+    set_cargo_state("LOADED");
+    if (resume_follow_after_loaded_) {
+      set_follower_enable(true);
+      set_platoon_mode("FOLLOW");
+    } else {
+      set_follower_enable(false);
+      set_platoon_mode("STANDBY");
     }
   }
 
@@ -411,6 +414,7 @@ private:
   std::string current_cargo_id_;
   bool follower_enable_{false};
   bool follow_while_idle_{true};
+  bool resume_follow_after_loaded_{false};
   bool mp_control_active_{false};
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr task_state_pub_;
