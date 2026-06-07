@@ -825,8 +825,10 @@ private:
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     eef_forward_last_joint_nudge_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
+    handoff_stay_controller_target_.reset();
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
     eef_refinement_use_bbox_center_ = false;
@@ -870,8 +872,10 @@ private:
     joint_pregrasp_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     eef_forward_last_joint_nudge_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
+    handoff_stay_controller_target_.reset();
     resetEefRefinementMotionState();
     eef_refinement_object_in_target_.reset();
     eef_refinement_use_bbox_center_ = false;
