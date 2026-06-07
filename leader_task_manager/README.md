@@ -16,6 +16,7 @@
 
 - 베이스 접근, depth limit 이후 color triangulation 접근: `MOVING`
 - EEF pregrasp, joint pregrasp trajectory 대기, close visual bbox 기반 pregrasp: `PICKING`
+- EEF forward safety abort, joint3 전개 stall, safety abort 후 start 무시: `ERROR`, platoon `STOP`
 - grasp 완료: `WAIT_FOLLOWER`, cargo `GRASPED`, platoon `STANDBY`
 - handoff/place/loading: `WAIT_FOLLOWER` 또는 `PLACING_ON_FOLLOWER`
 - loaded 완료: `CARGO_LOADED`, cargo `LOADED`, platoon `STANDBY`
@@ -50,3 +51,5 @@ close 이후 로봇 주행이 다시 살아나지 않게 한다.
 이 상태에서는 팔로워/모니터가 리더를 주행 중으로 오해하지 않도록 `/leader/task_state`를 `PICKING`으로 유지한다.
 
 또한 한 번 `PICKING`에 들어간 뒤에는 `AFTER DEPTH LIMIT`, `COLOR TRIANGULATION APPROACH`, `WAITING FOR BASE APPROACH`, `WAITING FOR FRESH`류 상태가 다시 들어와도 `MOVING`으로 되돌리지 않는다. 최근 로그에서 `MOVING -> PICKING` 직후 `PICKING -> MOVING`으로 빠지며 조인트 pregrasp 로그가 나오지 않았기 때문에, 파지 단계 내부의 대기/근접 문자열은 모두 파지 상태로 유지한다.
+
+`mp_control`이 `EEF FORWARD ABORTED`, `SAFETY ABORT`, `START IGNORED AFTER EEF FORWARD SAFETY ABORT`를 내면 리더는 더 이상 파지 재시도를 자동 진행하지 않는다. 이 상태는 joint3 또는 joint4가 베이스/물체 방향으로 stall 또는 충돌 위험이 있다는 의미이므로 `/leader/task_state=ERROR`, `/leader/platoon_mode=STOP`으로 전환한다.
