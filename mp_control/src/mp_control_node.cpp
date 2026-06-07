@@ -479,6 +479,8 @@ private:
       declare_parameter<double>("handoff_joint_move_duration_s", 1.0);
     handoff_joint_settle_s_ =
       declare_parameter<double>("handoff_joint_settle_s", 0.4);
+    handoff_republish_period_s_ =
+      declare_parameter<double>("handoff_republish_period_s", 0.25);
     handoff_rotate_angle_rad_ =
       declare_parameter<double>("handoff_rotate_angle_rad", 3.14159265358979323846);
     handoff_rotate_angular_speed_rad_s_ =
@@ -2418,6 +2420,7 @@ private:
     eef_forward_start_x_m_ = 0.0;
     eef_forward_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     eef_forward_start_joint_positions_.reset();
+    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     front_bbox_area_at_eef_forward_start_.reset();
     eef_bbox_area_at_eef_forward_start_.reset();
   }
@@ -3754,6 +3757,7 @@ private:
     handoff_place_controller_target_.reset();
     stage_ = GraspStage::HANDOFF_ROTATE;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishStatus(grasp_status + "; handoff joint1 turn started", true);
   }
 
@@ -3804,10 +3808,28 @@ private:
     const auto raw_target = jointNudgeRawTargetFromControllerTarget(*current, target);
 
     trajectory_msgs::msg::JointTrajectory msg;
-    msg.header.stamp = now();
+    const auto stamp = now();
+    msg.header.stamp = stamp;
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
     appendJointTrajectoryPoint(msg, raw_target, handoff_joint_move_duration_s_);
     joint_trajectory_pub_->publish(msg);
+    handoff_last_publish_stamp_ = stamp;
+  }
+
+  void maybeRepublishHandoffJointTrajectory(
+    const std::optional<std::array<double, 4>> & controller_target)
+  {
+    if (!controller_target || handoff_republish_period_s_ <= 0.0) {
+      return;
+    }
+    const auto stamp = now();
+    if (
+      handoff_last_publish_stamp_.nanoseconds() != 0 &&
+      (stamp - handoff_last_publish_stamp_).seconds() < handoff_republish_period_s_)
+    {
+      return;
+    }
+    publishHandoffJointTrajectory(*controller_target);
   }
 
   void updateHandoffLift()
@@ -3832,10 +3854,12 @@ private:
 
     publishStop();
     publishBaseStop();
+    maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_);
     if ((stamp - handoff_stage_start_stamp_).seconds() >=
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
       stage_ = GraspStage::HANDOFF_ROTATE;
-      handoff_stage_start_stamp_ = stamp;
+      handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       publishStatus("handoff rotate: turning 180deg toward follower", true);
     }
   }
@@ -3862,10 +3886,12 @@ private:
 
     publishStop();
     publishBaseStop();
+    maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_);
     if ((stamp - handoff_stage_start_stamp_).seconds() >=
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
       stage_ = GraspStage::HANDOFF_PLACE;
       handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       publishStatus("handoff place: holding current arm pose over follower side", true);
     }
   }
@@ -3897,6 +3923,7 @@ private:
 
     publishStop();
     publishBaseStop();
+    maybeRepublishHandoffJointTrajectory(handoff_place_controller_target_);
     if ((stamp - handoff_stage_start_stamp_).seconds() >=
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
       stage_ = GraspStage::HANDOFF_RELEASE;
@@ -3918,6 +3945,7 @@ private:
 
     stage_ = GraspStage::HANDOFF_STAY;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     publishStatus("handoff release complete; returning manipulator to stay pose", true);
   }
 
@@ -3939,6 +3967,7 @@ private:
 
     publishStop();
     publishBaseStop();
+    maybeRepublishHandoffJointTrajectory(handoff_place_controller_target_);
     if ((stamp - handoff_stage_start_stamp_).seconds() <
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
       publishStatus("handoff stay: waiting for manipulator stay pose settle");
