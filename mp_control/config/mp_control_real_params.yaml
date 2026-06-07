@@ -166,7 +166,7 @@ mp_control_node:
     eef_forward_fixed_duration_s: 0.0
     # If a staged arm-extension gate is enabled again later, abort instead of
     # pushing one stalled joint forever.
-    eef_forward_gate_timeout_s: 20.0
+    eef_forward_gate_timeout_s: 25.0
     # Start final forward before the stricter close-ready threshold because
     # Servo can stall while trying to remove the last few pixels of lateral error.
     eef_forward_start_tolerance_px: 90.0
