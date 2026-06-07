@@ -151,10 +151,10 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "mp_control started: bbox=%s depth=%s camera_info=%s eef_bbox=%s eef_camera_info=%s twist=%s joint_trajectory=%s target_frame=%s eef_frame=%s auto_start_on_bbox=%s eef_refinement=%s",
+      "mp_control started: bbox=%s depth=%s camera_info=%s eef_bbox=%s eef_camera_info=%s twist=%s joint_trajectory=%s handoff_joint_trajectory=%s target_frame=%s eef_frame=%s auto_start_on_bbox=%s eef_refinement=%s",
       bbox_topic_.c_str(), depth_topic_.c_str(), camera_info_topic_.c_str(),
       eef_bbox_topic_.c_str(), eef_camera_info_topic_.c_str(), twist_topic_.c_str(),
-      joint_trajectory_topic_.c_str(),
+      joint_trajectory_topic_.c_str(), handoff_joint_trajectory_topic_.c_str(),
       target_frame_.c_str(), end_effector_frame_.c_str(),
       auto_start_on_bbox_ ? "true" : "false",
       use_eef_refinement_ ? "true" : "false");
