@@ -214,7 +214,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'move_to_stay_pose',
-            default_value='true',
+            default_value='false',
             description='Move the manipulator to the saved stay pose after the arm controller starts.'),
 
         DeclareLaunchArgument(

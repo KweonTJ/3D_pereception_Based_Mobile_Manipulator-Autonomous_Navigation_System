@@ -55,7 +55,6 @@ private:
     double y_error_norm{0.0};
     double area_ratio{0.0};
     bool depth_too_close{false};
-    bool waiting_for_first_depth{false};
   };
 
   void onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg);
@@ -112,7 +111,6 @@ private:
   // Behavior parameters
   bool use_depth_{true};
   bool use_area_fallback_{true};
-  bool area_fallback_requires_valid_depth_{false};
   bool enable_cmd_vel_{true};
   bool enable_arm_twist_{false};
   bool publish_debug_image_{true};
@@ -163,7 +161,6 @@ private:
   double max_valid_depth_m_{3.0};
   double emergency_stop_depth_m_{0.18};
   double max_depth_stamp_age_s_{0.35};
-  bool target_has_valid_depth_{false};
 
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_sub_;
