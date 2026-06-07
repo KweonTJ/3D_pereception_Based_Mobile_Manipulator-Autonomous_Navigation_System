@@ -69,7 +69,7 @@ eef_forward_after_align: true
 eef_forward_distance_m: 0.08
 eef_forward_speed_mps: 0.024
 eef_forward_fixed_duration_s: 0.0
-eef_forward_gate_timeout_s: 12.0
+eef_forward_gate_timeout_s: 20.0
 eef_forward_start_tolerance_px: 90.0
 eef_forward_use_joint_nudge: true
 eef_forward_joint2_delta_rad: 0.025
@@ -95,7 +95,7 @@ close_on_front_bbox_shrink: false
 front_bbox_close_area_ratio: 0.55
 close_on_eef_bbox_shrink: false
 eef_bbox_close_area_ratio: 0.55
-eef_forward_min_advance_before_close_m: 0.06
+eef_forward_min_advance_before_close_m: 0.04
 close_after_full_eef_forward_extension: true
 handoff_after_grasp: true
 handoff_lift_joint2_delta_rad: 0.0
@@ -146,7 +146,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_use_joint_nudge`: 실제 로봇에서는 최종 전진을 MoveIt Servo twist에만 맡기지 않는다. Servo가 singularity/collision scaling으로 멈추는 경우가 있어서 joint trajectory nudge를 사용한다. 현재 final forward는 joint2/joint3 중심으로 팔을 계속 전개하고, joint4는 같은 trajectory point 안에서 작은 보조 보정만 한다. 로그에는 정상적으로 `simultaneous_joints=joint2,joint3,joint4` 또는 joint4 변화가 0이면 `joint2,joint3`에 가까운 delta가 찍혀야 한다.
 - `eef_forward_start_tolerance_px`: final forward 시작 기준이다. `eef_close_tolerance_px`보다 넓게 잡아, Servo가 마지막 픽셀 오차를 줄이다가 멈추는 경우에도 조인트 nudge 전진 단계로 넘어가게 한다.
 - `eef_forward_fixed_duration_s`: 현재 실제 리더는 `0.0 s`다. timer가 아니라 `eef_forward_distance_m`, `eef_forward_min_advance_before_close_m`, joint3 전개 진행률 중심으로 close 가능 여부를 판단한다.
-- `eef_forward_gate_timeout_s`: final forward 시작 후 이 시간 안에 full extension 조건을 만족하지 못하면 충돌 또는 stall로 보고 sequence를 abort한다. 현재 로그에서 `advanced_x=0.0238/0.05`, `joint3_progress=0.087/0.14` 상태로 아직 전개 중인데 8초 gate와 min-advance 조건 때문에 close 대기로 넘어갔으므로, 실제 리더는 `12.0 s`로 둔다.
+- `eef_forward_gate_timeout_s`: final forward 시작 후 이 시간 안에 full extension 조건을 만족하지 못하면 충돌 또는 stall로 보고 sequence를 abort한다. 현재 로그에서 `advanced_x=0.0238/0.05`, `joint3_progress=0.087/0.14` 상태로 아직 전개 중인데 8초 gate와 min-advance 조건 때문에 close 대기로 넘어갔으므로, 실제 리더는 `20.0 s`로 둔다.
 - `eef_forward_joint2_delta_rad / eef_forward_joint3_delta_rad`: EEF bbox가 아직 보이는 동안 반복 적용하는 controller 기준 조인트 전진량이다. 실제 설정은 `joint2=0.025 rad`, `joint3=-0.035 rad`이다. 직전 로그에서 joint3가 `-0.055 rad`씩 빠르게 누적되어 확 펴지고, 5초 gate timeout으로 팔이 멈췄기 때문에 joint3 1회 전개량을 낮췄다. raw 토픽으로 나간 뒤 joint3 delta 반전은 `joint_trajectory_transformer.py`가 단독으로 처리한다. 이 EEF forward nudge에서는 실제 joint3 현재값이 `pregrasp_joint_min_positions` 밖에 있을 수 있으므로, joint3을 pregrasp clamp로 다시 `-0.94` 근처에 끌어올리지 않는다.
 - `eef_forward_joint4_after_joint3_complete`: 실제 리더에서는 `false`다. 이 값을 `true`로 두면 joint3 완료 후 joint2/joint3이 멈추고 joint4만 반복되는 루프가 생길 수 있다. 현재 코드에는 해당 joint4-only loop가 감지되면 즉시 abort하는 방어도 들어가 있다.
 - `eef_forward_joint3_complete_delta_rad`: final forward 시작 시점의 joint3 기준으로 추가 전개 완료를 판단하는 controller 기준 절대 변화량이다. 현재 값은 `0.14 rad`다. 직전 로그에서 `joint3_progress=0.135/0.25`까지 갔지만 timeout으로 abort되어, 실제 전개 가능한 범위에 맞게 기준을 낮췄다.
@@ -161,7 +161,7 @@ grasp_completion_eef_lost_timeout_s: 0.8
 - `eef_forward_joint4_down_positive`: 실제 리더에서는 joint4 값이 증가하는 방향이 그리퍼와 EEF 카메라를 바닥으로 숙이는 방향이다. 따라서 `true`로 두고, `eef_forward_joint4_ground_parallel_limit_rad`보다 큰 joint4 목표를 막는다.
 - `gripper_down_joint4_offset_rad`: pregrasp와 EEF forward joint nudge의 roll 보정 이후 joint4에 더하는 추가 오프셋이다. 현재 실제 리더는 `0.0 rad`로 둔다. 로그에서 `-0.10 rad` 오프셋이 joint4 하한 근처에서 clamp를 만들고 `eef_usb_camera_link`와 `link3` 충돌을 유발했기 때문에, 방향 보정은 roll proxy 부호로 처리하고 별도 하향 오프셋은 끈다.
 - `close_on_front_bbox_shrink / close_on_eef_bbox_shrink`: 실제 리더에서는 둘 다 `false`다. bbox 면적 축소만으로 그리퍼를 닫으면 팔을 다 뻗기 전에 close가 나가므로, 현재 close는 EEF 전진 거리와 joint3 전개 진행률을 중심으로 판단한다. EEF bbox area ratio가 `1.0`을 넘는 비정상 값은 close 판단에 사용하지 않는다.
-- `eef_forward_min_advance_before_close_m`: 그리퍼 close를 허용하기 전 최소 EEF 전진량이다. 현재 실제 리더는 `0.06 m`이며, `eef_forward_distance_m: 0.08 m`까지 전진하는 경로를 기본으로 한다. 이 값은 close 하한일 뿐 팔 전개 완료 조건이 아니다. 즉 `advanced_x`가 6 cm를 넘더라도 joint3 전개가 부족하면 final forward를 계속한다.
+- `eef_forward_min_advance_before_close_m`: 그리퍼 close를 허용하기 전 참고 EEF 전진량이다. 현재 실제 리더는 `0.04 m`이며, `eef_forward_distance_m: 0.08 m`까지 전진하는 경로를 기본으로 한다. 이 값은 close 하한일 뿐 팔 전개 완료 조건이 아니다. 즉 `advanced_x`가 4 cm를 넘더라도 joint3 전개가 부족하면 final forward를 계속한다. 반대로 실제 TF x 증가가 작아도 joint3 전개 완료 기준을 만족하면 full extension으로 본다.
 - `close_after_full_eef_forward_extension`: 실제 리더에서는 `true`다. full EEF forward가 끝났는데 전면/EEF bbox가 계속 fresh라 visual close trigger가 안 생기는 경우, 더 기다리지 않고 그리퍼 close를 보낸다. 최근 로그처럼 EEF bbox가 계속 보이는 상태에서 `waiting for visual close trigger before gripper close`만 반복되는 상황을 막기 위한 설정이다.
 - close 이후 EEF bbox가 계속 fresh로 남아도 `joint3_progress`가 이미 완료 기준을 넘었으면 더 이상 fixed-pose forward nudge를 보내지 않는다. 직전 로그에서는 gripper close 이후에도 `joint3_progress=0.56/0.14`에서 `1.37/0.14`까지 계속 증가하며 closed gripper가 물체를 밀어 파지를 놓쳤다. 이제 이 상태에서는 `eef bbox still visible after gripper close; holding because arm extension is complete` 상태로 멈춰서, close 이후 과전개로 joint3와 EEF 자세가 무너지는 상황을 막는다.
 - EEF bbox가 ROI/aspect 필터 때문에 중간에 사라지거나 stale 상태가 되면, 기존에는 `prepareEefRefinement()`에서 멈춰 final forward가 시작되지 않았다. 현재는 전면 bbox close-size와 실제 거리 reference가 모두 close 조건을 만족할 때만 fallback으로 EEF fixed-pose forward를 시작한다. 전면 bbox 크기와 EEF bbox만으로 fake object를 만들어 너무 먼 상태에서 arm stage에 들어가는 경로는 막는다.
@@ -258,7 +258,7 @@ eef_forward_after_align: true
 eef_forward_distance_m: 0.08
 eef_forward_speed_mps: 0.024
 eef_forward_fixed_duration_s: 0.0
-eef_forward_min_advance_before_close_m: 0.06
+eef_forward_min_advance_before_close_m: 0.04
 close_after_full_eef_forward_extension: true
 ```
 

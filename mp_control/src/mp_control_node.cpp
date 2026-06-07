@@ -3915,9 +3915,12 @@ private:
     done_ = true;
     active_ = false;
     eef_refinement_object_in_target_.reset();
-    publishBaseHold(false);
+    publishBaseHold(true);
+    publishBaseStop();
     publishCargoEvent("loaded", true);
-    publishStatus("cargo_loaded: placed on follower side by joint1 turn; arm in stay pose", true);
+    publishStatus(
+      "cargo_loaded: placed on follower side by joint1 turn; arm in stay pose; base hold kept",
+      true);
   }
 
   bool closeAndCompleteWhenVisualReady(
