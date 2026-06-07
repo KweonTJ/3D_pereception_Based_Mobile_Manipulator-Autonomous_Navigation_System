@@ -120,6 +120,7 @@ private:
   bool accept_detector_bbox_while_tracking_{true};
   bool lock_tracked_bbox_size_{true};
   double detector_bbox_override_timeout_s_{0.75};
+  double min_tracked_bbox_size_ratio_{0.0};
   bool force_straight_approach_{false};
   bool enable_base_yaw_{false};
   double reinit_min_iou_{0.02};
