@@ -54,6 +54,7 @@ def generate_launch_description():
             "roll_parent_joint": "joint2",
             "roll_reversed_joint": "joint3",
             "roll_compensation_joint": "joint4",
+            "max_reversed_joint_delta_rad": 0.12,
         }],
         condition=IfCondition(start_joint_trajectory_transformer),
     )
