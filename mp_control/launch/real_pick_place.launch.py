@@ -306,8 +306,7 @@ def generate_launch_description():
             "box_depth_band_m": ParameterValue(auto_init_box_depth_band_m, value_type=float),
             "box_min_fill_ratio": ParameterValue(auto_init_box_min_fill_ratio, value_type=float),
             "box_max_depth_std_m": ParameterValue(auto_init_box_max_depth_std_m, value_type=float),
-            "box_max_center_distance_ratio": ParameterValue(
-                auto_init_box_max_center_distance_ratio, value_type=float),
+            "box_max_center_distance_ratio": ParameterValue(auto_init_box_max_center_distance_ratio, value_type=float),
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
