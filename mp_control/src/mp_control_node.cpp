@@ -3923,27 +3923,9 @@ private:
   {
     const double min_joint1 = joint_pregrasp_min_positions_[0];
     const double max_joint1 = joint_pregrasp_max_positions_[0];
-    const double requested_delta = handoff_rotate_angle_rad_;
-    const double same_direction_target = current_joint1 + requested_delta;
-    const double opposite_direction_target = current_joint1 - requested_delta;
-
-    const bool same_direction_valid =
-      same_direction_target >= min_joint1 && same_direction_target <= max_joint1;
-    const bool opposite_direction_valid =
-      opposite_direction_target >= min_joint1 && opposite_direction_target <= max_joint1;
-
-    if (same_direction_valid) {
-      return same_direction_target;
-    }
-    if (opposite_direction_valid) {
-      return opposite_direction_target;
-    }
-
-    const double same_clamped = clampValue(same_direction_target, min_joint1, max_joint1);
-    const double opposite_clamped = clampValue(opposite_direction_target, min_joint1, max_joint1);
-    const double same_delta = std::abs(same_clamped - current_joint1);
-    const double opposite_delta = std::abs(opposite_clamped - current_joint1);
-    return same_delta >= opposite_delta ? same_clamped : opposite_clamped;
+    const double rotate_base =
+      handoff_center_joint1_before_rotate_ ? handoff_joint1_center_target_rad_ : current_joint1;
+    return clampValue(rotate_base + handoff_rotate_angle_rad_, min_joint1, max_joint1);
   }
 
   void updateHandoffLift()
