@@ -38,6 +38,8 @@ class JointTrajectoryTransformer(Node):
         self.latest_joint_positions = {}
         self.warned_missing_reference = False
         self.logged_first_transform = False
+        self.command_signature = None
+        self.command_reference_positions = None
 
         self.publisher = self.create_publisher(JointTrajectory, self.output_topic, 10)
         self.create_subscription(
@@ -146,6 +148,13 @@ class JointTrajectoryTransformer(Node):
         self.publisher.publish(transformed)
 
     def _reference_positions(self, msg):
+        signature = self._trajectory_signature(msg)
+        if (
+            signature == self.command_signature and
+            self.command_reference_positions is not None
+        ):
+            return dict(self.command_reference_positions)
+
         references = {}
         for joint_name in msg.joint_names:
             if joint_name not in self.reverse_joint_names:
@@ -154,7 +163,26 @@ class JointTrajectoryTransformer(Node):
 
         if any(position is None for position in references.values()):
             return None
+        self.command_signature = signature
+        self.command_reference_positions = dict(references)
         return references
+
+    def _trajectory_signature(self, msg):
+        """Keep repeated absolute raw targets from ratcheting joint3."""
+        reverse_indices = [
+            index for index, name in enumerate(msg.joint_names)
+            if name in self.reverse_joint_names
+        ]
+        signature = [tuple(msg.joint_names)]
+        for point in msg.points:
+            point_signature = []
+            for index in reverse_indices:
+                value = None
+                if len(point.positions) > index:
+                    value = round(float(point.positions[index]), 6)
+                point_signature.append(value)
+            signature.append(tuple(point_signature))
+        return tuple(signature)
 
     def _roll_indices(self, msg):
         try:
