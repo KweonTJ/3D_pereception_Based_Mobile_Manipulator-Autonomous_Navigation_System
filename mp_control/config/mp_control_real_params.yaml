@@ -2,7 +2,7 @@ mp_control_node:
   ros__parameters:
     bbox_topic: /target/tracked_bbox
     fallback_bbox_topic: /target/init_bbox
-    eef_bbox_topic: /target/eef_init_bbox
+    eef_bbox_topic: /target/eef_tracked_bbox
     eef_init_bbox_topic: /target/eef_init_bbox
     depth_topic: /camera/depth/image_raw
     camera_info_topic: /camera/color/camera_info_calibrated
