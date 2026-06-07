@@ -938,26 +938,51 @@ std::optional<double> CsrtIbvsNode::estimateTriangulatedObjectX(
   const double eef_u = static_cast<double>(eef_bbox.x) + 0.5 * static_cast<double>(eef_bbox.width);
   const double eef_v = static_cast<double>(eef_bbox.y) + 0.5 * static_cast<double>(eef_bbox.height);
 
-  auto front_direction = normalize(cv::Point3d(
-    (front_u - front_cx) / front_fx,
-    (front_v - front_cy) / front_fy,
-    1.0));
-  auto eef_direction = normalize(cv::Point3d(
-    (eef_u - eef_cx) / eef_fx,
-    (eef_v - eef_cy) / eef_fy,
-    1.0));
+  double front_ray_x = (front_u - front_cx) / front_fx;
+  double front_ray_y = (front_v - front_cy) / front_fy;
+  double front_ray_z = 1.0;
+  if (triangulation_flip_front_x_) {
+    front_ray_x = -front_ray_x;
+  }
+  if (triangulation_flip_front_y_) {
+    front_ray_y = -front_ray_y;
+  }
+
+  double eef_ray_x = (eef_u - eef_cx) / eef_fx;
+  double eef_ray_y = (eef_v - eef_cy) / eef_fy;
+  double eef_ray_z = 1.0;
+  if (triangulation_flip_eef_x_) {
+    eef_ray_x = -eef_ray_x;
+  }
+  if (triangulation_flip_eef_y_) {
+    eef_ray_y = -eef_ray_y;
+  }
+  if (triangulation_flip_eef_z_) {
+    eef_ray_z = -eef_ray_z;
+  }
+
+  auto front_direction = normalize(cv::Point3d(front_ray_x, front_ray_y, front_ray_z));
+  auto eef_direction = normalize(cv::Point3d(eef_ray_x, eef_ray_y, eef_ray_z));
   if (!front_direction || !eef_direction) {
     set_reason("invalid triangulation ray");
     return std::nullopt;
   }
 
   const cv::Point3d front_origin(0.0, 0.0, 0.0);
-  // Config offsets are measured in base_link axes: x forward, y left, z up.
-  // Camera optical axes are x right, y down, z forward.
-  const cv::Point3d eef_origin(
-    -eef_front_camera_offset_y_m_,
-    -eef_front_camera_offset_z_m_,
-    eef_front_camera_offset_x_m_);
+  cv::Point3d eef_origin;
+  if (use_eef_front_camera_optical_offset_) {
+    eef_origin = cv::Point3d(
+      eef_front_camera_optical_offset_x_m_,
+      eef_front_camera_optical_offset_y_m_,
+      eef_front_camera_optical_offset_z_m_);
+  } else {
+    // Config offsets are measured in base_link axes: x forward, y left, z up.
+    // Camera optical axes are x right, y down, z forward.
+    eef_origin = cv::Point3d(
+      -eef_front_camera_offset_y_m_,
+      -eef_front_camera_offset_z_m_,
+      eef_front_camera_offset_x_m_);
+  }
 
   const cv::Point3d w0 = front_origin - eef_origin;
   const double a = front_direction->dot(*front_direction);
@@ -976,7 +1001,23 @@ std::optional<double> CsrtIbvsNode::estimateTriangulatedObjectX(
   if (front_range < triangulation_min_range_m_ || front_range > triangulation_max_range_m_ ||
       eef_range < triangulation_min_range_m_ || eef_range > triangulation_max_range_m_) {
     std::ostringstream status;
-    status << "triangulation range front=" << front_range << " eef=" << eef_range;
+    status << "triangulation range invalid: front_range=" << front_range
+           << " eef_range=" << eef_range
+           << " front_uv=(" << front_u << ", " << front_v << ")"
+           << " eef_uv=(" << eef_u << ", " << eef_v << ")"
+           << " front_k=(" << front_fx << ", " << front_fy << ", "
+           << front_cx << ", " << front_cy << ")"
+           << " eef_k=(" << eef_fx << ", " << eef_fy << ", "
+           << eef_cx << ", " << eef_cy << ")"
+           << " front_ray=(" << front_direction->x << ", "
+           << front_direction->y << ", " << front_direction->z << ")"
+           << " eef_ray=(" << eef_direction->x << ", "
+           << eef_direction->y << ", " << eef_direction->z << ")"
+           << " eef_origin=(" << eef_origin.x << ", "
+           << eef_origin.y << ", " << eef_origin.z << ")"
+           << " denom=" << denom
+           << " optical_offset="
+           << (use_eef_front_camera_optical_offset_ ? "true" : "false");
     set_reason(status.str());
     return std::nullopt;
   }
