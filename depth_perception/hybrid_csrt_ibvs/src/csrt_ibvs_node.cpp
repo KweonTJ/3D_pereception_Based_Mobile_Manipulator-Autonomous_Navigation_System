@@ -423,6 +423,8 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
          << " ez=";
   if (ibvs.depth_m) {
     status << (*ibvs.depth_m - desired_depth_m_);
+  } else if (ibvs.waiting_for_first_depth) {
+    status << "waiting_first_depth";
   } else {
     status << (use_area_fallback_ ? "area" : "no_depth_in_bbox");
   }
@@ -993,6 +995,8 @@ void CsrtIbvsNode::publishDebugImage(
   depth_text << "depth=";
   if (ibvs.depth_m) {
     depth_text << std::fixed << std::setprecision(3) << *ibvs.depth_m << "m";
+  } else if (ibvs.waiting_for_first_depth) {
+    depth_text << "waiting first depth";
   } else {
     depth_text << (use_area_fallback_ ? "area fallback" : "missing in bbox");
   }
