@@ -482,7 +482,7 @@ private:
     handoff_place_joint2_delta_rad_ =
       declare_parameter<double>("handoff_place_joint2_delta_rad", -0.20);
     handoff_joint_move_duration_s_ =
-      declare_parameter<double>("handoff_joint_move_duration_s", 1.0);
+      declare_parameter<double>("handoff_joint_move_duration_s", 5.0);
     handoff_joint_settle_s_ =
       declare_parameter<double>("handoff_joint_settle_s", 0.4);
     handoff_republish_period_s_ =
