@@ -1043,7 +1043,7 @@ private:
           std::ostringstream status;
           status << "after depth limit; waiting for close-range color triangulation: "
                  << color_reason
-                 << "; base continuing toward object_x="
+                 << "; base tracker fallback approach allowed toward object_x="
                  << color_triangulation_base_stop_object_x_m_;
           publishStatus(status.str());
           return;
@@ -1095,7 +1095,7 @@ private:
         std::ostringstream status;
         status << "after depth limit; waiting for close-range color triangulation: "
                << color_reason
-               << "; base continuing toward object_x="
+               << "; base tracker fallback approach allowed toward object_x="
                << color_triangulation_base_stop_object_x_m_;
         publishStatus(status.str());
         return;
