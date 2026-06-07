@@ -201,7 +201,7 @@ void CsrtIbvsNode::readParameters()
   triangulation_gain_ =
     declare_parameter<double>("triangulation_gain", 0.4);
   triangulation_fallback_speed_mps_ =
-    declare_parameter<double>("triangulation_fallback_speed_mps", 0.012);
+    declare_parameter<double>("triangulation_fallback_speed_mps", 0.005);
   triangulation_timeout_s_ =
     declare_parameter<double>("triangulation_timeout_s", 2.0);
   triangulation_min_range_m_ =
