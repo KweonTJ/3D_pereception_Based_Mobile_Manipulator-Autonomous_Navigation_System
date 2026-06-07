@@ -3802,6 +3802,7 @@ private:
     publishBaseHold(true);
     publishStop();
     publishBaseStop();
+    stopMoveItServo();
     handoff_lift_controller_target_.reset();
     handoff_place_controller_target_.reset();
     handoff_stay_controller_target_.reset();
@@ -4231,6 +4232,39 @@ private:
             response->message.c_str());
         }
       });
+    return true;
+  }
+
+  bool stopMoveItServo()
+  {
+    if (!servo_stop_client_) {
+      publishStatus("handoff: MoveIt Servo stop client is not initialized");
+      return false;
+    }
+
+    if (!servo_stop_client_->wait_for_service(std::chrono::milliseconds(200))) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "MoveIt Servo stop service unavailable: /servo_node/stop_servo");
+      publishStatus("handoff: /servo_node/stop_servo unavailable; continuing joint1 turn");
+      return false;
+    }
+
+    servo_stop_client_->async_send_request(
+      std::make_shared<Trigger::Request>(),
+      [this](rclcpp::Client<Trigger>::SharedFuture future) {
+        const auto response = future.get();
+        if (!response->success) {
+          RCLCPP_WARN(
+            get_logger(), "MoveIt Servo stop request returned false: %s",
+            response->message.c_str());
+        } else {
+          RCLCPP_INFO(get_logger(), "MoveIt Servo stopped before handoff");
+        }
+      });
+
+    servo_start_requested_ = false;
+    publishStatus("handoff: MoveIt Servo stop requested before joint1 turn", true);
     return true;
   }
 
