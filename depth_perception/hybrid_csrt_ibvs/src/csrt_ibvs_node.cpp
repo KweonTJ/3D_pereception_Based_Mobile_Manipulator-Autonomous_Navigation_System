@@ -499,21 +499,26 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   }
 
   std::ostringstream status;
-  status << "tracking bbox=[" << control_box.x << "," << control_box.y << ","
-         << control_box.width << "," << control_box.height << "]"
-         << " ex=" << ibvs.x_error_norm
-         << " ez=";
-  if (ibvs.depth_m) {
-    status << (*ibvs.depth_m - desired_depth_m_);
-  } else {
-    status << (use_area_fallback_ ? "area" : "no_depth_in_bbox");
-  }
-  status << " vx=" << ibvs.base_cmd.linear.x
-         << " wz=" << ibvs.base_cmd.angular.z
-         << " base_hold=" << (base_hold ? "true" : "false")
-         << " yaw_enabled=" << (enable_base_yaw_ ? "true" : "false");
-  publishStatus(status.str());
-}
+	  status << "tracking bbox=[" << control_box.x << "," << control_box.y << ","
+	         << control_box.width << "," << control_box.height << "]"
+	         << " ex=" << ibvs.x_error_norm
+	         << " ez=";
+	  if (ibvs.depth_m) {
+	    status << (*ibvs.depth_m - desired_depth_m_);
+	  } else if (ibvs.triangulated_object_x_m) {
+	    status << "triangulation_x=" << *ibvs.triangulated_object_x_m;
+	  } else {
+	    status << "no_depth_in_bbox";
+	  }
+	  status << " vx=" << ibvs.base_cmd.linear.x
+	         << " wz=" << ibvs.base_cmd.angular.z
+	         << " base_hold=" << (base_hold ? "true" : "false")
+	         << " yaw_enabled=" << (enable_base_yaw_ ? "true" : "false");
+	  if (!ibvs.range_status.empty()) {
+	    status << " range_status=\"" << ibvs.range_status << "\"";
+	  }
+	  publishStatus(status.str());
+	}
 
 std::optional<cv::Mat> CsrtIbvsNode::imageMsgToBgr(
   const sensor_msgs::msg::Image::ConstSharedPtr & msg)
