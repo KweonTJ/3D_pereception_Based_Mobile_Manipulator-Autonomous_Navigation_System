@@ -132,6 +132,8 @@ void CsrtIbvsNode::readParameters()
 
   use_depth_ = declare_parameter<bool>("use_depth", true);
   use_area_fallback_ = declare_parameter<bool>("use_area_fallback", true);
+  area_fallback_requires_valid_depth_ =
+    declare_parameter<bool>("area_fallback_requires_valid_depth", false);
   enable_cmd_vel_ = declare_parameter<bool>("enable_cmd_vel", true);
   enable_arm_twist_ = declare_parameter<bool>("enable_arm_twist", false);
   publish_debug_image_ = declare_parameter<bool>("publish_debug_image", true);
@@ -775,6 +777,7 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     (!result.depth_m || straight_approach_depth_m_ <= 0.0 || *result.depth_m <= straight_approach_depth_m_);
 
   if (result.depth_m) {
+    target_has_valid_depth_ = true;
     if (*result.depth_m < emergency_stop_depth_m_) {
       result.depth_too_close = true;
       linear_x = 0.0;
@@ -785,11 +788,18 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
         linear_x = linear_gain_ * depth_error;
       }
     }
-  } else if (use_area_fallback_) {
+  } else if (
+    use_area_fallback_ &&
+    (!area_fallback_requires_valid_depth_ || target_has_valid_depth_))
+  {
     const double area_error = desired_area_ratio_ - result.area_ratio;
     if (std::abs(area_error) > area_deadband_ratio_) {
       linear_x = area_gain_ * area_error;
     }
+  } else if (use_area_fallback_ && area_fallback_requires_valid_depth_) {
+    result.waiting_for_first_depth = true;
+    linear_x = 0.0;
+    angular_z = 0.0;
   } else {
     angular_z = 0.0;
   }
