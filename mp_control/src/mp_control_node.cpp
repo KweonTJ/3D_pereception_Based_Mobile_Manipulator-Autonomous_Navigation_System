@@ -2269,6 +2269,7 @@ private:
     }
     target[0] = clampValue(target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
     target[1] = clampValue(target[1], joint_pregrasp_min_positions_[1], joint_pregrasp_max_positions_[1]);
+    target[2] = clampValue(target[2], joint_pregrasp_min_positions_[2], joint_pregrasp_max_positions_[2]);
     target[3] = clampValue(target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
     return target;
   }
