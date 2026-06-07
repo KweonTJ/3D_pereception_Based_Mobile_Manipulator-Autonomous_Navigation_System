@@ -134,7 +134,7 @@ def generate_launch_description():
             "lidar_port": lidar_port,
             "lidar_frame_id": lidar_frame_id,
             "move_to_stay_pose": move_to_stay_pose,
-            "stay_pose_joint_trajectory_topic": joint_trajectory_raw_topic,
+            "stay_pose_joint_trajectory_topic": joint_trajectory_output_topic,
             "use_camera_driver_tf": use_camera_driver_tf,
             "use_eef_usb_camera": use_eef_usb_camera,
             "eef_usb_camera_parent": eef_usb_camera_parent,
