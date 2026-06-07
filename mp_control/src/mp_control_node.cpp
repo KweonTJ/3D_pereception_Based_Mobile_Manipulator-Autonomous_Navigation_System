@@ -4543,6 +4543,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr base_hold_pub_;
   rclcpp_action::Client<GripperCommand>::SharedPtr gripper_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
+  rclcpp::Client<Trigger>::SharedPtr servo_stop_client_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   tf2_ros::Buffer tf_buffer_;
