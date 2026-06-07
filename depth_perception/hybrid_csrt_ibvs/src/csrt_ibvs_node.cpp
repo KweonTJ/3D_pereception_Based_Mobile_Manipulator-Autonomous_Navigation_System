@@ -74,6 +74,16 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
     camera_info_topic_, sensor_qos,
     [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onCameraInfo(msg); });
 
+  if (use_triangulation_after_min_depth_) {
+    eef_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
+      eef_tracked_bbox_topic_, init_bbox_qos,
+      [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onEefBbox(msg); });
+
+    eef_camera_info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
+      eef_camera_info_topic_, sensor_qos,
+      [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) { onEefCameraInfo(msg); });
+  }
+
   init_bbox_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
     init_bbox_topic_, init_bbox_qos,
     [this](const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg) { onInitBbox(msg); });
@@ -102,16 +112,20 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
   last_track_stamp_ = now();
   last_status_stamp_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
   last_detector_bbox_stamp_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
+  latest_eef_bbox_stamp_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
 
   watchdog_timer_ = create_wall_timer(
     std::chrono::milliseconds(100), [this]() { watchdog(); });
 
   RCLCPP_INFO(
     get_logger(),
-    "hybrid_csrt_ibvs started: image=%s depth=%s camera_info=%s init_bbox=%s tracked_bbox=%s status=%s cmd_vel=%s",
+    "hybrid_csrt_ibvs started: image=%s depth=%s camera_info=%s init_bbox=%s tracked_bbox=%s status=%s cmd_vel=%s eef_bbox=%s eef_camera_info=%s triangulation=%s",
     image_topic_.c_str(), depth_topic_.c_str(), camera_info_topic_.c_str(),
     init_bbox_topic_.c_str(), tracked_bbox_topic_.c_str(), status_topic_.c_str(),
-    enable_cmd_vel_ ? cmd_vel_topic_.c_str() : "disabled");
+    enable_cmd_vel_ ? cmd_vel_topic_.c_str() : "disabled",
+    use_triangulation_after_min_depth_ ? eef_tracked_bbox_topic_.c_str() : "disabled",
+    use_triangulation_after_min_depth_ ? eef_camera_info_topic_.c_str() : "disabled",
+    use_triangulation_after_min_depth_ ? "enabled" : "disabled");
 
   publishStatus("ready; publish bbox [x, y, w, h] to " + init_bbox_topic_, true);
 }
