@@ -1764,7 +1764,7 @@ private:
     front_bbox_area_at_eef_forward_start_ = latestFreshFrontBboxArea();
     eef_bbox_area_at_eef_forward_start_ = latestFreshEefBboxArea();
     stable_cycles_ = 0;
-    publishEefForwardAdvanceCommand(rpy_error);
+    publishEefForwardAdvanceCommand(rpy_error, false);
 
     std::ostringstream status;
     status << reason
