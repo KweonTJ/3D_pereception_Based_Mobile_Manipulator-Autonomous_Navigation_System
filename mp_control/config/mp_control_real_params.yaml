@@ -17,6 +17,10 @@ mp_control_node:
     # transformer as MoveIt Servo. The transformer publishes to the real
     # /arm_controller/joint_trajectory topic.
     joint_trajectory_topic: /arm_controller/joint_trajectory_raw
+    # Handoff is already expressed in real controller joint coordinates.
+    # Bypass the joint3 mirror transformer so close -> joint1 turn does not
+    # re-command joint2/joint3 through stale raw targets.
+    handoff_joint_trajectory_topic: /arm_controller/joint_trajectory
     gripper_action_name: /gripper_controller/gripper_cmd
     start_topic: /mp_control/start
     cancel_topic: /mp_control/cancel
