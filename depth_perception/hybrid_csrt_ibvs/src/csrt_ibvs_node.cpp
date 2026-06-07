@@ -1294,13 +1294,18 @@ void CsrtIbvsNode::publishDebugImage(
           << " wz=" << ibvs.base_cmd.angular.z;
   cv::putText(debug, overlay.str(), cv::Point(12, 28), cv::FONT_HERSHEY_SIMPLEX, 0.65, cv::Scalar(255, 255, 255), 2);
 
-  std::ostringstream depth_text;
-  depth_text << "depth=";
-  if (ibvs.depth_m) {
-    depth_text << std::fixed << std::setprecision(3) << *ibvs.depth_m << "m";
-  } else {
-    depth_text << (use_area_fallback_ ? "area fallback" : "missing in bbox");
-  }
+	  std::ostringstream depth_text;
+	  depth_text << "depth=";
+	  if (ibvs.depth_m) {
+	    depth_text << std::fixed << std::setprecision(3) << *ibvs.depth_m << "m";
+	  } else if (ibvs.triangulated_object_x_m) {
+	    depth_text << "triangulation x="
+	               << std::fixed << std::setprecision(3) << *ibvs.triangulated_object_x_m << "m";
+	  } else if (!ibvs.range_status.empty()) {
+	    depth_text << ibvs.range_status;
+	  } else {
+	    depth_text << "missing in bbox";
+	  }
   if (ibvs.depth_too_close) {
     depth_text << " STOP";
   }
