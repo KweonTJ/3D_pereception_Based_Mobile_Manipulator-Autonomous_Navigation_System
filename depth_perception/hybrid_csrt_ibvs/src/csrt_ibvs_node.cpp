@@ -514,6 +514,7 @@ std::optional<cv::Mat> CsrtIbvsNode::depthMsgToBgr(
 
 bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbox)
 {
+  target_has_valid_depth_ = false;
   try {
 #ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
     tracker_ = cv::TrackerCSRT::create();
@@ -642,6 +643,7 @@ bool CsrtIbvsNode::hasTracker() const
 
 void CsrtIbvsNode::resetTracker()
 {
+  target_has_valid_depth_ = false;
 #ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
   tracker_.release();
 #else
