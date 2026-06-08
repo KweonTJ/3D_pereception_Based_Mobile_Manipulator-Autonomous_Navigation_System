@@ -2663,10 +2663,175 @@ private:
     twist_pub_->publish(cmd);
   }
 
+  bool publishEefForwardBezierIkNudge(
+    const RpyError & rpy_error,
+    bool allow_after_joint3_complete)
+  {
+    const auto stamp = now();
+    const double effective_nudge_period_s = std::max(
+      eef_forward_joint_nudge_period_s_,
+      eef_forward_joint_nudge_duration_s_);
+    if (eef_forward_last_joint_nudge_stamp_.nanoseconds() != 0 &&
+        (stamp - eef_forward_last_joint_nudge_stamp_).seconds() <
+        effective_nudge_period_s) {
+      return true;
+    }
+
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      return false;
+    }
+
+    if (!eef_forward_start_joint_positions_) {
+      eef_forward_start_joint_positions_ = *current;
+    }
+    const auto & start = *eef_forward_start_joint_positions_;
+    const auto progress = eefForwardJointProgressFromCurrent(*current);
+
+    const double joint2_total_direction =
+      eef_forward_joint2_delta_rad_ < 0.0 ? -1.0 : 1.0;
+    const double joint3_direction = eefForwardJoint3Direction();
+    std::array<double, 4> controller_goal = start;
+    controller_goal[1] = start[1] +
+      joint2_total_direction * std::abs(eef_forward_bezier_joint2_total_delta_rad_);
+    controller_goal[2] = start[2] +
+      joint3_direction * std::abs(eef_forward_bezier_joint3_total_delta_rad_);
+    if (eef_forward_bezier_preserve_roll_ && joint_pregrasp_preserve_gripper_roll_) {
+      controller_goal[3] = joint4ForPreservedEefForwardRoll(start, controller_goal);
+    }
+    controller_goal[0] =
+      clampValue(controller_goal[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
+    controller_goal[1] =
+      clampValue(controller_goal[1], joint_pregrasp_min_positions_[1], joint_pregrasp_max_positions_[1]);
+    controller_goal[2] =
+      clampValue(controller_goal[2], joint_pregrasp_min_positions_[2], joint_pregrasp_max_positions_[2]);
+    controller_goal[3] =
+      clampValue(controller_goal[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
+
+    const double joint3_total = std::abs(controller_goal[2] - start[2]);
+    const double joint3_progress_ratio = joint3_total > 1.0e-6 ?
+      clampValue(
+        joint3_direction * ((*current)[2] - start[2]) / joint3_total,
+        0.0,
+        1.0) :
+      1.0;
+    const double elapsed_s =
+      eef_forward_start_stamp_.nanoseconds() == 0 ?
+      0.0 :
+      (stamp - eef_forward_start_stamp_).seconds();
+    const double time_progress_ratio = eef_forward_bezier_total_duration_s_ > 1.0e-6 ?
+      clampValue(elapsed_s / eef_forward_bezier_total_duration_s_, 0.0, 1.0) :
+      1.0;
+    const double base_progress_ratio =
+      std::max(joint3_progress_ratio, time_progress_ratio);
+    const double target_progress_ratio = clampValue(
+      base_progress_ratio + eef_forward_bezier_progress_step_,
+      0.0,
+      1.0);
+    const double eased = bezierEase01(target_progress_ratio);
+
+    std::array<double, 4> bezier_waypoint = start;
+    for (std::size_t i = 0; i < bezier_waypoint.size(); ++i) {
+      bezier_waypoint[i] = start[i] + (controller_goal[i] - start[i]) * eased;
+    }
+
+    std::array<double, 4> controller_target = *current;
+    controller_target[1] = (*current)[1] + clampStep(
+      bezier_waypoint[1] - (*current)[1],
+      eef_forward_bezier_joint2_max_step_rad_);
+    controller_target[2] = (*current)[2] + clampStep(
+      bezier_waypoint[2] - (*current)[2],
+      eef_forward_bezier_joint3_max_step_rad_);
+    controller_target[3] = (*current)[3] + clampStep(
+      bezier_waypoint[3] - (*current)[3],
+      eef_forward_bezier_joint4_max_step_rad_);
+    controller_target[0] =
+      clampValue(controller_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
+    controller_target[1] =
+      clampValue(controller_target[1], joint_pregrasp_min_positions_[1], joint_pregrasp_max_positions_[1]);
+    controller_target[2] =
+      clampValue(controller_target[2], joint_pregrasp_min_positions_[2], joint_pregrasp_max_positions_[2]);
+    controller_target[3] =
+      clampValue(controller_target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
+
+    const auto raw_target =
+      jointNudgeRawTargetFromControllerTarget(*current, controller_target);
+    const double controller_joint2_delta = controller_target[1] - (*current)[1];
+    const double controller_joint3_delta = controller_target[2] - (*current)[2];
+    const double controller_joint4_delta = controller_target[3] - (*current)[3];
+    const double raw_joint3_delta = raw_target[2] - (*current)[2];
+
+    const bool joint2_active = std::abs(controller_joint2_delta) > 1.0e-6;
+    const bool joint3_active = std::abs(controller_joint3_delta) > 1.0e-6;
+    const bool joint4_active = std::abs(controller_joint4_delta) > 1.0e-6;
+    std::string joint_stage;
+    if (joint2_active) {
+      joint_stage += "joint2";
+    }
+    if (joint3_active) {
+      joint_stage += joint_stage.empty() ? "joint3" : ",joint3";
+    }
+    if (joint4_active) {
+      joint_stage += joint_stage.empty() ? "joint4" : ",joint4";
+    }
+    if (joint_stage.empty()) {
+      joint_stage = "none";
+    }
+
+    trajectory_msgs::msg::JointTrajectory msg;
+    msg.header.stamp = stamp;
+    msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
+    appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
+    joint_trajectory_pub_->publish(msg);
+    eef_forward_last_joint_nudge_stamp_ = stamp;
+
+    std::ostringstream status;
+    status << "eef forward bezier ik nudge: current=" << formatJointArray(*current)
+           << " start=" << formatJointArray(start)
+           << " controller_goal=" << formatJointArray(controller_goal)
+           << " bezier_waypoint=" << formatJointArray(bezier_waypoint)
+           << " raw_target=" << formatJointArray(raw_target)
+           << " controller_target=" << formatJointArray(controller_target)
+           << " simultaneous_joints=" << joint_stage
+           << " allow_after_joint3_complete="
+           << (allow_after_joint3_complete ? "true" : "false")
+           << " progress=(" << base_progress_ratio << " -> "
+           << target_progress_ratio << ", eased=" << eased << ")"
+           << " elapsed=" << elapsed_s
+           << "/" << eef_forward_bezier_total_duration_s_
+           << formatEefForwardJointProgress(progress)
+           << " controller_joint2_delta=" << controller_joint2_delta
+           << " controller_joint3_delta=" << controller_joint3_delta
+           << " controller_joint4_delta=" << controller_joint4_delta
+           << " raw_joint3_delta=" << raw_joint3_delta
+           << " max_step=(" << eef_forward_bezier_joint2_max_step_rad_
+           << ", " << eef_forward_bezier_joint3_max_step_rad_
+           << ", " << eef_forward_bezier_joint4_max_step_rad_ << ")"
+           << " preserve_roll="
+           << (eef_forward_bezier_preserve_roll_ ? "true" : "false")
+           << " rpy_roll_err=" << rpy_error.roll
+           << " rpy_frame=" << rpyControlFrame()
+           << " duration=" << eef_forward_joint_nudge_duration_s_
+           << " configured_period=" << eef_forward_joint_nudge_period_s_
+           << " effective_period=" << effective_nudge_period_s
+           << poseStatusSuffix();
+    publishStatus(status.str());
+    return true;
+  }
+
   bool publishEefForwardJointNudge(
     const RpyError & rpy_error,
     bool allow_after_joint3_complete)
   {
+    if (eef_forward_use_bezier_ik_) {
+      return publishEefForwardBezierIkNudge(rpy_error, allow_after_joint3_complete);
+    }
+
+#if 0
+    // Legacy direct joint-delta final reach is intentionally disabled for the
+    // real robot. It could enter a joint4-only loop or let joint3 jump instead
+    // of following a continuous end-effector reach path. Keep this block only
+    // as rollback reference while the Bezier IK nudge above owns final reach.
     const auto stamp = now();
     const double effective_nudge_period_s = std::max(
       eef_forward_joint_nudge_period_s_,
@@ -2841,6 +3006,10 @@ private:
            << poseStatusSuffix();
     publishStatus(status.str());
     return true;
+#endif
+
+    publishStatus("eef forward joint nudge disabled: legacy direct joint-delta path is commented out");
+    return false;
   }
 
   bool updateJointPregrasp()
