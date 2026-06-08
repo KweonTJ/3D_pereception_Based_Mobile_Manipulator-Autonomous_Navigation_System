@@ -2716,11 +2716,14 @@ private:
     if (joint_pregrasp_joint3_max_step_rad_ > 1.0e-9 &&
       std::abs(joint3_delta) > joint_pregrasp_joint3_max_step_rad_)
     {
-      // On the real arm, dropping joint2/joint4 before joint3 unfolds loads
-      // joint3 enough to trip torque protection. Step joint3 first, slowly.
-      target = current;
-      target[2] =
-        current[2] + std::copysign(joint_pregrasp_joint3_max_step_rad_, joint3_delta);
+      // Keep joint3 torque protection, but do not move joint3 alone. Scale the
+      // whole arm waypoint so joint2/joint3/joint4 stay synchronized while
+      // joint3 is limited to one safe step.
+      const double ratio =
+        clampValue(joint_pregrasp_joint3_max_step_rad_ / std::abs(joint3_delta), 0.0, 1.0);
+      for (std::size_t i = 0; i < target.size(); ++i) {
+        target[i] = current[i] + (final_target[i] - current[i]) * ratio;
+      }
       if (joint3_step_active) {
         *joint3_step_active = true;
       }
