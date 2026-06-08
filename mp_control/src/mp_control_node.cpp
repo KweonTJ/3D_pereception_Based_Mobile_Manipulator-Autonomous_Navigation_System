@@ -5115,6 +5115,7 @@ private:
 	  double joint_pregrasp_settle_s_{0.5};
 	  double joint_pregrasp_tolerance_rad_{0.04};
 	  double joint_pregrasp_republish_period_s_{1.0};
+	  double joint_pregrasp_joint3_max_step_rad_{0.06};
 	  std::vector<double> joint_pregrasp_min_positions_{-3.14, -1.79, -0.94, -1.79};
 	  std::vector<double> joint_pregrasp_max_positions_{3.14, 1.57, 1.38, 2.04};
 	  double eef_center_tolerance_px_{18.0};
@@ -5294,6 +5295,7 @@ private:
   bool servo_start_requested_{false};
   std::optional<std::array<double, 4>> joint_pregrasp_target_;
   std::optional<std::array<double, 4>> joint_pregrasp_controller_target_;
+  std::optional<std::array<double, 4>> joint_pregrasp_controller_step_target_;
   std::optional<std::array<double, 3>> eef_rpy_reference_;
   std::optional<double> eef_stay_roll_reference_;
 	  GraspStage stage_{GraspStage::DEPTH_APPROACH};
