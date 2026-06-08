@@ -775,6 +775,9 @@ private:
   void onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
+    if (use_color_triangulation_after_min_depth_ && min_depth_reached_) {
+      return;
+    }
     latest_depth_ = msg;
   }
 
@@ -1329,6 +1332,9 @@ private:
   {
     const auto stamp = now();
     std::lock_guard<std::mutex> lock(data_mutex_);
+    if (use_color_triangulation_after_min_depth_ && min_depth_reached_) {
+      return std::nullopt;
+    }
     if (!latest_depth_object_in_target_ ||
         latest_depth_object_stamp_.nanoseconds() == 0 ||
         (stamp - latest_depth_object_stamp_).seconds() > max_target_age_s_) {
@@ -3883,6 +3889,9 @@ private:
   void rememberDepthObjectPoint(const geometry_msgs::msg::PointStamped & object_in_target)
   {
     std::lock_guard<std::mutex> lock(data_mutex_);
+    if (use_color_triangulation_after_min_depth_ && min_depth_reached_) {
+      return;
+    }
     latest_depth_object_in_target_ = object_in_target;
     latest_depth_object_stamp_ = now();
   }
