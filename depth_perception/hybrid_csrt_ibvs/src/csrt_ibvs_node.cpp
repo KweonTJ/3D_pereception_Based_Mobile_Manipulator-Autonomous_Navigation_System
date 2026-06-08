@@ -1195,6 +1195,7 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
       *result.depth_m <= triangulation_start_depth_m_ + depth_deadband_m_;
     if (reached_triangulation_start || visual_triangulation_start) {
       min_depth_reached_ = true;
+      last_depth_filter_status_ = "depth handoff reached at 0.47m; depth disabled";
     }
   }
 
@@ -1285,6 +1286,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     status << "depth approach: depth=" << *result.depth_m
            << " target=" << desired_depth_m_
            << " vx=" << linear_x;
+    if (!last_depth_filter_status_.empty()) {
+      status << " " << last_depth_filter_status_;
+    }
     result.range_status = status.str();
   } else if (
       !result.depth_too_close &&
@@ -1307,6 +1311,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
            << " height_ratio=" << bbox_height_ratio
            << " start_height=" << triangulation_start_bbox_height_ratio_
            << " vx=" << linear_x;
+    if (!last_depth_filter_status_.empty()) {
+      status << " " << last_depth_filter_status_;
+    }
     result.range_status = status.str();
   } else if (use_area_fallback_) {
     publishCloseRangeReady(false);
@@ -1324,6 +1331,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     angular_z = 0.0;
     publishCloseRangeReady(false);
     result.range_status = "no valid depth; area fallback disabled";
+    if (!last_depth_filter_status_.empty()) {
+      result.range_status += ": " + last_depth_filter_status_;
+    }
   }
 
   if (straight_depth_approach) {
