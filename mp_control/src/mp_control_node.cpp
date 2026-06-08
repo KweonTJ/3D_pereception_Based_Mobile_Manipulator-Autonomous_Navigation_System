@@ -3393,6 +3393,8 @@ private:
       clampValue(controller_target[2], joint_pregrasp_min_positions_[2], joint_pregrasp_max_positions_[2]);
     controller_target[3] =
       clampValue(controller_target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
+    const std::string controller_monotonic_hold_reason =
+      enforceEefForwardMonotonicTarget(*current, bezier_waypoint, controller_target);
 
     const auto raw_target =
       jointNudgeRawTargetFromControllerTarget(*current, controller_target);
@@ -3433,6 +3435,7 @@ private:
            << " raw_target=" << formatJointArray(raw_target)
            << " controller_target=" << formatJointArray(controller_target)
            << " simultaneous_joints=" << joint_stage
+           << " controller_monotonic_hold=" << controller_monotonic_hold_reason
            << " allow_after_joint3_complete="
            << (allow_after_joint3_complete ? "true" : "false")
            << " progress=(" << base_progress_ratio << " -> "
