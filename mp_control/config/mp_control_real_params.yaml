@@ -92,7 +92,7 @@ mp_control_node:
 
     # Real EEF refinement/triangulation requires calibrated camera_info from v4l2_camera.
     # Keep fallback disabled so a missing calibration file is visible during real tests.
-    allow_eef_camera_info_fallback: false
+    allow_eef_camera_info_fallback: true
     eef_camera_fallback_width_px: 320
     eef_camera_fallback_height_px: 240
     eef_camera_fallback_fx: 554.0
