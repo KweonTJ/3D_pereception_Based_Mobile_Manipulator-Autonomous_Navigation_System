@@ -5522,6 +5522,14 @@ private:
   double eef_forward_joint3_complete_tolerance_rad_{0.015};
   double eef_forward_joint4_finish_tolerance_rad_{0.015};
   bool eef_forward_use_bezier_ik_{true};
+  bool eef_forward_use_analytic_ik_{true};
+  double eef_forward_ik_link2_x_m_{0.024};
+  double eef_forward_ik_link2_z_m_{0.128};
+  double eef_forward_ik_link3_m_{0.124};
+  double eef_forward_ik_tool_m_{0.126};
+  double eef_forward_ik_pitch_weight_{0.35};
+  double eef_forward_ik_damping_{0.03};
+  int eef_forward_ik_iterations_{16};
   double eef_forward_bezier_total_duration_s_{5.0};
   double eef_forward_bezier_progress_step_{0.08};
   double eef_forward_bezier_joint2_total_delta_rad_{0.10};
