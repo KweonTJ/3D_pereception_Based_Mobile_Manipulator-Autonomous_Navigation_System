@@ -3826,6 +3826,110 @@ private:
     return acceptDepthStats(stats, reject_reason);
   }
 
+  std::optional<double> acceptDepthStats(
+    const DepthStats & stats,
+    std::string * reject_reason = nullptr)
+  {
+    auto make_status = [&stats](const std::string & prefix) {
+        std::ostringstream status;
+        status << prefix
+               << " source=" << stats.source
+               << " depth=" << stats.depth_m
+               << " samples=" << stats.sample_count << "/" << stats.total_count
+               << " fill=" << stats.fill_ratio
+               << " std=" << stats.std_m;
+        return status.str();
+      };
+
+    if (stats.sample_count < min_depth_samples_) {
+      const auto reason = make_status(
+        "mp_control depth rejected: sample_count below min_depth_samples=" +
+        std::to_string(min_depth_samples_));
+      setBlockReason(reject_reason, reason);
+      publishStatus(reason);
+      return std::nullopt;
+    }
+    if (stats.fill_ratio < depth_min_fill_ratio_) {
+      const auto reason = make_status(
+        "mp_control depth rejected: fill_ratio below depth_min_fill_ratio=" +
+        std::to_string(depth_min_fill_ratio_));
+      setBlockReason(reject_reason, reason);
+      publishStatus(reason);
+      return std::nullopt;
+    }
+    if (depth_std_max_m_ > 0.0 && stats.std_m > depth_std_max_m_) {
+      const auto reason = make_status(
+        "mp_control depth rejected: std above depth_std_max_m=" +
+        std::to_string(depth_std_max_m_));
+      setBlockReason(reject_reason, reason);
+      publishStatus(reason);
+      return std::nullopt;
+    }
+
+    std::string status;
+    std::optional<double> accepted_depth;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (depth_jump_limit_m_ > 0.0 && depth_filter_last_accepted_m_) {
+        const double jump = std::abs(stats.depth_m - *depth_filter_last_accepted_m_);
+        if (jump > depth_jump_limit_m_) {
+          std::ostringstream reason;
+          reason << make_status("mp_control depth rejected: jump above depth_jump_limit_m")
+                 << " jump=" << jump
+                 << " limit=" << depth_jump_limit_m_
+                 << " last_accepted=" << *depth_filter_last_accepted_m_;
+          status = reason.str();
+          last_depth_filter_status_ = status;
+        }
+      }
+
+      if (status.empty()) {
+        const double stable_tolerance = std::max(0.01, 0.5 * std::max(0.001, depth_jump_limit_m_));
+        if (!depth_filter_pending_m_ ||
+            std::abs(stats.depth_m - *depth_filter_pending_m_) > stable_tolerance) {
+          depth_filter_pending_m_ = stats.depth_m;
+          depth_filter_stable_count_ = 1;
+        } else {
+          depth_filter_pending_m_ =
+            0.65 * (*depth_filter_pending_m_) + 0.35 * stats.depth_m;
+          depth_filter_stable_count_ =
+            std::min(stable_depth_frames_, depth_filter_stable_count_ + 1);
+        }
+
+        if (depth_filter_stable_count_ < stable_depth_frames_) {
+          std::ostringstream waiting;
+          waiting << make_status("mp_control depth waiting for stable frames")
+                  << " stable=" << depth_filter_stable_count_
+                  << "/" << stable_depth_frames_
+                  << " pending=" << *depth_filter_pending_m_;
+          status = waiting.str();
+        } else {
+          accepted_depth = *depth_filter_pending_m_;
+          depth_filter_last_accepted_m_ = *accepted_depth;
+          std::ostringstream accepted;
+          accepted << make_status("mp_control depth accepted")
+                   << " stable=" << depth_filter_stable_count_
+                   << "/" << stable_depth_frames_
+                   << " accepted=" << *accepted_depth;
+          status = accepted.str();
+        }
+        last_depth_filter_status_ = status;
+      }
+    }
+
+    setBlockReason(reject_reason, status);
+    publishStatus(status);
+    return accepted_depth;
+  }
+
+  void resetDepthFilterStateLocked()
+  {
+    depth_filter_last_accepted_m_.reset();
+    depth_filter_pending_m_.reset();
+    depth_filter_stable_count_ = 0;
+    last_depth_filter_status_.clear();
+  }
+
   std::optional<double> nearLimitDepthInBbox(
     const sensor_msgs::msg::Image & depth,
     const CameraInfo & info,
