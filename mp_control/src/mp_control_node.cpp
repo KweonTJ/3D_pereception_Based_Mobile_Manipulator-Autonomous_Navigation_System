@@ -798,6 +798,13 @@ private:
       now()};
   }
 
+  void onCloseRangeReady(const std_msgs::msg::Bool::ConstSharedPtr msg)
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    close_range_ready_ = msg->data;
+    close_range_ready_stamp_ = now();
+  }
+
   void onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
   {
     CameraInfo info;
@@ -1417,6 +1424,15 @@ private:
     }
     return latest_eef_bbox_ &&
       (stamp - latest_eef_bbox_->stamp).seconds() <= max_target_age_s_;
+  }
+
+  bool closeRangeReadyFresh()
+  {
+    const auto stamp = now();
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    return close_range_ready_ &&
+      close_range_ready_stamp_.nanoseconds() != 0 &&
+      (stamp - close_range_ready_stamp_).seconds() <= close_range_ready_max_age_s_;
   }
 
   double objectGoalXForPregrasp(const geometry_msgs::msg::PointStamped & object) const
