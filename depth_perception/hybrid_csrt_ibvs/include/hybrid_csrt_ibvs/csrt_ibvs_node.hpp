@@ -179,6 +179,8 @@ private:
   double triangulation_start_depth_m_{0.47};
   double triangulation_start_bbox_area_ratio_{0.0};
   double triangulation_start_bbox_height_ratio_{0.0};
+  double close_ready_bbox_height_ratio_{0.95};
+  double close_ready_bbox_area_ratio_{0.50};
   double triangulation_stop_x_m_{0.30};
   double triangulation_max_speed_mps_{0.04};
   double triangulation_gain_{0.4};
