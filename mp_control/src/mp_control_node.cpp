@@ -4699,6 +4699,7 @@ private:
   std::string eef_camera_info_topic_;
 	  std::string eef_auto_init_enable_topic_;
 	  std::string base_hold_topic_;
+  std::string close_range_ready_topic_;
 	  std::string twist_topic_;
 	  std::string base_cmd_vel_topic_;
 	  std::string joint_state_topic_;
@@ -4731,9 +4732,11 @@ private:
 	  bool allow_eef_camera_info_fallback_{true};
 	  bool use_depthless_triangulation_{false};
 	  bool use_color_triangulation_after_min_depth_{false};
+  bool require_close_range_ready_for_pregrasp_{true};
 	  bool use_joint_pregrasp_{true};
 	  double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};
+  double close_range_ready_max_age_s_{0.6};
   double linear_gain_{0.9};
   double max_linear_speed_{0.025};
   double position_tolerance_m_{0.035};
@@ -4899,6 +4902,7 @@ private:
 	  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
 	  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
 	  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr close_range_ready_sub_;
 	  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
 	  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr base_cmd_vel_pub_;
 	  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_trajectory_pub_;
@@ -4942,6 +4946,8 @@ private:
 	  bool object_pregrasp_horizontal_done_{false};
 	  bool joint_pregrasp_sent_{false};
 	  bool joint_pregrasp_done_{false};
+  bool close_range_ready_{false};
+  rclcpp::Time close_range_ready_stamp_;
   bool eef_forward_advance_active_{false};
   bool safety_abort_latched_{false};
   bool safety_abort_ignore_reported_{false};
