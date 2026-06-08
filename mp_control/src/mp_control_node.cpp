@@ -118,6 +118,9 @@ public:
           cancelSequence("cancel requested");
         }
       });
+    close_range_ready_sub_ = create_subscription<std_msgs::msg::Bool>(
+      close_range_ready_topic_, init_bbox_qos,
+      [this](const std_msgs::msg::Bool::ConstSharedPtr msg) { onCloseRangeReady(msg); });
 
     twist_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(twist_topic_, default_qos);
     base_cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(base_cmd_vel_topic_, default_qos);
@@ -265,6 +268,8 @@ private:
     eef_auto_init_enable_topic_ =
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
 	    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
+    close_range_ready_topic_ =
+      declare_parameter<std::string>("close_range_ready_topic", "/target/close_range_ready");
 	    twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
 	    base_cmd_vel_topic_ = declare_parameter<std::string>("base_cmd_vel_topic", "/cmd_vel");
 	    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
@@ -315,9 +320,13 @@ private:
       declare_parameter<bool>("use_depthless_triangulation", false);
 	    use_color_triangulation_after_min_depth_ =
 	      declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
+    require_close_range_ready_for_pregrasp_ =
+      declare_parameter<bool>("require_close_range_ready_for_pregrasp", true);
 	    use_joint_pregrasp_ = declare_parameter<bool>("use_joint_pregrasp", true);
 	    command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
+    close_range_ready_max_age_s_ =
+      declare_parameter<double>("close_range_ready_max_age_s", max_target_age_s_);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
     max_linear_speed_ = declare_parameter<double>("max_linear_speed", 0.025);
     position_tolerance_m_ = declare_parameter<double>("position_tolerance_m", 0.035);
@@ -579,6 +588,7 @@ private:
       declare_parameter<double>("gripper_max_measured_object_width_m", 0.08);
 
     command_rate_hz_ = std::max(1.0, command_rate_hz_);
+    close_range_ready_max_age_s_ = std::max(0.1, close_range_ready_max_age_s_);
     max_linear_speed_ = std::max(0.0, max_linear_speed_);
     position_tolerance_m_ = std::max(0.005, position_tolerance_m_);
     close_after_stable_cycles_ = std::max(1, close_after_stable_cycles_);
