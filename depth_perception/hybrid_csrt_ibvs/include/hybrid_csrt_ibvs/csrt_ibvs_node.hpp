@@ -177,6 +177,9 @@ private:
   double triangulation_gain_{0.4};
   double triangulation_fallback_speed_mps_{0.005};
   double triangulation_fallback_max_area_ratio_{0.30};
+  double no_depth_visual_approach_speed_mps_{0.0};
+  double no_depth_visual_approach_max_area_ratio_{0.10};
+  double no_depth_visual_approach_max_height_ratio_{0.60};
   double triangulation_timeout_s_{2.0};
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};

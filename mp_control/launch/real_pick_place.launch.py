@@ -584,7 +584,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_aspect_ratio",
-            default_value="0.35",
+            default_value="0.15",
             description="Minimum bbox width/height ratio allowed for automatic depth detection.",
         ),
         DeclareLaunchArgument(

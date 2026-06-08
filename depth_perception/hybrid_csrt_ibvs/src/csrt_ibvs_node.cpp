@@ -214,6 +214,12 @@ void CsrtIbvsNode::readParameters()
     declare_parameter<double>("triangulation_fallback_speed_mps", 0.005);
   triangulation_fallback_max_area_ratio_ =
     declare_parameter<double>("triangulation_fallback_max_area_ratio", 0.30);
+  no_depth_visual_approach_speed_mps_ =
+    declare_parameter<double>("no_depth_visual_approach_speed_mps", 0.0);
+  no_depth_visual_approach_max_area_ratio_ =
+    declare_parameter<double>("no_depth_visual_approach_max_area_ratio", 0.10);
+  no_depth_visual_approach_max_height_ratio_ =
+    declare_parameter<double>("no_depth_visual_approach_max_height_ratio", 0.60);
   triangulation_timeout_s_ =
     declare_parameter<double>("triangulation_timeout_s", 2.0);
   triangulation_min_range_m_ =
@@ -275,6 +281,12 @@ void CsrtIbvsNode::readParameters()
     clampValue(triangulation_fallback_speed_mps_, 0.0, triangulation_max_speed_mps_);
   triangulation_fallback_max_area_ratio_ =
     clampValue(triangulation_fallback_max_area_ratio_, 0.0, 1.0);
+  no_depth_visual_approach_speed_mps_ =
+    clampValue(no_depth_visual_approach_speed_mps_, 0.0, max_linear_x_);
+  no_depth_visual_approach_max_area_ratio_ =
+    clampValue(no_depth_visual_approach_max_area_ratio_, 0.0, 1.0);
+  no_depth_visual_approach_max_height_ratio_ =
+    clampValue(no_depth_visual_approach_max_height_ratio_, 0.0, 1.0);
   triangulation_timeout_s_ = std::max(0.1, triangulation_timeout_s_);
   triangulation_min_range_m_ = std::max(0.0, triangulation_min_range_m_);
   triangulation_max_range_m_ = std::max(triangulation_min_range_m_ + 0.01, triangulation_max_range_m_);
@@ -1184,6 +1196,8 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     return result;
   }
 
+  bool no_depth_visual_approach_active = false;
+
   if (!result.depth_too_close &&
       use_triangulation_after_min_depth_ &&
       min_depth_reached_)
@@ -1253,6 +1267,28 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
            << " target=" << desired_depth_m_
            << " vx=" << linear_x;
     result.range_status = status.str();
+  } else if (
+      !result.depth_too_close &&
+      use_triangulation_after_min_depth_ &&
+      !min_depth_reached_ &&
+      !result.depth_m &&
+      no_depth_visual_approach_speed_mps_ > 0.0 &&
+      (no_depth_visual_approach_max_area_ratio_ <= 0.0 ||
+      bbox_area_ratio < no_depth_visual_approach_max_area_ratio_) &&
+      (no_depth_visual_approach_max_height_ratio_ <= 0.0 ||
+      bbox_height_ratio < no_depth_visual_approach_max_height_ratio_))
+  {
+    publishCloseRangeReady(false);
+    linear_x = no_depth_visual_approach_speed_mps_;
+    no_depth_visual_approach_active = true;
+    std::ostringstream status;
+    status << "no-depth visual approach before triangulation handoff"
+           << " area=" << result.area_ratio
+           << " start_area=" << triangulation_start_bbox_area_ratio_
+           << " height_ratio=" << bbox_height_ratio
+           << " start_height=" << triangulation_start_bbox_height_ratio_
+           << " vx=" << linear_x;
+    result.range_status = status.str();
   } else if (use_area_fallback_) {
     publishCloseRangeReady(false);
     const double area_error = desired_area_ratio_ - result.area_ratio;
@@ -1276,7 +1312,7 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     if (linear_x > 0.0 && min_forward_approach_x_ > 0.0) {
       linear_x = std::max(linear_x, min_forward_approach_x_);
     }
-  } else if (linear_x > 0.0 && approach_yaw_gate_norm_ > 1e-6) {
+  } else if (linear_x > 0.0 && approach_yaw_gate_norm_ > 1e-6 && !no_depth_visual_approach_active) {
     const double gate = clampValue(1.0 - std::abs(result.x_error_norm) / approach_yaw_gate_norm_, 0.0, 1.0);
     linear_x *= gate;
   }

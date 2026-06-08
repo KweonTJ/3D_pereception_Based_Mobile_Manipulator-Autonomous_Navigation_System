@@ -108,6 +108,9 @@ csrt_ibvs_node:
     triangulation_gain: 0.7
     triangulation_fallback_speed_mps: 0.02
     triangulation_fallback_max_area_ratio: 0.30
+    no_depth_visual_approach_speed_mps: 0.02
+    no_depth_visual_approach_max_area_ratio: 0.10
+    no_depth_visual_approach_max_height_ratio: 0.60
     triangulation_timeout_s: 2.0
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
