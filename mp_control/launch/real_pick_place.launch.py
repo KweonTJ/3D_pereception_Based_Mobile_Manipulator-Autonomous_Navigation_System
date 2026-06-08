@@ -77,6 +77,13 @@ def generate_launch_description():
     auto_init_box_center_weight = LaunchConfiguration("auto_init_box_center_weight")
     auto_init_box_area_weight = LaunchConfiguration("auto_init_box_area_weight")
     auto_init_box_depth_weight = LaunchConfiguration("auto_init_box_depth_weight")
+    auto_init_depth_first_front_bbox = LaunchConfiguration("auto_init_depth_first_front_bbox")
+    auto_init_require_depth_for_front_yolo = LaunchConfiguration(
+        "auto_init_require_depth_for_front_yolo")
+    auto_init_depth_yolo_iou_min = LaunchConfiguration("auto_init_depth_yolo_iou_min")
+    auto_init_yolo_as_assist_only = LaunchConfiguration("auto_init_yolo_as_assist_only")
+    auto_init_yolo_image_topic = LaunchConfiguration("auto_init_yolo_image_topic")
+    auto_init_yolo_image_max_age_s = LaunchConfiguration("auto_init_yolo_image_max_age_s")
     auto_init_yolo_model_path = LaunchConfiguration("auto_init_yolo_model_path")
     auto_init_yolo_confidence = LaunchConfiguration("auto_init_yolo_confidence")
     auto_init_yolo_imgsz = LaunchConfiguration("auto_init_yolo_imgsz")
@@ -249,6 +256,14 @@ def generate_launch_description():
             "box_center_weight": ParameterValue(auto_init_box_center_weight, value_type=float),
             "box_area_weight": ParameterValue(auto_init_box_area_weight, value_type=float),
             "box_depth_weight": ParameterValue(auto_init_box_depth_weight, value_type=float),
+            "depth_first_front_bbox": ParameterValue(
+                auto_init_depth_first_front_bbox, value_type=bool),
+            "require_depth_for_front_yolo": ParameterValue(
+                auto_init_require_depth_for_front_yolo, value_type=bool),
+            "depth_yolo_iou_min": ParameterValue(auto_init_depth_yolo_iou_min, value_type=float),
+            "yolo_as_assist_only": ParameterValue(auto_init_yolo_as_assist_only, value_type=bool),
+            "yolo_image_topic": auto_init_yolo_image_topic,
+            "yolo_image_max_age_s": ParameterValue(auto_init_yolo_image_max_age_s, value_type=float),
             "yolo_model_path": auto_init_yolo_model_path,
             "yolo_confidence": ParameterValue(auto_init_yolo_confidence, value_type=float),
             "yolo_imgsz": ParameterValue(auto_init_yolo_imgsz, value_type=int),
@@ -559,8 +574,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="box",
-            description="Detection mode for the initial front bbox detector. The real pickup path uses depth-first box detection.",
+            default_value="depth_first_front_bbox",
+            description="Detection mode for the initial front bbox detector. depth_first_front_bbox uses depth components plus YOLO IoU validation; auto_init_color_mode:=yolo keeps YOLO-only mode.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
@@ -696,6 +711,36 @@ def generate_launch_description():
             "auto_init_box_depth_weight",
             default_value="0.15",
             description="Weight for box candidate depth flatness.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_depth_first_front_bbox",
+            default_value="true",
+            description="Use front depth component as the primary bbox and validate it against YOLO when available.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_require_depth_for_front_yolo",
+            default_value="true",
+            description="Block YOLO-only front bbox publishing unless auto_init_color_mode:=yolo is explicitly selected.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_depth_yolo_iou_min",
+            default_value="0.30",
+            description="Minimum IoU required between the front depth bbox and scaled YOLO bbox.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_as_assist_only",
+            default_value="true",
+            description="Keep YOLO as a validator/assist signal in depth-first mode instead of publishing YOLO bbox directly.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_image_topic",
+            default_value="/camera/color/image_raw",
+            description="RGB image topic used for YOLO validation while the front detector subscribes to depth.",
+        ),
+        DeclareLaunchArgument(
+            "auto_init_yolo_image_max_age_s",
+            default_value="0.75",
+            description="Maximum age of the RGB YOLO assist frame used for depth-first IoU validation.",
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_model_path",
