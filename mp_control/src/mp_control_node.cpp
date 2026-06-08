@@ -896,6 +896,8 @@ private:
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
+      close_range_ready_ = false;
+      close_range_ready_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     }
     object_pregrasp_horizontal_done_ = false;
     joint_pregrasp_sent_ = false;
@@ -948,6 +950,8 @@ private:
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
       latest_eef_bbox_.reset();
+      close_range_ready_ = false;
+      close_range_ready_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     }
     object_pregrasp_horizontal_done_ = false;
     joint_pregrasp_sent_ = false;
