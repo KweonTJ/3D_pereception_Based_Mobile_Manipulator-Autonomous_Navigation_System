@@ -3158,16 +3158,24 @@ private:
 
     std::array<double, 4> synchronized_ik_target = ik.controller_target;
     bool ik_joint_sync_fill = false;
-    const double ik_joint3_delta = ik.controller_target[2] - (*current)[2];
-    const bool ik_uses_joint3 = std::abs(ik_joint3_delta) > 1.0e-6;
-    if (ik_uses_joint3) {
-      for (std::size_t i = 1; i <= 3; ++i) {
-        const double ik_delta = synchronized_ik_target[i] - (*current)[i];
-        const double coupled_delta = coupled_waypoint[i] - (*current)[i];
-        if (std::abs(ik_delta) < 1.0e-6 && std::abs(coupled_delta) > 1.0e-6) {
-          synchronized_ik_target[i] = coupled_waypoint[i];
-          ik_joint_sync_fill = true;
+    std::string ik_joint_sync_reason = "none";
+    for (std::size_t i = 1; i <= 3; ++i) {
+      const double ik_delta = synchronized_ik_target[i] - (*current)[i];
+      const double coupled_delta = coupled_waypoint[i] - (*current)[i];
+      const bool coupled_active = std::abs(coupled_delta) > 1.0e-6;
+      const bool ik_missing = std::abs(ik_delta) < 1.0e-6;
+      const bool ik_opposes_coupled =
+        coupled_active && !ik_missing && ik_delta * coupled_delta < 0.0;
+      if (coupled_active && (ik_missing || ik_opposes_coupled)) {
+        synchronized_ik_target[i] = coupled_waypoint[i];
+        ik_joint_sync_fill = true;
+        if (ik_joint_sync_reason == "none") {
+          ik_joint_sync_reason.clear();
+        } else {
+          ik_joint_sync_reason += ",";
         }
+        ik_joint_sync_reason += arm_joint_names_[i];
+        ik_joint_sync_reason += ik_missing ? ":missing" : ":opposite";
       }
     }
 
@@ -3224,6 +3232,7 @@ private:
            << " raw_target=" << formatJointArray(raw_target)
            << " simultaneous_joints=" << joint_stage
            << " ik_joint_sync_fill=" << (ik_joint_sync_fill ? "true" : "false")
+           << " ik_joint_sync_reason=" << ik_joint_sync_reason
            << " allow_after_joint3_complete="
            << (allow_after_joint3_complete ? "true" : "false")
            << " target_advance=" << target_advance_m
