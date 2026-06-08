@@ -9,6 +9,7 @@
 #include <string>
 
 #include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
@@ -97,6 +98,11 @@ private:
     const std::string & reason) const;
   void publishStatus(const std::string & text, bool force = false);
   void publishCloseRangeReady(bool ready, bool force = false);
+  void publishStableObjectPoint(
+    const cv::Rect & bbox,
+    const cv::Size & image_size,
+    const rclcpp::Time & stamp,
+    double range_m);
   void publishStop(bool force = false);
   std::string stateToString() const;
 
@@ -117,6 +123,7 @@ private:
   std::string cmd_vel_topic_;
   std::string base_hold_topic_;
   std::string close_range_ready_topic_;
+  std::string stable_object_topic_;
   std::string arm_twist_topic_;
   std::string debug_image_topic_;
   std::string status_topic_;
@@ -230,6 +237,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr tracked_bbox_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr close_range_ready_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr stable_object_pub_;
   rclcpp::TimerBase::SharedPtr watchdog_timer_;
 
 #ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
@@ -264,6 +272,7 @@ private:
   double fy_{0.0};
   double camera_cx_{0.0};
   double camera_cy_{0.0};
+  std::string camera_frame_id_;
 
   mutable std::mutex eef_mutex_;
   std::optional<cv::Rect> latest_eef_bbox_;
