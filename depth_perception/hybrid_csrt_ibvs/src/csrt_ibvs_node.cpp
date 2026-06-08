@@ -210,6 +210,10 @@ void CsrtIbvsNode::readParameters()
     declare_parameter<double>("triangulation_start_bbox_area_ratio", 0.0);
   triangulation_start_bbox_height_ratio_ =
     declare_parameter<double>("triangulation_start_bbox_height_ratio", 0.0);
+  close_ready_bbox_height_ratio_ =
+    declare_parameter<double>("close_ready_bbox_height_ratio", 0.95);
+  close_ready_bbox_area_ratio_ =
+    declare_parameter<double>("close_ready_bbox_area_ratio", 0.50);
   triangulation_stop_x_m_ =
     declare_parameter<double>("triangulation_stop_x_m", 0.30);
   triangulation_max_speed_mps_ =
@@ -285,6 +289,10 @@ void CsrtIbvsNode::readParameters()
     clampValue(triangulation_start_bbox_area_ratio_, 0.0, 1.0);
   triangulation_start_bbox_height_ratio_ =
     clampValue(triangulation_start_bbox_height_ratio_, 0.0, 1.0);
+  close_ready_bbox_height_ratio_ =
+    clampValue(close_ready_bbox_height_ratio_, 0.0, 1.0);
+  close_ready_bbox_area_ratio_ =
+    clampValue(close_ready_bbox_area_ratio_, 0.0, 1.0);
   triangulation_stop_x_m_ = std::max(0.01, triangulation_stop_x_m_);
   triangulation_max_speed_mps_ = std::max(0.0, triangulation_max_speed_mps_);
   triangulation_gain_ = std::max(0.0, triangulation_gain_);
