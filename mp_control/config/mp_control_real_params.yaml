@@ -10,6 +10,7 @@ mp_control_node:
     eef_auto_init_enable_topic: /target/eef_auto_init_enable
     base_hold_topic: /target/base_hold
     close_range_ready_topic: /target/close_range_ready
+    stable_object_topic: /target/object_in_base
 
     twist_topic: /servo_node/delta_twist_cmds
     base_cmd_vel_topic: /cmd_vel
@@ -77,6 +78,11 @@ mp_control_node:
     depth_unit_scale: 0.001
     min_valid_depth_m: 0.47
     max_valid_depth_m: 1.0
+    depth_std_max_m: 0.08
+    depth_min_fill_ratio: 0.25
+    depth_jump_limit_m: 0.10
+    stable_depth_frames: 3
+    min_depth_samples: 30
 
     # Offset is applied in target_frame after the camera point is transformed.
     # Tune these slowly if the gripper consistently stops beside/above/in front of the object.
