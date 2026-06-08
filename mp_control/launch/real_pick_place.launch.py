@@ -269,7 +269,7 @@ def generate_launch_description():
             "bbox_padding_scale_y": 1.15,
             "continuous_publish": True,
             "continuous_publish_period_s": 0.35,
-            "reuse_last_bbox_on_loss": True,
+            "reuse_last_bbox_on_loss": False,
             "reuse_last_bbox_max_age_s": 1.0,
             "lock_first_bbox": False,
         }],
