@@ -4773,6 +4773,15 @@ private:
   double eef_forward_joint3_complete_delta_rad_{0.14};
   double eef_forward_joint3_complete_tolerance_rad_{0.015};
   double eef_forward_joint4_finish_tolerance_rad_{0.015};
+  bool eef_forward_use_bezier_ik_{true};
+  double eef_forward_bezier_total_duration_s_{5.0};
+  double eef_forward_bezier_progress_step_{0.08};
+  double eef_forward_bezier_joint2_total_delta_rad_{0.10};
+  double eef_forward_bezier_joint3_total_delta_rad_{0.14};
+  double eef_forward_bezier_joint2_max_step_rad_{0.02};
+  double eef_forward_bezier_joint3_max_step_rad_{0.02};
+  double eef_forward_bezier_joint4_max_step_rad_{0.0};
+  bool eef_forward_bezier_preserve_roll_{true};
   double eef_forward_roll_joint2_weight_{0.0};
   double eef_forward_roll_joint3_weight_{1.0};
   double eef_forward_roll_joint4_weight_{1.0};
