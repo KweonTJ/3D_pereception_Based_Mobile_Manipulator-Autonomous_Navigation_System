@@ -529,13 +529,13 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_image_topic",
-            default_value="/camera/color/image_raw",
-            description="Front Astra image topic used for automatic primary box detection.",
+            default_value="/camera/depth/image_raw",
+            description="Front Astra depth topic used for depth-first primary box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_alternate_image_topics",
-            default_value="/camera/rgb/image_raw,/camera/image_raw,/camera/color/image",
-            description="Comma-separated fallback image topics for automatic primary box detection.",
+            default_value="/camera/depth/image",
+            description="Comma-separated fallback depth topics for automatic primary box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_topic",
@@ -559,8 +559,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="yolo",
-            description="Detection mode for the initial bbox detector.",
+            default_value="box",
+            description="Detection mode for the initial front bbox detector. The real pickup path uses depth-first box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_mask_pixels",
@@ -674,7 +674,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_box_max_depth_std_m",
-            default_value="0.16",
+            default_value="0.08",
             description="Maximum depth standard deviation inside a box candidate.",
         ),
         DeclareLaunchArgument(
