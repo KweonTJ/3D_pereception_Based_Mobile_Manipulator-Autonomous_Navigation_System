@@ -837,6 +837,13 @@ private:
     close_range_ready_stamp_ = now();
   }
 
+  void onStableObjectPoint(const geometry_msgs::msg::PointStamped::ConstSharedPtr msg)
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_stable_object_point_ = *msg;
+    latest_stable_object_stamp_ = now();
+  }
+
   void onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
   {
     CameraInfo info;
