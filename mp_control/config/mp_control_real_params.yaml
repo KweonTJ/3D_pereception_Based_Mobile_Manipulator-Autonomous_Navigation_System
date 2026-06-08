@@ -9,6 +9,7 @@ mp_control_node:
     eef_camera_info_topic: /eef_camera/camera_info
     eef_auto_init_enable_topic: /target/eef_auto_init_enable
     base_hold_topic: /target/base_hold
+    close_range_ready_topic: /target/close_range_ready
 
     twist_topic: /servo_node/delta_twist_cmds
     base_cmd_vel_topic: /cmd_vel
@@ -57,12 +58,14 @@ mp_control_node:
     auto_init_eef_tracker_from_object: false
     use_depthless_triangulation: false
     use_color_triangulation_after_min_depth: false
+    require_close_range_ready_for_pregrasp: true
     # Real hardware pregrasp bypasses Cartesian Servo because Servo collision
     # scaling can stall while the arm is still mechanically able to extend.
     use_joint_pregrasp: true
 
     command_rate_hz: 20.0
     max_target_age_s: 2.0
+    close_range_ready_max_age_s: 2.0
     linear_gain: 0.9
     max_linear_speed: 0.025
     position_tolerance_m: 0.035
