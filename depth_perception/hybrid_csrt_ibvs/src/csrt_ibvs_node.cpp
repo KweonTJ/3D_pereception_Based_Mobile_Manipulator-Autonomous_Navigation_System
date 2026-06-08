@@ -262,6 +262,11 @@ void CsrtIbvsNode::readParameters()
   max_valid_depth_m_ = declare_parameter<double>("max_valid_depth_m", 3.0);
   emergency_stop_depth_m_ = declare_parameter<double>("emergency_stop_depth_m", 0.18);
   max_depth_stamp_age_s_ = declare_parameter<double>("max_depth_stamp_age_s", 0.35);
+  min_depth_samples_ = declare_parameter<int>("min_depth_samples", 30);
+  stable_depth_frames_ = declare_parameter<int>("stable_depth_frames", 3);
+  depth_std_max_m_ = declare_parameter<double>("depth_std_max_m", 0.08);
+  depth_min_fill_ratio_ = declare_parameter<double>("depth_min_fill_ratio", 0.25);
+  depth_jump_limit_m_ = declare_parameter<double>("depth_jump_limit_m", 0.10);
 
   loss_frame_limit_ = std::max(1, loss_frame_limit_);
   min_bbox_size_px_ = std::max(2, min_bbox_size_px_);
@@ -300,6 +305,11 @@ void CsrtIbvsNode::readParameters()
   depth_bbox_inner_scale_ = clampValue(depth_bbox_inner_scale_, 0.1, 1.0);
   depth_sample_percentile_ = clampValue(depth_sample_percentile_, 0.0, 100.0);
   depth_min_valid_pixels_ = std::max(1, depth_min_valid_pixels_);
+  min_depth_samples_ = std::max(1, min_depth_samples_);
+  stable_depth_frames_ = std::max(1, stable_depth_frames_);
+  depth_std_max_m_ = std::max(0.0, depth_std_max_m_);
+  depth_min_fill_ratio_ = clampValue(depth_min_fill_ratio_, 0.0, 1.0);
+  depth_jump_limit_m_ = std::max(0.0, depth_jump_limit_m_);
 }
 
 void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstSharedPtr msg)
