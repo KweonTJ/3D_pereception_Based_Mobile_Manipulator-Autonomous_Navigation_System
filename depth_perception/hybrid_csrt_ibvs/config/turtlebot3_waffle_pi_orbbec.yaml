@@ -13,6 +13,7 @@ csrt_ibvs_node:
     # TurtleBot3 base command.
     cmd_vel_topic: /cmd_vel
     base_hold_topic: /target/base_hold
+    close_range_ready_topic: /target/close_range_ready
     enable_cmd_vel: true
 
     # Keep arm commands off until MoveIt Servo/OpenManipulator-X is configured.
@@ -88,7 +89,10 @@ csrt_ibvs_node:
     depth_unit_scale: 0.001
     min_valid_depth_m: 0.47
     max_valid_depth_m: 1.0
-    emergency_stop_depth_m: 0.47
+    # 0.47 m is the depth-to-color-triangulation handoff point, not a stop.
+    # Keep the emergency stop much closer so the base can continue with
+    # triangulation until the close-range target is reached.
+    emergency_stop_depth_m: 0.18
     max_depth_stamp_age_s: 1.0
     status_period_s: 0.5
 
