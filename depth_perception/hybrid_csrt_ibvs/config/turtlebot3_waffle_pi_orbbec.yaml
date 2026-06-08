@@ -89,6 +89,11 @@ csrt_ibvs_node:
     depth_unit_scale: 0.001
     min_valid_depth_m: 0.47
     max_valid_depth_m: 1.0
+    min_depth_samples: 30
+    stable_depth_frames: 3
+    depth_std_max_m: 0.08
+    depth_min_fill_ratio: 0.25
+    depth_jump_limit_m: 0.10
     # 0.47 m is the depth-to-color-triangulation handoff point, not a stop.
     # Keep the emergency stop much closer so the base can continue with
     # triangulation until the close-range target is reached.
