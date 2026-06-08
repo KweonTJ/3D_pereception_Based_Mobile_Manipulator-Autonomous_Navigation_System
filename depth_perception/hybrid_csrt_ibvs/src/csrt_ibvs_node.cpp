@@ -731,6 +731,10 @@ bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbo
     resetTracker();
     state_ = TrackerState::LOST;
     min_depth_reached_ = false;
+    last_accepted_depth_m_.reset();
+    pending_depth_m_.reset();
+    stable_depth_count_ = 0;
+    last_depth_filter_status_.clear();
     publishCloseRangeReady(false);
     publishStop(true);
     RCLCPP_ERROR(get_logger(), "%s initialization failed: %s", trackerBackendName(), ex.what());
