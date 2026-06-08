@@ -3226,10 +3226,15 @@ private:
       if (elapsed_s >= wait_s && can_check_reached &&
           (stamp - joint_pregrasp_last_publish_stamp_).seconds() >=
           joint_pregrasp_republish_period_s_) {
+        bool joint3_step_active = false;
+        const auto controller_step_target =
+          jointPregraspControllerStepTarget(
+          *current, *joint_pregrasp_controller_target_, &joint3_step_active);
         const auto raw_target =
-          jointPregraspRawTargetFromControllerTarget(*current, *joint_pregrasp_controller_target_);
+          jointPregraspRawTargetFromControllerTarget(*current, controller_step_target);
         publishJointPregraspTrajectory(*current, raw_target);
         joint_pregrasp_target_ = raw_target;
+        joint_pregrasp_controller_step_target_ = controller_step_target;
         joint_pregrasp_last_publish_stamp_ = stamp;
       }
 
@@ -3243,7 +3248,17 @@ private:
                << " joint_err=" << formatJointArray(errors)
                << " current=" << formatJointArray(*current)
                << " controller_target=" << formatJointArray(*joint_pregrasp_controller_target_)
+               << " joint3_remaining="
+               << ((*joint_pregrasp_controller_target_)[2] - (*current)[2])
+               << " joint3_max_step=" << joint_pregrasp_joint3_max_step_rad_
                << poseStatusSuffix();
+        if (joint_pregrasp_controller_step_target_) {
+          const auto step_errors =
+            jointErrors(*current, *joint_pregrasp_controller_step_target_);
+          status << " controller_step_target="
+                 << formatJointArray(*joint_pregrasp_controller_step_target_)
+                 << " step_joint_err=" << formatJointArray(step_errors);
+        }
         if (joint_pregrasp_target_) {
           status << " raw_target=" << formatJointArray(*joint_pregrasp_target_);
         }
@@ -3261,12 +3276,16 @@ private:
     }
 
     const auto controller_target = jointPregraspControllerTargetFromCurrent(*current);
+    bool joint3_step_active = false;
+    const auto controller_step_target =
+      jointPregraspControllerStepTarget(*current, controller_target, &joint3_step_active);
     const auto raw_target =
-      jointPregraspRawTargetFromControllerTarget(*current, controller_target);
+      jointPregraspRawTargetFromControllerTarget(*current, controller_step_target);
     publishJointPregraspTrajectory(*current, raw_target);
     joint_pregrasp_sent_ = true;
     joint_pregrasp_target_ = raw_target;
     joint_pregrasp_controller_target_ = controller_target;
+    joint_pregrasp_controller_step_target_ = controller_step_target;
     joint_pregrasp_start_stamp_ = stamp;
     joint_pregrasp_last_publish_stamp_ = stamp;
     object_pregrasp_horizontal_done_ = true;
@@ -3275,6 +3294,9 @@ private:
     status << "moving arm to joint pregrasp: current=" << formatJointArray(*current)
            << " raw_target=" << formatJointArray(raw_target)
            << " controller_target=" << formatJointArray(controller_target)
+           << " controller_step_target=" << formatJointArray(controller_step_target)
+           << " joint3_step_active=" << (joint3_step_active ? "true" : "false")
+           << " joint3_max_step=" << joint_pregrasp_joint3_max_step_rad_
            << " preserve_gripper_roll="
            << (joint_pregrasp_preserve_gripper_roll_ ? "true" : "false")
            << " pregrasp_roll_weights=(" << pregrasp_roll_joint2_weight_ << ", "
