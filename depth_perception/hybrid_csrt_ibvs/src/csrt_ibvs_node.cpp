@@ -131,6 +131,7 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
     use_triangulation_after_min_depth_ ? "enabled" : "disabled");
 
   publishStatus("ready; publish bbox [x, y, w, h] to " + init_bbox_topic_, true);
+  publishCloseRangeReady(false, true);
 }
 
 void CsrtIbvsNode::readParameters()
