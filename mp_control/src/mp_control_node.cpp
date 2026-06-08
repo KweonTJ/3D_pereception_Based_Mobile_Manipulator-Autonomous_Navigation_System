@@ -3207,7 +3207,7 @@ private:
       }
     }
     const std::string ik_monotonic_hold_reason =
-      enforceEefForwardMonotonicTarget(*current, coupled_waypoint, synchronized_ik_target);
+      enforceEefForwardMonotonicTarget(*current, start, coupled_waypoint, synchronized_ik_target);
 
     std::array<double, 4> controller_target = *current;
     controller_target[1] = (*current)[1] + clampStep(
@@ -3221,7 +3221,7 @@ private:
       eef_forward_bezier_joint4_max_step_rad_);
     controller_target = clampJointPregraspTarget(controller_target);
     const std::string controller_monotonic_hold_reason =
-      enforceEefForwardMonotonicTarget(*current, coupled_waypoint, controller_target);
+      enforceEefForwardMonotonicTarget(*current, start, coupled_waypoint, controller_target);
 
     const auto raw_target =
       jointNudgeRawTargetFromControllerTarget(*current, controller_target);
@@ -3395,7 +3395,7 @@ private:
     controller_target[3] =
       clampValue(controller_target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
     const std::string controller_monotonic_hold_reason =
-      enforceEefForwardMonotonicTarget(*current, bezier_waypoint, controller_target);
+      enforceEefForwardMonotonicTarget(*current, start, bezier_waypoint, controller_target);
 
     const auto raw_target =
       jointNudgeRawTargetFromControllerTarget(*current, controller_target);
