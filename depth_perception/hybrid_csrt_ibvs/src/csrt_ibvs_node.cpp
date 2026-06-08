@@ -1140,6 +1140,13 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   const bool straight_depth_approach =
     force_straight_approach_ &&
     (!result.depth_m || straight_approach_depth_m_ <= 0.0 || *result.depth_m <= straight_approach_depth_m_);
+  const bool visual_triangulation_start =
+    use_triangulation_after_min_depth_ &&
+    !result.depth_m &&
+    ((triangulation_start_bbox_area_ratio_ > 0.0 &&
+      bbox_area_ratio >= triangulation_start_bbox_area_ratio_) ||
+    (triangulation_start_bbox_height_ratio_ > 0.0 &&
+      bbox_height_ratio >= triangulation_start_bbox_height_ratio_));
 
   if (result.depth_m && *result.depth_m < emergency_stop_depth_m_) {
     result.depth_too_close = true;
@@ -1155,9 +1162,26 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
       use_triangulation_after_min_depth_ &&
       result.depth_m &&
       *result.depth_m <= triangulation_start_depth_m_ + depth_deadband_m_;
-    if (reached_triangulation_start) {
+    if (reached_triangulation_start || visual_triangulation_start) {
       min_depth_reached_ = true;
     }
+  }
+
+  if (!result.depth_too_close &&
+      use_triangulation_after_min_depth_ &&
+      min_depth_reached_ &&
+      (bbox_height_ratio >= 0.70 || bbox_area_ratio >= 0.30))
+  {
+    linear_x = 0.0;
+    angular_z = 0.0;
+    publishCloseRangeReady(true);
+
+    std::ostringstream status;
+    status << "close range ready by front bbox scale"
+           << " height_ratio=" << bbox_height_ratio
+           << " area_ratio=" << bbox_area_ratio;
+    result.range_status = status.str();
+    return result;
   }
 
   if (!result.depth_too_close &&
@@ -1169,17 +1193,22 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     auto triangulated_x = estimateTriangulatedObjectX(bbox, image_size, &tri_reason);
     if (!triangulated_x) {
       const double area_error = desired_area_ratio_ - result.area_ratio;
+      const bool allow_visual_handoff_fallback =
+        visual_triangulation_start &&
+        triangulation_fallback_max_area_ratio_ > 0.0 &&
+        result.area_ratio < triangulation_fallback_max_area_ratio_;
       if (triangulation_fallback_speed_mps_ > 0.0 &&
-          area_error > area_deadband_ratio_) {
-        linear_x = clampValue(
-          area_gain_ * area_error,
-          0.0,
-          triangulation_fallback_speed_mps_);
+          (area_error > area_deadband_ratio_ || allow_visual_handoff_fallback)) {
+        linear_x = area_error > area_deadband_ratio_ ?
+          clampValue(area_gain_ * area_error, 0.0, triangulation_fallback_speed_mps_) :
+          triangulation_fallback_speed_mps_;
         publishCloseRangeReady(false);
         std::ostringstream status;
         status << "triangulation fallback approach: " << tri_reason
                << " area=" << result.area_ratio
                << " target_area=" << desired_area_ratio_
+               << " visual_handoff=" << (allow_visual_handoff_fallback ? "true" : "false")
+               << " height_ratio=" << bbox_height_ratio
                << " vx=" << linear_x;
         result.range_status = status.str();
       } else {
