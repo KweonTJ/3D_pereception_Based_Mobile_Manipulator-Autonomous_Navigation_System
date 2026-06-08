@@ -428,6 +428,8 @@ private:
 	      declare_parameter<double>("pregrasp_joint_tolerance_rad", 0.04);
 	    joint_pregrasp_republish_period_s_ =
 	      declare_parameter<double>("pregrasp_republish_period_s", 1.0);
+	    joint_pregrasp_joint3_max_step_rad_ =
+	      declare_parameter<double>("pregrasp_joint3_max_step_rad", 0.06);
 	    joint_pregrasp_min_positions_ =
 	      declare_parameter<std::vector<double>>(
 	      "pregrasp_joint_min_positions", std::vector<double>{-3.14, -1.79, -0.94, -1.79});
@@ -671,6 +673,8 @@ private:
 	    joint_pregrasp_settle_s_ = std::max(0.0, joint_pregrasp_settle_s_);
 	    joint_pregrasp_tolerance_rad_ = std::max(0.001, joint_pregrasp_tolerance_rad_);
 	    joint_pregrasp_republish_period_s_ = std::max(0.2, joint_pregrasp_republish_period_s_);
+	    joint_pregrasp_joint3_max_step_rad_ =
+	      std::max(0.0, joint_pregrasp_joint3_max_step_rad_);
 	    eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_close_tolerance_px_ = std::max(eef_center_tolerance_px_, eef_close_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
