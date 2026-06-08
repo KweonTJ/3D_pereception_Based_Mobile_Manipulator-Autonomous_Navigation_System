@@ -121,6 +121,13 @@ public:
     close_range_ready_sub_ = create_subscription<std_msgs::msg::Bool>(
       close_range_ready_topic_, init_bbox_qos,
       [this](const std_msgs::msg::Bool::ConstSharedPtr msg) { onCloseRangeReady(msg); });
+    if (!stable_object_topic_.empty()) {
+      stable_object_sub_ = create_subscription<geometry_msgs::msg::PointStamped>(
+        stable_object_topic_, default_qos,
+        [this](const geometry_msgs::msg::PointStamped::ConstSharedPtr msg) {
+          onStableObjectPoint(msg);
+        });
+    }
 
     twist_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(twist_topic_, default_qos);
     base_cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(base_cmd_vel_topic_, default_qos);
