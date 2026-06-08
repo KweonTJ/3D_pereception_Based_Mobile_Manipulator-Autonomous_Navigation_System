@@ -1373,9 +1373,15 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
 }
 
 std::optional<double> CsrtIbvsNode::estimateDepthMeters(
-  const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const
+  const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp)
 {
   if (!use_depth_) {
+    last_depth_filter_status_ = "depth disabled by parameter";
+    return std::nullopt;
+  }
+
+  if (use_triangulation_after_min_depth_ && min_depth_reached_) {
+    last_depth_filter_status_ = "depth disabled after 0.47m handoff";
     return std::nullopt;
   }
 
@@ -1386,12 +1392,17 @@ std::optional<double> CsrtIbvsNode::estimateDepthMeters(
   }
 
   if (!sample || sample->image.empty()) {
+    last_depth_filter_status_ = "depth missing";
     return std::nullopt;
   }
 
   if (max_depth_stamp_age_s_ > 0.0 && image_stamp.nanoseconds() != 0 && sample->stamp.nanoseconds() != 0) {
     const double age_s = std::abs((image_stamp - sample->stamp).seconds());
     if (age_s > max_depth_stamp_age_s_) {
+      std::ostringstream status;
+      status << "depth rejected: stale age=" << age_s
+             << "s > " << max_depth_stamp_age_s_ << "s";
+      last_depth_filter_status_ = status.str();
       return std::nullopt;
     }
   }
@@ -1412,15 +1423,18 @@ std::optional<double> CsrtIbvsNode::estimateDepthMeters(
     static_cast<int>(std::ceil(roi_height)));
   const cv::Rect clipped_roi = roi & depth_bounds;
   if (clipped_roi.empty()) {
+    last_depth_filter_status_ = "depth rejected: empty bbox ROI";
     return std::nullopt;
   }
 
   std::vector<double> valid_depths;
   valid_depths.reserve(static_cast<size_t>(clipped_roi.width * clipped_roi.height));
   const int step = std::max(1, std::min(clipped_roi.width, clipped_roi.height) / 32);
+  int sampled_pixels = 0;
 
   for (int r = clipped_roi.y; r < clipped_roi.y + clipped_roi.height; r += step) {
     for (int c = clipped_roi.x; c < clipped_roi.x + clipped_roi.width; c += step) {
+      ++sampled_pixels;
       const auto meters = pixelToMeters(sample->image, sample->encoding, r, c);
       if (meters) {
         valid_depths.push_back(*meters);
@@ -1428,7 +1442,44 @@ std::optional<double> CsrtIbvsNode::estimateDepthMeters(
     }
   }
 
-  if (static_cast<int>(valid_depths.size()) < depth_min_valid_pixels_) {
+  const int required_samples = std::max(depth_min_valid_pixels_, min_depth_samples_);
+  if (static_cast<int>(valid_depths.size()) < required_samples) {
+    std::ostringstream status;
+    status << "depth rejected: samples=" << valid_depths.size()
+           << " < " << required_samples;
+    last_depth_filter_status_ = status.str();
+    return std::nullopt;
+  }
+
+  const double fill_ratio = sampled_pixels > 0 ?
+    static_cast<double>(valid_depths.size()) / static_cast<double>(sampled_pixels) : 0.0;
+  if (fill_ratio < depth_min_fill_ratio_) {
+    std::ostringstream status;
+    status << "depth rejected: fill=" << fill_ratio
+           << " < " << depth_min_fill_ratio_;
+    last_depth_filter_status_ = status.str();
+    return std::nullopt;
+  }
+
+  double mean = 0.0;
+  for (const double depth : valid_depths) {
+    mean += depth;
+  }
+  mean /= static_cast<double>(valid_depths.size());
+
+  double variance = 0.0;
+  for (const double depth : valid_depths) {
+    const double diff = depth - mean;
+    variance += diff * diff;
+  }
+  variance /= static_cast<double>(valid_depths.size());
+  const double std_m = std::sqrt(variance);
+
+  if (std_m > depth_std_max_m_) {
+    std::ostringstream status;
+    status << "depth rejected: std=" << std_m
+           << "m > " << depth_std_max_m_ << "m";
+    last_depth_filter_status_ = status.str();
     return std::nullopt;
   }
 
@@ -1437,7 +1488,48 @@ std::optional<double> CsrtIbvsNode::estimateDepthMeters(
   const size_t index = std::min(
     valid_depths.size() - 1,
     static_cast<size_t>(std::lround(ratio * static_cast<double>(valid_depths.size() - 1))));
-  return valid_depths[index];
+  const double candidate_depth_m = valid_depths[index];
+
+  if (last_accepted_depth_m_ && depth_jump_limit_m_ > 0.0) {
+    const double jump_m = std::abs(candidate_depth_m - *last_accepted_depth_m_);
+    if (jump_m > depth_jump_limit_m_) {
+      std::ostringstream status;
+      status << "depth rejected: jump=" << jump_m
+             << "m > " << depth_jump_limit_m_ << "m";
+      last_depth_filter_status_ = status.str();
+      return std::nullopt;
+    }
+  }
+
+  const double stable_tolerance_m = std::max(0.01, 0.5 * depth_jump_limit_m_);
+  if (!pending_depth_m_ || std::abs(candidate_depth_m - *pending_depth_m_) > stable_tolerance_m) {
+    pending_depth_m_ = candidate_depth_m;
+    stable_depth_count_ = 1;
+  } else {
+    pending_depth_m_ = candidate_depth_m;
+    stable_depth_count_ = std::min(stable_depth_frames_, stable_depth_count_ + 1);
+  }
+
+  if (stable_depth_count_ < stable_depth_frames_) {
+    std::ostringstream status;
+    status << "depth waiting: stable_frames=" << stable_depth_count_
+           << "/" << stable_depth_frames_
+           << " z=" << candidate_depth_m
+           << " std=" << std_m
+           << " fill=" << fill_ratio;
+    last_depth_filter_status_ = status.str();
+    return std::nullopt;
+  }
+
+  last_accepted_depth_m_ = candidate_depth_m;
+  std::ostringstream status;
+  status << "depth accepted: z=" << candidate_depth_m
+         << "m std=" << std_m
+         << " fill=" << fill_ratio
+         << " samples=" << valid_depths.size()
+         << " stable=" << stable_depth_count_ << "/" << stable_depth_frames_;
+  last_depth_filter_status_ = status.str();
+  return candidate_depth_m;
 }
 
 std::optional<double> CsrtIbvsNode::pixelToMeters(
