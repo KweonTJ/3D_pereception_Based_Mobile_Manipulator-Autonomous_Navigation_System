@@ -3375,6 +3375,9 @@ private:
     const RpyError & rpy_error,
     bool allow_after_joint3_complete)
   {
+    if (eef_forward_use_analytic_ik_) {
+      return publishEefForwardAnalyticIkNudge(rpy_error, allow_after_joint3_complete);
+    }
     if (eef_forward_use_bezier_ik_) {
       return publishEefForwardBezierIkNudge(rpy_error, allow_after_joint3_complete);
     }
