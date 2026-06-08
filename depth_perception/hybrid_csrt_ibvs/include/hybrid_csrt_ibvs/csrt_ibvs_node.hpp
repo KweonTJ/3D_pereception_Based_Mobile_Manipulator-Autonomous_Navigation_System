@@ -272,6 +272,8 @@ private:
   double fy_{0.0};
   double camera_cx_{0.0};
   double camera_cy_{0.0};
+  int camera_width_{0};
+  int camera_height_{0};
   std::string camera_frame_id_;
 
   mutable std::mutex eef_mutex_;
