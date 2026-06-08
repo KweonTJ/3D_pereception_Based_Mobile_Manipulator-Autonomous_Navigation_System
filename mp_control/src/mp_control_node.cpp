@@ -3143,15 +3143,43 @@ private:
     const double target_advance_m = eef_forward_distance_m_ * target_progress_ratio;
 
     const auto ik = solveEefForwardPlanarIk(start, *current, target_advance_m);
+    const double eased_progress = bezierEase01(target_progress_ratio);
+    const double joint2_total_direction =
+      eef_forward_joint2_delta_rad_ < 0.0 ? -1.0 : 1.0;
+    const double joint3_direction = eefForwardJoint3Direction();
+    std::array<double, 4> coupled_waypoint = start;
+    coupled_waypoint[1] = start[1] +
+      joint2_total_direction * std::abs(eef_forward_bezier_joint2_total_delta_rad_) * eased_progress;
+    coupled_waypoint[2] = start[2] +
+      joint3_direction * std::abs(eef_forward_bezier_joint3_total_delta_rad_) * eased_progress;
+    coupled_waypoint[3] = start[3] -
+      ((coupled_waypoint[1] - start[1]) + (coupled_waypoint[2] - start[2]));
+    coupled_waypoint = clampJointPregraspTarget(coupled_waypoint);
+
+    std::array<double, 4> synchronized_ik_target = ik.controller_target;
+    bool ik_joint_sync_fill = false;
+    const double ik_joint3_delta = ik.controller_target[2] - (*current)[2];
+    const bool ik_uses_joint3 = std::abs(ik_joint3_delta) > 1.0e-6;
+    if (ik_uses_joint3) {
+      for (std::size_t i = 1; i <= 3; ++i) {
+        const double ik_delta = synchronized_ik_target[i] - (*current)[i];
+        const double coupled_delta = coupled_waypoint[i] - (*current)[i];
+        if (std::abs(ik_delta) < 1.0e-6 && std::abs(coupled_delta) > 1.0e-6) {
+          synchronized_ik_target[i] = coupled_waypoint[i];
+          ik_joint_sync_fill = true;
+        }
+      }
+    }
+
     std::array<double, 4> controller_target = *current;
     controller_target[1] = (*current)[1] + clampStep(
-      ik.controller_target[1] - (*current)[1],
+      synchronized_ik_target[1] - (*current)[1],
       eef_forward_bezier_joint2_max_step_rad_);
     controller_target[2] = (*current)[2] + clampStep(
-      ik.controller_target[2] - (*current)[2],
+      synchronized_ik_target[2] - (*current)[2],
       eef_forward_bezier_joint3_max_step_rad_);
     controller_target[3] = (*current)[3] + clampStep(
-      ik.controller_target[3] - (*current)[3],
+      synchronized_ik_target[3] - (*current)[3],
       eef_forward_bezier_joint4_max_step_rad_);
     controller_target = clampJointPregraspTarget(controller_target);
 
@@ -3190,9 +3218,12 @@ private:
     status << "eef forward analytic ik nudge: current=" << formatJointArray(*current)
            << " start=" << formatJointArray(start)
            << " ik_solution=" << formatJointArray(ik.controller_target)
+           << " synchronized_ik_target=" << formatJointArray(synchronized_ik_target)
+           << " coupled_waypoint=" << formatJointArray(coupled_waypoint)
            << " controller_target=" << formatJointArray(controller_target)
            << " raw_target=" << formatJointArray(raw_target)
            << " simultaneous_joints=" << joint_stage
+           << " ik_joint_sync_fill=" << (ik_joint_sync_fill ? "true" : "false")
            << " allow_after_joint3_complete="
            << (allow_after_joint3_complete ? "true" : "false")
            << " target_advance=" << target_advance_m
