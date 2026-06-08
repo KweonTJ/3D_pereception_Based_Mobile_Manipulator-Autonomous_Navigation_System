@@ -1223,6 +1223,19 @@ private:
       (!use_color_triangulation_after_min_depth_ || object_x_ready_for_eef) &&
       eef_candidate;
 	    if (use_eef_now) {
+      if (require_close_range_ready_for_pregrasp_ && !closeRangeReadyFresh()) {
+        publishBaseHold(false);
+        publishStop();
+        std::ostringstream status;
+        status << "waiting for close-range ready from depth_perception before pregrasp"
+               << ": goal_x=" << goal_x
+               << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
+               << " err_norm=" << err_norm
+               << " object_x_ready=" << (object_x_ready_for_eef ? "true" : "false")
+               << " depth_ready=" << (depth_ready_for_eef ? "true" : "false");
+        publishStatus(status.str());
+        return;
+      }
 	      publishBaseHold(true);
 	      publishBaseStop();
 	      const bool joint_pregrasp_ready =
