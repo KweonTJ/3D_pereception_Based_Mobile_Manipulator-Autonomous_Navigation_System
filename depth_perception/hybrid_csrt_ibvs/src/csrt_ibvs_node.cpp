@@ -364,6 +364,10 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
       detector_reference_bbox_ = new_bbox;
       last_detector_bbox_stamp_ = receive_time;
       min_depth_reached_ = false;
+      last_accepted_depth_m_.reset();
+      pending_depth_m_.reset();
+      stable_depth_count_ = 0;
+      last_depth_filter_status_.clear();
       publishCloseRangeReady(false);
       status_text =
         state_ == TrackerState::TRACKING ?
