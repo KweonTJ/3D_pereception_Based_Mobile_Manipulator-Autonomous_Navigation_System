@@ -501,6 +501,22 @@ private:
       declare_parameter<double>("eef_forward_joint4_finish_tolerance_rad", 0.015);
     eef_forward_use_bezier_ik_ =
       declare_parameter<bool>("eef_forward_use_bezier_ik", true);
+    eef_forward_use_analytic_ik_ =
+      declare_parameter<bool>("eef_forward_use_analytic_ik", true);
+    eef_forward_ik_link2_x_m_ =
+      declare_parameter<double>("eef_forward_ik_link2_x_m", 0.024);
+    eef_forward_ik_link2_z_m_ =
+      declare_parameter<double>("eef_forward_ik_link2_z_m", 0.128);
+    eef_forward_ik_link3_m_ =
+      declare_parameter<double>("eef_forward_ik_link3_m", 0.124);
+    eef_forward_ik_tool_m_ =
+      declare_parameter<double>("eef_forward_ik_tool_m", 0.126);
+    eef_forward_ik_pitch_weight_ =
+      declare_parameter<double>("eef_forward_ik_pitch_weight", 0.35);
+    eef_forward_ik_damping_ =
+      declare_parameter<double>("eef_forward_ik_damping", 0.03);
+    eef_forward_ik_iterations_ =
+      declare_parameter<int>("eef_forward_ik_iterations", 16);
     eef_forward_bezier_total_duration_s_ =
       declare_parameter<double>("eef_forward_bezier_total_duration_s", 5.0);
     eef_forward_bezier_progress_step_ =
