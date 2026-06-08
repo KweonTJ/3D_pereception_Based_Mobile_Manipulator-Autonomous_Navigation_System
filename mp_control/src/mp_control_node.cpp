@@ -1379,6 +1379,39 @@ private:
     return latest_depth_object_in_target_;
   }
 
+  std::optional<geometry_msgs::msg::PointStamped> latestStableObjectInTarget()
+  {
+    const auto stamp = now();
+    std::optional<geometry_msgs::msg::PointStamped> object;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!latest_stable_object_point_ ||
+          latest_stable_object_stamp_.nanoseconds() == 0 ||
+          (stamp - latest_stable_object_stamp_).seconds() > max_target_age_s_) {
+        return std::nullopt;
+      }
+      object = latest_stable_object_point_;
+    }
+
+    if (!object) {
+      return std::nullopt;
+    }
+    if (object->header.frame_id.empty() || object->header.frame_id == target_frame_) {
+      object->header.frame_id = target_frame_;
+      return object;
+    }
+
+    try {
+      return tf_buffer_.transform(*object, target_frame_);
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "stable object TF transform failed from %s to %s: %s",
+        object->header.frame_id.c_str(), target_frame_.c_str(), ex.what());
+      return std::nullopt;
+    }
+  }
+
   std::optional<geometry_msgs::msg::PointStamped> estimateObjectPointFromFrontBboxSize()
   {
     Bbox bbox;
