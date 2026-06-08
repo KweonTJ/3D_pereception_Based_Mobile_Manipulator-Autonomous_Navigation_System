@@ -1076,6 +1076,27 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   result.area_ratio = static_cast<double>(bbox.width * bbox.height) /
     static_cast<double>(std::max(1, image_size.width * image_size.height));
 
+  const double bbox_height_ratio =
+    static_cast<double>(bbox.height) / static_cast<double>(image_size.height);
+  const double bbox_area_ratio =
+    static_cast<double>(bbox.width * bbox.height) /
+    static_cast<double>(image_size.width * image_size.height);
+
+  if (use_triangulation_after_min_depth_ && min_depth_reached_) {
+    if (bbox_height_ratio >= 0.70 || bbox_area_ratio >= 0.30) {
+      linear_x = 0.0;
+      angular_z = 0.0;
+      publishCloseRangeReady(true);
+
+      std::ostringstream status;
+      status << "close range ready by front bbox scale"
+            << " height_ratio=" << bbox_height_ratio
+            << " area_ratio=" << bbox_area_ratio;
+      result.range_status = status.str();
+      return result;
+    }
+  }
+
   bool have_info = false;
   double fx = 0.0;
   double fy = 0.0;
