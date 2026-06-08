@@ -4956,6 +4956,7 @@ private:
 	  std::string eef_auto_init_enable_topic_;
 	  std::string base_hold_topic_;
   std::string close_range_ready_topic_;
+  std::string stable_object_topic_;
 	  std::string twist_topic_;
 	  std::string base_cmd_vel_topic_;
 	  std::string joint_state_topic_;
@@ -5003,6 +5004,11 @@ private:
   double depth_unit_scale_{0.001};
   double min_valid_depth_m_{0.12};
   double max_valid_depth_m_{1.2};
+  double depth_std_max_m_{0.08};
+  double depth_min_fill_ratio_{0.25};
+  double depth_jump_limit_m_{0.10};
+  int stable_depth_frames_{3};
+  int min_depth_samples_{30};
   double grasp_offset_x_{0.0};
   double grasp_offset_y_{0.0};
   double grasp_offset_z_{0.0};
@@ -5156,9 +5162,10 @@ private:
 	  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
 	  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr eef_camera_info_sub_;
 	  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
-	  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr start_sub_;
 	  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cancel_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr close_range_ready_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr stable_object_sub_;
 	  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
 	  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr base_cmd_vel_pub_;
 	  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_trajectory_pub_;
@@ -5187,6 +5194,12 @@ private:
   rclcpp::Time latest_object_depth_stamp_;
   std::optional<geometry_msgs::msg::PointStamped> latest_depth_object_in_target_;
 	  rclcpp::Time latest_depth_object_stamp_;
+  std::optional<geometry_msgs::msg::PointStamped> latest_stable_object_point_;
+  rclcpp::Time latest_stable_object_stamp_;
+  std::optional<double> depth_filter_last_accepted_m_;
+  std::optional<double> depth_filter_pending_m_;
+  int depth_filter_stable_count_{0};
+  std::string last_depth_filter_status_;
   std::optional<geometry_msgs::msg::PointStamped> eef_refinement_object_in_target_;
   bool eef_refinement_use_bbox_center_{false};
 	  sensor_msgs::msg::Image::ConstSharedPtr latest_depth_;
