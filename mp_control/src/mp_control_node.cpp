@@ -3472,12 +3472,12 @@ private:
         setBlockReason(block_reason, "camera info on " + camera_info_topic_);
         return std::nullopt;
       }
-      if (!latest_depth_) {
-        setBlockReason(block_reason, "depth image on " + depth_topic_);
+      if (use_color_triangulation_after_min_depth_ && min_depth_reached_) {
+        setBlockReason(block_reason, "depth disabled after 0.47m handoff; using color triangulation");
         return std::nullopt;
       }
-      if (use_color_triangulation_after_min_depth_ && min_depth_reached_) {
-        setBlockReason(block_reason, "color triangulation after minimum depth");
+      if (!latest_depth_) {
+        setBlockReason(block_reason, "depth image on " + depth_topic_);
         return std::nullopt;
       }
       bbox = *latest_bbox_;
