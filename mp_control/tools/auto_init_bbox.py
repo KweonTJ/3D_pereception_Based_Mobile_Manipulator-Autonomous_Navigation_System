@@ -78,6 +78,10 @@ class AutoInitBbox(Node):
             self.declare_parameter("require_depth_for_front_yolo", True).value)
         self.depth_yolo_iou_min = float(
             self.declare_parameter("depth_yolo_iou_min", 0.30).value)
+        self.depth_yolo_min_pixels = int(
+            self.declare_parameter("depth_yolo_min_pixels", 80).value)
+        self.depth_yolo_min_fill_ratio = float(
+            self.declare_parameter("depth_yolo_min_fill_ratio", 0.02).value)
         self.yolo_as_assist_only = bool(
             self.declare_parameter("yolo_as_assist_only", True).value)
         self.yolo_image_topic = str(self.declare_parameter("yolo_image_topic", "").value)
@@ -681,15 +685,74 @@ class AutoInitBbox(Node):
                 x, y, width, height, pixels, fill_ratio, depth_std, near_depth, band, score))
         return x, y, width, height, pixels
 
+    def depth_support_in_bbox(self, msg, bbox):
+        depth = self.image_to_depth_m(msg)
+        if depth is None:
+            return False, "depth image conversion failed"
+
+        x, y, width, height = [float(v) for v in bbox[:4]]
+        x0 = int(max(0, np.floor(x)))
+        y0 = int(max(0, np.floor(y)))
+        x1 = int(min(msg.width, np.ceil(x + max(1.0, width))))
+        y1 = int(min(msg.height, np.ceil(y + max(1.0, height))))
+        if x1 <= x0 or y1 <= y0:
+            return False, f"invalid bbox crop {self.format_bbox(bbox)}"
+
+        crop = depth[y0:y1, x0:x1]
+        valid = (
+            np.isfinite(crop) &
+            (crop >= self.depth_min_m) &
+            (crop <= self.depth_max_m)
+        )
+        valid_depth = crop[valid]
+        min_pixels = max(1, int(self.depth_yolo_min_pixels))
+        if valid_depth.size < min_pixels:
+            return False, f"valid depth support too small: {valid_depth.size}/{min_pixels}"
+
+        percentile = min(50.0, max(0.1, self.depth_near_percentile))
+        near_depth = float(np.percentile(valid_depth, percentile))
+        band = max(0.005, self.box_depth_band_m)
+        supported_depth = valid_depth[valid_depth <= near_depth + band]
+        support_count = int(supported_depth.size)
+        if support_count < min_pixels:
+            return False, f"near-depth support too small: {support_count}/{min_pixels}"
+
+        crop_area = float(max(1, (x1 - x0) * (y1 - y0)))
+        fill_ratio = float(support_count) / crop_area
+        min_fill = max(0.0, float(self.depth_yolo_min_fill_ratio))
+        if fill_ratio < min_fill:
+            return False, f"depth support fill {fill_ratio:.3f} < {min_fill:.3f}"
+
+        std_m = float(np.std(supported_depth)) if support_count > 1 else 0.0
+        max_std = max(self.box_max_depth_std_m, 0.12)
+        if std_m > max_std:
+            return False, f"depth support std {std_m:.3f} > {max_std:.3f}"
+
+        return True, (
+            f"depth support ok: pixels={support_count} fill={fill_ratio:.3f} "
+            f"near={near_depth:.3f} band={band:.3f} std={std_m:.3f}")
+
+    @staticmethod
+    def bbox_center_inside(inner, outer, margin_ratio=0.0):
+        ix, iy, iw, ih = [float(v) for v in inner[:4]]
+        ox, oy, ow, oh = [float(v) for v in outer[:4]]
+        cx = ix + 0.5 * max(0.0, iw)
+        cy = iy + 0.5 * max(0.0, ih)
+        mx = max(0.0, ow) * max(0.0, margin_ratio)
+        my = max(0.0, oh) * max(0.0, margin_ratio)
+        return (
+            ox - mx <= cx <= ox + max(0.0, ow) + mx and
+            oy - my <= cy <= oy + max(0.0, oh) + my
+        )
+
     def depth_first_front_bbox_candidate(self, msg):
         depth_bbox = self.depth_box_bbox(msg)
-        if depth_bbox is None:
-            if self.require_depth_for_front_yolo:
-                self.throttled_waiting_status(
-                    "depth-first front bbox rejected: depth bbox unavailable; YOLO-only publish disabled")
-            return None
 
         if not self.yolo_as_assist_only:
+            if depth_bbox is None:
+                self.throttled_waiting_status(
+                    "depth-first front bbox rejected: depth bbox unavailable")
+                return None
             self.publish_status(
                 "depth-first front bbox accepted without YOLO assist: "
                 f"depth_bbox={self.format_bbox(depth_bbox)}")
@@ -698,6 +761,10 @@ class AutoInitBbox(Node):
         yolo_msg = self.latest_yolo_image
         yolo_age = time.monotonic() - self.latest_yolo_image_time
         if yolo_msg is None or yolo_age > max(0.05, self.yolo_image_max_age_s):
+            if depth_bbox is None:
+                self.throttled_waiting_status(
+                    "depth-first front bbox rejected: depth bbox unavailable and YOLO assist image unavailable")
+                return None
             self.publish_status(
                 "depth-first front bbox accepted: YOLO assist image unavailable "
                 f"age={yolo_age:.2f}s depth_bbox={self.format_bbox(depth_bbox)}")
@@ -705,6 +772,10 @@ class AutoInitBbox(Node):
 
         yolo_bbox = self.yolo_bbox(yolo_msg, update_lock=False, emit_status=False)
         if yolo_bbox is None:
+            if depth_bbox is None:
+                self.throttled_waiting_status(
+                    "depth-first front bbox rejected: depth bbox unavailable and YOLO assist found no valid box")
+                return None
             self.publish_status(
                 "depth-first front bbox accepted: YOLO assist found no valid box; "
                 f"depth_bbox={self.format_bbox(depth_bbox)}")
@@ -716,21 +787,40 @@ class AutoInitBbox(Node):
             yolo_msg.height,
             msg.width,
             msg.height)
+        support_ok, support_reason = self.depth_support_in_bbox(msg, scaled_yolo)
+        if depth_bbox is None:
+            if support_ok:
+                self.publish_status(
+                    "depth-first front bbox accepted: YOLO bbox has depth support; "
+                    f"yolo_bbox_scaled={self.format_bbox(scaled_yolo)} {support_reason}")
+                return scaled_yolo
+            self.throttled_waiting_status(
+                "depth-first front bbox rejected: depth bbox unavailable; "
+                f"YOLO-only publish disabled; {support_reason}")
+            return None
+
         iou = self.bbox_iou(depth_bbox, scaled_yolo)
-        if iou < max(0.0, self.depth_yolo_iou_min):
+        center_inside = self.bbox_center_inside(depth_bbox, scaled_yolo, margin_ratio=0.20)
+        if iou < max(0.0, self.depth_yolo_iou_min) and not center_inside:
             self.throttled_waiting_status(
                 "depth-first front bbox rejected: "
                 f"YOLO/depth IoU={iou:.2f} < {self.depth_yolo_iou_min:.2f}; "
                 f"depth_bbox={self.format_bbox(depth_bbox)} "
                 f"yolo_bbox_scaled={self.format_bbox(scaled_yolo)}")
             return None
+        if not support_ok:
+            self.throttled_waiting_status(
+                "depth-first front bbox rejected: YOLO bbox failed depth support; "
+                f"{support_reason} depth_bbox={self.format_bbox(depth_bbox)} "
+                f"yolo_bbox_scaled={self.format_bbox(scaled_yolo)}")
+            return None
 
         self.publish_status(
             "depth-first front bbox accepted: "
-            f"YOLO/depth IoU={iou:.2f} "
+            f"YOLO/depth IoU={iou:.2f} center_inside={center_inside} "
             f"depth_bbox={self.format_bbox(depth_bbox)} "
-            f"yolo_bbox_scaled={self.format_bbox(scaled_yolo)}")
-        return depth_bbox
+            f"yolo_bbox_scaled={self.format_bbox(scaled_yolo)} {support_reason}")
+        return scaled_yolo
 
     def yolo_bbox(self, msg, update_lock=True, emit_status=True):
         model = self.load_yolo_model()
