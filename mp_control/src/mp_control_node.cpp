@@ -3605,9 +3605,10 @@ private:
       return std::nullopt;
     }
 
-    auto depth_m = robustDepthInBbox(*depth, info, bbox);
+    std::string depth_reject_reason;
+    auto depth_m = robustDepthInBbox(*depth, info, bbox, &depth_reject_reason);
     if (!depth_m) {
-      depth_m = medianDepthAt(*depth, info, u, v);
+      depth_m = medianDepthAt(*depth, info, u, v, &depth_reject_reason);
     }
     if (!depth_m) {
       if (use_color_triangulation_after_min_depth_) {
@@ -3643,6 +3644,9 @@ private:
       std::ostringstream reason;
       reason << "valid depth inside bbox in ["
              << min_valid_depth_m_ << ", " << max_valid_depth_m_ << "] m";
+      if (!depth_reject_reason.empty()) {
+        reason << "; " << depth_reject_reason;
+      }
       setBlockReason(block_reason, reason.str());
       return std::nullopt;
     }
