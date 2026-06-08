@@ -3079,6 +3079,142 @@ private:
     twist_pub_->publish(cmd);
   }
 
+  bool publishEefForwardAnalyticIkNudge(
+    const RpyError & rpy_error,
+    bool allow_after_joint3_complete)
+  {
+    const auto stamp = now();
+    const double effective_nudge_period_s = std::max(
+      eef_forward_joint_nudge_period_s_,
+      eef_forward_joint_nudge_duration_s_);
+    if (eef_forward_last_joint_nudge_stamp_.nanoseconds() != 0 &&
+        (stamp - eef_forward_last_joint_nudge_stamp_).seconds() <
+        effective_nudge_period_s) {
+      return true;
+    }
+
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      return false;
+    }
+
+    if (!eef_forward_start_joint_positions_) {
+      eef_forward_start_joint_positions_ = *current;
+    }
+    const auto & start = *eef_forward_start_joint_positions_;
+    const auto progress = eefForwardJointProgressFromCurrent(*current);
+
+    const PlanarIkPose start_pose = eefForwardIkPoseFromJoints(start);
+    const PlanarIkPose current_pose = eefForwardIkPoseFromJoints(*current);
+    const double current_advance_m =
+      eef_forward_distance_m_ > 1.0e-6 ?
+      clampValue(current_pose.x - start_pose.x, 0.0, eef_forward_distance_m_) :
+      0.0;
+    const double current_progress_ratio =
+      eef_forward_distance_m_ > 1.0e-6 ?
+      clampValue(current_advance_m / eef_forward_distance_m_, 0.0, 1.0) :
+      1.0;
+    const double elapsed_s =
+      eef_forward_start_stamp_.nanoseconds() == 0 ?
+      0.0 :
+      (stamp - eef_forward_start_stamp_).seconds();
+    const double time_progress_ratio = eef_forward_bezier_total_duration_s_ > 1.0e-6 ?
+      clampValue(elapsed_s / eef_forward_bezier_total_duration_s_, 0.0, 1.0) :
+      1.0;
+    const double target_progress_ratio = clampValue(
+      std::max(current_progress_ratio + eef_forward_bezier_progress_step_, time_progress_ratio),
+      0.0,
+      1.0);
+    const double target_advance_m = eef_forward_distance_m_ * target_progress_ratio;
+
+    const auto ik = solveEefForwardPlanarIk(start, *current, target_advance_m);
+    std::array<double, 4> controller_target = *current;
+    controller_target[1] = (*current)[1] + clampStep(
+      ik.controller_target[1] - (*current)[1],
+      eef_forward_bezier_joint2_max_step_rad_);
+    controller_target[2] = (*current)[2] + clampStep(
+      ik.controller_target[2] - (*current)[2],
+      eef_forward_bezier_joint3_max_step_rad_);
+    controller_target[3] = (*current)[3] + clampStep(
+      ik.controller_target[3] - (*current)[3],
+      eef_forward_bezier_joint4_max_step_rad_);
+    controller_target = clampJointPregraspTarget(controller_target);
+
+    const auto raw_target =
+      jointNudgeRawTargetFromControllerTarget(*current, controller_target);
+    const double controller_joint2_delta = controller_target[1] - (*current)[1];
+    const double controller_joint3_delta = controller_target[2] - (*current)[2];
+    const double controller_joint4_delta = controller_target[3] - (*current)[3];
+    const double raw_joint3_delta = raw_target[2] - (*current)[2];
+
+    const bool joint2_active = std::abs(controller_joint2_delta) > 1.0e-6;
+    const bool joint3_active = std::abs(controller_joint3_delta) > 1.0e-6;
+    const bool joint4_active = std::abs(controller_joint4_delta) > 1.0e-6;
+    std::string joint_stage;
+    if (joint2_active) {
+      joint_stage += "joint2";
+    }
+    if (joint3_active) {
+      joint_stage += joint_stage.empty() ? "joint3" : ",joint3";
+    }
+    if (joint4_active) {
+      joint_stage += joint_stage.empty() ? "joint4" : ",joint4";
+    }
+    if (joint_stage.empty()) {
+      joint_stage = "none";
+    }
+
+    trajectory_msgs::msg::JointTrajectory msg;
+    msg.header.stamp = stamp;
+    msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
+    appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
+    joint_trajectory_pub_->publish(msg);
+    eef_forward_last_joint_nudge_stamp_ = stamp;
+
+    std::ostringstream status;
+    status << "eef forward analytic ik nudge: current=" << formatJointArray(*current)
+           << " start=" << formatJointArray(start)
+           << " ik_solution=" << formatJointArray(ik.controller_target)
+           << " controller_target=" << formatJointArray(controller_target)
+           << " raw_target=" << formatJointArray(raw_target)
+           << " simultaneous_joints=" << joint_stage
+           << " allow_after_joint3_complete="
+           << (allow_after_joint3_complete ? "true" : "false")
+           << " target_advance=" << target_advance_m
+           << "/" << eef_forward_distance_m_
+           << " progress=(" << current_progress_ratio << " -> "
+           << target_progress_ratio << ")"
+           << " elapsed=" << elapsed_s
+           << "/" << eef_forward_bezier_total_duration_s_
+           << " ik_target=(x=" << ik.target_pose.x
+           << ", z=" << ik.target_pose.z
+           << ", pitch=" << ik.target_pose.pitch << ")"
+           << " ik_solved=(x=" << ik.solved_pose.x
+           << ", z=" << ik.solved_pose.z
+           << ", pitch=" << ik.solved_pose.pitch << ")"
+           << " ik_error=" << ik.error_norm
+           << " ik_reason=" << ik.reason
+           << " ik_iterations=" << ik.iterations
+           << formatEefForwardJointProgress(progress)
+           << " controller_joint2_delta=" << controller_joint2_delta
+           << " controller_joint3_delta=" << controller_joint3_delta
+           << " controller_joint4_delta=" << controller_joint4_delta
+           << " raw_joint3_delta=" << raw_joint3_delta
+           << " joint3_reverse="
+           << (joint_pregrasp_reverse_joint3_delta_ ? "true" : "false")
+           << " max_step=(" << eef_forward_bezier_joint2_max_step_rad_
+           << ", " << eef_forward_bezier_joint3_max_step_rad_
+           << ", " << eef_forward_bezier_joint4_max_step_rad_ << ")"
+           << " rpy_roll_err=" << rpy_error.roll
+           << " rpy_frame=" << rpyControlFrame()
+           << " duration=" << eef_forward_joint_nudge_duration_s_
+           << " configured_period=" << eef_forward_joint_nudge_period_s_
+           << " effective_period=" << effective_nudge_period_s
+           << poseStatusSuffix();
+    publishStatus(status.str());
+    return true;
+  }
+
   bool publishEefForwardBezierIkNudge(
     const RpyError & rpy_error,
     bool allow_after_joint3_complete)
