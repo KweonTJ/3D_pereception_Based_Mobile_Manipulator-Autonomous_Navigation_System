@@ -93,6 +93,8 @@ class AutoInitBbox(Node):
             self.declare_parameter("yolo_min_area_ratio_change", 0.50).value)
         self.yolo_max_area_ratio_change = float(
             self.declare_parameter("yolo_max_area_ratio_change", 1.80).value)
+        self.yolo_lock_reset_after_misses = int(
+            self.declare_parameter("yolo_lock_reset_after_misses", 0).value)
         self.yolo_center_score_weight = float(
             self.declare_parameter("yolo_center_score_weight", 0.35).value)
         self.yolo_area_score_weight = float(
@@ -160,6 +162,7 @@ class AutoInitBbox(Node):
         self.last_bbox = None
         self.last_bbox_update_time = 0.0
         self.anchor_bbox = None
+        self.yolo_lock_miss_count = 0
         self.yolo_model = None
         self.yolo_load_failed = False
 
@@ -176,6 +179,7 @@ class AutoInitBbox(Node):
             self.last_bbox = None
             self.last_bbox_update_time = 0.0
             self.anchor_bbox = None
+            self.yolo_lock_miss_count = 0
             self.last_publish_time = 0.0
             self.start_time = time.monotonic()
             self.publish_status(
