@@ -740,6 +740,14 @@ private:
     if (std::abs(pregrasp_roll_joint4_weight_) < 1.0e-6) {
       pregrasp_roll_joint4_weight_ = 1.0;
     }
+    eef_forward_ik_link2_x_m_ = std::max(0.0, eef_forward_ik_link2_x_m_);
+    eef_forward_ik_link2_z_m_ = std::max(0.0, eef_forward_ik_link2_z_m_);
+    eef_forward_ik_link3_m_ = std::max(0.01, eef_forward_ik_link3_m_);
+    eef_forward_ik_tool_m_ = std::max(0.0, eef_forward_ik_tool_m_);
+    eef_forward_ik_pitch_weight_ =
+      clampValue(eef_forward_ik_pitch_weight_, 0.0, 2.0);
+    eef_forward_ik_damping_ = clampValue(eef_forward_ik_damping_, 1.0e-4, 0.5);
+    eef_forward_ik_iterations_ = std::max(1, eef_forward_ik_iterations_);
     eef_forward_joint4_rpy_roll_gain_ = std::max(0.0, eef_forward_joint4_rpy_roll_gain_);
     eef_forward_joint4_rpy_roll_max_delta_rad_ =
       std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
