@@ -94,6 +94,9 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
 
   tracked_bbox_pub_ =
     create_publisher<std_msgs::msg::Float32MultiArray>(tracked_bbox_topic_, tracked_bbox_qos);
+  close_range_ready_pub_ =
+    create_publisher<std_msgs::msg::Bool>(
+    close_range_ready_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local());
 
   if (enable_cmd_vel_) {
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_, default_qos);
@@ -141,6 +144,8 @@ void CsrtIbvsNode::readParameters()
   tracked_bbox_topic_ = declare_parameter<std::string>("tracked_bbox_topic", "/target/tracked_bbox");
   cmd_vel_topic_ = declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
   base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
+  close_range_ready_topic_ =
+    declare_parameter<std::string>("close_range_ready_topic", "/target/close_range_ready");
   arm_twist_topic_ = declare_parameter<std::string>("arm_twist_topic", "/servo_node/delta_twist_cmds");
   arm_command_frame_id_ = declare_parameter<std::string>("arm_command_frame_id", "camera_color_optical_frame");
   debug_image_topic_ = declare_parameter<std::string>("debug_image_topic", "/hybrid_csrt_ibvs/debug_image");
