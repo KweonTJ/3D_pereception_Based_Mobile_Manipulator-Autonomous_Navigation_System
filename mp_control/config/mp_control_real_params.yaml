@@ -169,7 +169,7 @@ mp_control_node:
     eef_hold_current_rpy: true
     # Keep the roll angle captured from the initial stay pose. Pitch/yaw are
     # still held from the refinement entry pose so pregrasp can remain natural.
-    eef_hold_stay_roll: true
+    eef_hold_stay_roll: false
     eef_rpy_tolerance_rad: 0.12
     eef_rpy_gain: 0.8
     eef_refine_max_angular_speed: 0.25
