@@ -264,6 +264,24 @@ private:
     double joint4_target_rad{0.0};
   };
 
+  struct PlanarIkPose
+  {
+    double x{0.0};
+    double z{0.0};
+    double pitch{0.0};
+  };
+
+  struct PlanarIkResult
+  {
+    bool success{false};
+    std::array<double, 4> controller_target{};
+    PlanarIkPose target_pose;
+    PlanarIkPose solved_pose;
+    double error_norm{std::numeric_limits<double>::infinity()};
+    int iterations{0};
+    std::string reason;
+  };
+
   struct DepthStats
   {
     double depth_m{0.0};
