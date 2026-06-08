@@ -2405,6 +2405,180 @@ private:
     return clampValue(delta, -max_abs_step, max_abs_step);
   }
 
+  PlanarIkPose eefForwardIkPoseFromJoints(const std::array<double, 4> & joints) const
+  {
+    const double link2_len =
+      std::hypot(eef_forward_ik_link2_x_m_, eef_forward_ik_link2_z_m_);
+    const double link2_angle =
+      std::atan2(eef_forward_ik_link2_z_m_, eef_forward_ik_link2_x_m_);
+    const double theta2 = joints[1];
+    const double theta3 = joints[1] + joints[2];
+    const double theta4 = joints[1] + joints[2] + joints[3];
+
+    PlanarIkPose pose;
+    pose.x =
+      link2_len * std::cos(theta2 + link2_angle) +
+      eef_forward_ik_link3_m_ * std::cos(theta3) +
+      eef_forward_ik_tool_m_ * std::cos(theta4);
+    pose.z =
+      link2_len * std::sin(theta2 + link2_angle) +
+      eef_forward_ik_link3_m_ * std::sin(theta3) +
+      eef_forward_ik_tool_m_ * std::sin(theta4);
+    pose.pitch = normalizeAngle(theta4);
+    return pose;
+  }
+
+  bool solveLinear3x3(
+    std::array<std::array<double, 3>, 3> matrix,
+    std::array<double, 3> rhs,
+    std::array<double, 3> * solution) const
+  {
+    for (int pivot = 0; pivot < 3; ++pivot) {
+      int pivot_row = pivot;
+      double pivot_abs = std::abs(matrix[pivot][pivot]);
+      for (int row = pivot + 1; row < 3; ++row) {
+        const double candidate_abs = std::abs(matrix[row][pivot]);
+        if (candidate_abs > pivot_abs) {
+          pivot_abs = candidate_abs;
+          pivot_row = row;
+        }
+      }
+      if (pivot_abs < 1.0e-9) {
+        return false;
+      }
+      if (pivot_row != pivot) {
+        std::swap(matrix[pivot], matrix[pivot_row]);
+        std::swap(rhs[pivot], rhs[pivot_row]);
+      }
+
+      const double pivot_value = matrix[pivot][pivot];
+      for (int col = pivot; col < 3; ++col) {
+        matrix[pivot][col] /= pivot_value;
+      }
+      rhs[pivot] /= pivot_value;
+
+      for (int row = 0; row < 3; ++row) {
+        if (row == pivot) {
+          continue;
+        }
+        const double factor = matrix[row][pivot];
+        for (int col = pivot; col < 3; ++col) {
+          matrix[row][col] -= factor * matrix[pivot][col];
+        }
+        rhs[row] -= factor * rhs[pivot];
+      }
+    }
+
+    *solution = rhs;
+    return true;
+  }
+
+  PlanarIkResult solveEefForwardPlanarIk(
+    const std::array<double, 4> & start,
+    const std::array<double, 4> & current,
+    double target_advance_m) const
+  {
+    PlanarIkResult result;
+    result.controller_target = current;
+
+    const PlanarIkPose start_pose = eefForwardIkPoseFromJoints(start);
+    result.target_pose = start_pose;
+    result.target_pose.x += target_advance_m;
+
+    std::array<double, 4> solution = current;
+    solution[0] = current[0];
+    const double lambda2 = eef_forward_ik_damping_ * eef_forward_ik_damping_;
+    const std::array<double, 3> row_weights{
+      1.0,
+      1.0,
+      eef_forward_ik_pitch_weight_};
+
+    for (int iter = 0; iter < eef_forward_ik_iterations_; ++iter) {
+      const PlanarIkPose pose = eefForwardIkPoseFromJoints(solution);
+      std::array<double, 3> error{
+        result.target_pose.x - pose.x,
+        result.target_pose.z - pose.z,
+        normalizeAngle(result.target_pose.pitch - pose.pitch)};
+      result.error_norm = std::hypot(error[0], error[1]);
+      result.solved_pose = pose;
+      result.iterations = iter + 1;
+      if (result.error_norm < 0.002 && std::abs(error[2]) < 0.04) {
+        result.success = true;
+        result.reason = "converged";
+        break;
+      }
+
+      std::array<std::array<double, 3>, 3> jacobian{};
+      constexpr double eps = 1.0e-4;
+      for (int col = 0; col < 3; ++col) {
+        std::array<double, 4> perturbed = solution;
+        perturbed[static_cast<std::size_t>(col + 1)] += eps;
+        const PlanarIkPose perturbed_pose = eefForwardIkPoseFromJoints(perturbed);
+        jacobian[0][col] = (perturbed_pose.x - pose.x) / eps;
+        jacobian[1][col] = (perturbed_pose.z - pose.z) / eps;
+        jacobian[2][col] = normalizeAngle(perturbed_pose.pitch - pose.pitch) / eps;
+      }
+
+      std::array<std::array<double, 3>, 3> weighted_jacobian{};
+      std::array<double, 3> weighted_error{};
+      for (int row = 0; row < 3; ++row) {
+        weighted_error[row] = error[row] * row_weights[row];
+        for (int col = 0; col < 3; ++col) {
+          weighted_jacobian[row][col] = jacobian[row][col] * row_weights[row];
+        }
+      }
+
+      std::array<std::array<double, 3>, 3> normal{};
+      for (int row = 0; row < 3; ++row) {
+        for (int col = 0; col < 3; ++col) {
+          for (int k = 0; k < 3; ++k) {
+            normal[row][col] += weighted_jacobian[row][k] * weighted_jacobian[col][k];
+          }
+        }
+        normal[row][row] += lambda2;
+      }
+
+      std::array<double, 3> intermediate{};
+      if (!solveLinear3x3(normal, weighted_error, &intermediate)) {
+        result.reason = "singular_dls_matrix";
+        break;
+      }
+
+      std::array<double, 3> delta{};
+      for (int col = 0; col < 3; ++col) {
+        for (int row = 0; row < 3; ++row) {
+          delta[col] += weighted_jacobian[row][col] * intermediate[row];
+        }
+      }
+
+      bool changed = false;
+      for (int col = 0; col < 3; ++col) {
+        const std::size_t joint_index = static_cast<std::size_t>(col + 1);
+        const double limited_delta = clampStep(delta[col], 0.05);
+        const double next_position = clampValue(
+          solution[joint_index] + limited_delta,
+          joint_pregrasp_min_positions_[joint_index],
+          joint_pregrasp_max_positions_[joint_index]);
+        changed = changed || std::abs(next_position - solution[joint_index]) > 1.0e-6;
+        solution[joint_index] = next_position;
+      }
+      if (!changed) {
+        result.reason = "joint_limits";
+        break;
+      }
+    }
+
+    if (result.reason.empty()) {
+      result.reason = result.success ? "converged" : "iteration_limit";
+    }
+    result.controller_target = clampJointPregraspTarget(solution);
+    result.solved_pose = eefForwardIkPoseFromJoints(result.controller_target);
+    result.error_norm = std::hypot(
+      result.target_pose.x - result.solved_pose.x,
+      result.target_pose.z - result.solved_pose.z);
+    return result;
+  }
+
   double stepJointWithoutReversingTowardLimit(
     double current,
     double delta,
