@@ -1283,17 +1283,30 @@ private:
       eef_candidate;
 	    if (use_eef_now) {
       if (require_close_range_ready_for_pregrasp_ && !closeRangeReadyFresh()) {
-        publishBaseHold(false);
-        publishStop();
+        if (!object_x_ready_for_eef) {
+          publishBaseHold(false);
+          publishStop();
+          std::ostringstream status;
+          status << "waiting for close-range ready from depth_perception before pregrasp"
+                 << ": goal_x=" << goal_x
+                 << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
+                 << " err_norm=" << err_norm
+                 << " object_x_ready=" << (object_x_ready_for_eef ? "true" : "false")
+                 << " depth_ready=" << (depth_ready_for_eef ? "true" : "false");
+          publishStatus(status.str());
+          return;
+        }
+
+        publishBaseHold(true);
+        publishBaseStop();
         std::ostringstream status;
-        status << "waiting for close-range ready from depth_perception before pregrasp"
+        status << "local close-range stop by object_x; depth_perception close_range_ready missing/stale"
                << ": goal_x=" << goal_x
                << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
                << " err_norm=" << err_norm
-               << " object_x_ready=" << (object_x_ready_for_eef ? "true" : "false")
+               << " object_x_ready=true"
                << " depth_ready=" << (depth_ready_for_eef ? "true" : "false");
         publishStatus(status.str());
-        return;
       }
 	      publishBaseHold(true);
 	      publishBaseStop();
