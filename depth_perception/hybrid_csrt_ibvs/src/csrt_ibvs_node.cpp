@@ -97,6 +97,10 @@ CsrtIbvsNode::CsrtIbvsNode(const rclcpp::NodeOptions & options)
   close_range_ready_pub_ =
     create_publisher<std_msgs::msg::Bool>(
     close_range_ready_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local());
+  if (!stable_object_topic_.empty()) {
+    stable_object_pub_ =
+      create_publisher<geometry_msgs::msg::PointStamped>(stable_object_topic_, default_qos);
+  }
 
   if (enable_cmd_vel_) {
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_, default_qos);
@@ -147,6 +151,8 @@ void CsrtIbvsNode::readParameters()
   base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
   close_range_ready_topic_ =
     declare_parameter<std::string>("close_range_ready_topic", "/target/close_range_ready");
+  stable_object_topic_ =
+    declare_parameter<std::string>("stable_object_topic", "/target/object_in_base");
   arm_twist_topic_ = declare_parameter<std::string>("arm_twist_topic", "/servo_node/delta_twist_cmds");
   arm_command_frame_id_ = declare_parameter<std::string>("arm_command_frame_id", "camera_color_optical_frame");
   debug_image_topic_ = declare_parameter<std::string>("debug_image_topic", "/hybrid_csrt_ibvs/debug_image");
@@ -386,6 +392,7 @@ void CsrtIbvsNode::onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedP
   fy_ = msg->k[4];
   camera_cx_ = msg->k[2];
   camera_cy_ = msg->k[5];
+  camera_frame_id_ = msg->header.frame_id;
   have_camera_info_ = fx_ > 1.0 && fy_ > 1.0;
 }
 
@@ -1172,6 +1179,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   }
 
   result.depth_m = estimateDepthMeters(bbox, image_size, stamp);
+  if (result.depth_m) {
+    publishStableObjectPoint(bbox, image_size, stamp, *result.depth_m);
+  }
   const bool straight_depth_approach =
     force_straight_approach_ &&
     (!result.depth_m || straight_approach_depth_m_ <= 0.0 || *result.depth_m <= straight_approach_depth_m_);
@@ -1257,6 +1267,7 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
       }
     } else {
       result.triangulated_object_x_m = triangulated_x;
+      publishStableObjectPoint(bbox, image_size, stamp, *triangulated_x);
       const double error_x = *triangulated_x - triangulation_stop_x_m_;
       if (error_x <= 0.0) {
         linear_x = 0.0;
