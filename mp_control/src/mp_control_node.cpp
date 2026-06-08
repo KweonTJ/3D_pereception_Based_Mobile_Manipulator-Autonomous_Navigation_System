@@ -2332,6 +2332,23 @@ private:
     return eef_forward_joint3_delta_rad_ < 0.0 ? -1.0 : 1.0;
   }
 
+  double eefForwardEffectiveJoint3RequiredRad(
+    const std::array<double, 4> & start) const
+  {
+    const double requested = std::max(0.0, eef_forward_joint3_complete_delta_rad_);
+    if (requested <= 0.0) {
+      return 0.0;
+    }
+
+    const double direction = eefForwardJoint3Direction();
+    const double requested_target = start[2] + direction * requested;
+    const double clamped_target = clampValue(
+      requested_target,
+      joint_pregrasp_min_positions_[2],
+      joint_pregrasp_max_positions_[2]);
+    return std::abs(clamped_target - start[2]);
+  }
+
   double bezierEase01(double t) const
   {
     t = clampValue(t, 0.0, 1.0);
@@ -2370,8 +2387,8 @@ private:
     }
 
     progress.available = true;
-    progress.joint3_required_rad = eef_forward_joint3_complete_delta_rad_;
     const auto & start = *eef_forward_start_joint_positions_;
+    progress.joint3_required_rad = eefForwardEffectiveJoint3RequiredRad(start);
     const double direction = eefForwardJoint3Direction();
     progress.joint3_progress_rad =
       std::max(0.0, direction * (current[2] - start[2]));
