@@ -330,6 +330,7 @@ void CsrtIbvsNode::onInitBbox(const std_msgs::msg::Float32MultiArray::ConstShare
       detector_reference_bbox_ = new_bbox;
       last_detector_bbox_stamp_ = receive_time;
       min_depth_reached_ = false;
+      publishCloseRangeReady(false);
       status_text =
         state_ == TrackerState::TRACKING ?
         "bbox correction received; tracker will refresh on the next image" :
@@ -480,6 +481,7 @@ void CsrtIbvsNode::onImage(const sensor_msgs::msg::Image::ConstSharedPtr msg)
       resetTracker();
       state_ = TrackerState::LOST;
       min_depth_reached_ = false;
+      publishCloseRangeReady(false);
       if (stop_when_lost_) {
         publishStop(true);
       }
@@ -1454,6 +1456,7 @@ void CsrtIbvsNode::watchdog()
     resetTracker();
     state_ = TrackerState::LOST;
     min_depth_reached_ = false;
+    publishCloseRangeReady(false);
     if (stop_when_lost_) {
       publishStop(true);
     }
