@@ -142,9 +142,11 @@ mp_control_node:
     pregrasp_reverse_joint3_delta: true
     pregrasp_hold_current_duration_s: 0.0
     pregrasp_move_duration_s: 1.6
-    # Move joint3 first before lowering joint2. If joint2 drops first, joint3
-    # carries the arm load and the real motor torque loop can break.
-    pregrasp_joint3_lead_enabled: true
+    # Move joint3 first before lowering joint2. The node now creates small
+    # controller-side joint3 step targets before joint2/joint4 are allowed to
+    # move, so the old raw-space lead waypoint is disabled.
+    pregrasp_joint3_max_step_rad: 0.045
+    pregrasp_joint3_lead_enabled: false
     pregrasp_joint3_lead_duration_ratio: 0.45
     pregrasp_joint3_lead_fraction: 0.25
     # Keep this as 1 after the joint3 lead point; extra interpolation can make
