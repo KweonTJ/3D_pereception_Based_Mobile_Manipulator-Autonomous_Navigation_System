@@ -445,6 +445,34 @@ private:
       declare_parameter<double>("eef_forward_joint3_complete_tolerance_rad", 0.015);
     eef_forward_joint4_finish_tolerance_rad_ =
       declare_parameter<double>("eef_forward_joint4_finish_tolerance_rad", 0.015);
+    eef_forward_use_bezier_ik_ =
+      declare_parameter<bool>("eef_forward_use_bezier_ik", true);
+    eef_forward_bezier_total_duration_s_ =
+      declare_parameter<double>("eef_forward_bezier_total_duration_s", 5.0);
+    eef_forward_bezier_progress_step_ =
+      declare_parameter<double>("eef_forward_bezier_progress_step", 0.08);
+    eef_forward_bezier_joint2_total_delta_rad_ =
+      declare_parameter<double>(
+      "eef_forward_bezier_joint2_total_delta_rad",
+      std::abs(eef_forward_joint2_delta_rad_) * 5.0);
+    eef_forward_bezier_joint3_total_delta_rad_ =
+      declare_parameter<double>(
+      "eef_forward_bezier_joint3_total_delta_rad",
+      eef_forward_joint3_complete_delta_rad_);
+    eef_forward_bezier_joint2_max_step_rad_ =
+      declare_parameter<double>(
+      "eef_forward_bezier_joint2_max_step_rad",
+      std::max(0.005, std::abs(eef_forward_joint2_delta_rad_)));
+    eef_forward_bezier_joint3_max_step_rad_ =
+      declare_parameter<double>(
+      "eef_forward_bezier_joint3_max_step_rad",
+      std::max(0.005, std::min(0.020, std::abs(eef_forward_joint3_delta_rad_))));
+    eef_forward_bezier_joint4_max_step_rad_ =
+      declare_parameter<double>(
+      "eef_forward_bezier_joint4_max_step_rad",
+      std::max(0.0, eef_forward_joint4_max_delta_rad_));
+    eef_forward_bezier_preserve_roll_ =
+      declare_parameter<bool>("eef_forward_bezier_preserve_roll", true);
     eef_forward_roll_joint2_weight_ =
       declare_parameter<double>("eef_forward_roll_joint2_weight", 0.0);
     eef_forward_roll_joint3_weight_ =
