@@ -614,6 +614,11 @@ private:
     grasp_completion_eef_lost_timeout_s_ =
       std::max(0.1, grasp_completion_eef_lost_timeout_s_);
     depth_roi_radius_px_ = std::max(0, depth_roi_radius_px_);
+    depth_std_max_m_ = std::max(0.0, depth_std_max_m_);
+    depth_min_fill_ratio_ = clampValue(depth_min_fill_ratio_, 0.0, 1.0);
+    depth_jump_limit_m_ = std::max(0.0, depth_jump_limit_m_);
+    stable_depth_frames_ = std::max(1, stable_depth_frames_);
+    min_depth_samples_ = std::max(1, min_depth_samples_);
     eef_refinement_switch_distance_m_ = std::max(0.01, eef_refinement_switch_distance_m_);
     eef_refinement_start_depth_m_ = std::max(min_valid_depth_m_, eef_refinement_start_depth_m_);
     eef_yolo_pre_enable_depth_m_ =
