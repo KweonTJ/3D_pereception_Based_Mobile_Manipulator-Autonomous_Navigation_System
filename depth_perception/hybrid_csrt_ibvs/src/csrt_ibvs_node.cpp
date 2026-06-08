@@ -1743,6 +1743,54 @@ void CsrtIbvsNode::publishCloseRangeReady(bool ready, bool force)
   close_range_ready_sent_ = ready;
 }
 
+void CsrtIbvsNode::publishStableObjectPoint(
+  const cv::Rect & bbox,
+  const cv::Size & image_size,
+  const rclcpp::Time & stamp,
+  double range_m)
+{
+  if (!stable_object_pub_ || !std::isfinite(range_m) || range_m <= 0.0) {
+    return;
+  }
+
+  bool have_info = false;
+  double fx = 0.0;
+  double fy = 0.0;
+  double cx = 0.0;
+  double cy = 0.0;
+  std::string frame_id;
+  {
+    std::lock_guard<std::mutex> lock(camera_info_mutex_);
+    have_info = have_camera_info_;
+    fx = fx_;
+    fy = fy_;
+    cx = camera_cx_;
+    cy = camera_cy_;
+    frame_id = camera_frame_id_;
+  }
+  if (!have_info || fx <= 1.0 || fy <= 1.0) {
+    return;
+  }
+  if (frame_id.empty()) {
+    frame_id = arm_command_frame_id_;
+  }
+
+  const double u = static_cast<double>(bbox.x) + 0.5 * static_cast<double>(bbox.width);
+  const double v = static_cast<double>(bbox.y) + 0.5 * static_cast<double>(bbox.height);
+  const double image_width = static_cast<double>(std::max(1, image_size.width));
+  const double image_height = static_cast<double>(std::max(1, image_size.height));
+  const double scaled_u = u * (2.0 * cx) / image_width;
+  const double scaled_v = v * (2.0 * cy) / image_height;
+
+  geometry_msgs::msg::PointStamped msg;
+  msg.header.stamp = stamp.nanoseconds() == 0 ? now() : stamp;
+  msg.header.frame_id = frame_id;
+  msg.point.z = range_m;
+  msg.point.x = (scaled_u - cx) * range_m / fx;
+  msg.point.y = (scaled_v - cy) * range_m / fy;
+  stable_object_pub_->publish(msg);
+}
+
 void CsrtIbvsNode::publishStop(bool force)
 {
   if (stop_sent_ && !force) {
