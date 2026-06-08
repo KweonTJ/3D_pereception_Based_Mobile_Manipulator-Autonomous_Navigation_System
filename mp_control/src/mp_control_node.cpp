@@ -3687,7 +3687,8 @@ private:
     const sensor_msgs::msg::Image & depth,
     const CameraInfo & info,
     double color_u,
-    double color_v) const
+    double color_v,
+    std::string * reject_reason = nullptr)
   {
     const double image_width = info.width > 0 ? static_cast<double>(info.width) : static_cast<double>(depth.width);
     const double image_height = info.height > 0 ? static_cast<double>(info.height) : static_cast<double>(depth.height);
@@ -3710,16 +3711,39 @@ private:
     }
 
     if (samples.empty()) {
+      if (reject_reason) {
+        *reject_reason = "center depth rejected: no valid samples";
+      }
       return std::nullopt;
     }
     std::sort(samples.begin(), samples.end());
-    return samples[samples.size() / 2];
+    const double depth_m = samples[samples.size() / 2];
+    const int total_count =
+      std::max(1, (row_end - row_begin + 1) * (col_end - col_begin + 1));
+    const double mean = std::accumulate(samples.begin(), samples.end(), 0.0) /
+      static_cast<double>(samples.size());
+    double variance = 0.0;
+    for (const double sample : samples) {
+      const double diff = sample - mean;
+      variance += diff * diff;
+    }
+    variance /= static_cast<double>(samples.size());
+
+    DepthStats stats;
+    stats.depth_m = depth_m;
+    stats.fill_ratio = static_cast<double>(samples.size()) / static_cast<double>(total_count);
+    stats.std_m = std::sqrt(std::max(0.0, variance));
+    stats.sample_count = static_cast<int>(samples.size());
+    stats.total_count = total_count;
+    stats.source = "center";
+    return acceptDepthStats(stats, reject_reason);
   }
 
   std::optional<double> robustDepthInBbox(
     const sensor_msgs::msg::Image & depth,
     const CameraInfo & info,
-    const Bbox & bbox) const
+    const Bbox & bbox,
+    std::string * reject_reason = nullptr)
   {
     const double image_width =
       info.width > 0 ? static_cast<double>(info.width) : static_cast<double>(depth.width);
@@ -3748,6 +3772,9 @@ private:
       static_cast<int>(depth.height) - 1);
 
     if (row_end < row_begin || col_end < col_begin) {
+      if (reject_reason) {
+        *reject_reason = "bbox depth rejected: empty ROI";
+      }
       return std::nullopt;
     }
 
@@ -3756,9 +3783,11 @@ private:
     const int step = std::max(1, std::min(roi_width, roi_height) / 24);
 
     std::vector<double> samples;
+    int total_count = 0;
     samples.reserve(static_cast<size_t>((roi_width / step + 1) * (roi_height / step + 1)));
     for (int row = row_begin; row <= row_end; row += step) {
       for (int col = col_begin; col <= col_end; col += step) {
+        ++total_count;
         const auto meters = depthPixelMeters(depth, row, col);
         if (meters && *meters >= min_valid_depth_m_ && *meters <= max_valid_depth_m_) {
           samples.push_back(*meters);
@@ -3767,12 +3796,33 @@ private:
     }
 
     if (samples.empty()) {
+      if (reject_reason) {
+        *reject_reason = "bbox depth rejected: no valid samples";
+      }
       return std::nullopt;
     }
 
     std::sort(samples.begin(), samples.end());
     const size_t index = std::min(samples.size() - 1, samples.size() / 4);
-    return samples[index];
+    const double depth_m = samples[index];
+    const double mean = std::accumulate(samples.begin(), samples.end(), 0.0) /
+      static_cast<double>(samples.size());
+    double variance = 0.0;
+    for (const double sample : samples) {
+      const double diff = sample - mean;
+      variance += diff * diff;
+    }
+    variance /= static_cast<double>(samples.size());
+
+    DepthStats stats;
+    stats.depth_m = depth_m;
+    stats.fill_ratio = static_cast<double>(samples.size()) /
+      static_cast<double>(std::max(1, total_count));
+    stats.std_m = std::sqrt(std::max(0.0, variance));
+    stats.sample_count = static_cast<int>(samples.size());
+    stats.total_count = std::max(1, total_count);
+    stats.source = "bbox";
+    return acceptDepthStats(stats, reject_reason);
   }
 
   std::optional<double> nearLimitDepthInBbox(
