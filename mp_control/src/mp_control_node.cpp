@@ -2456,6 +2456,33 @@ private:
     return clampJointPregraspTarget(target);
   }
 
+  std::array<double, 4> jointPregraspControllerStepTarget(
+    const std::array<double, 4> & current,
+    const std::array<double, 4> & final_target,
+    bool * joint3_step_active = nullptr) const
+  {
+    if (joint3_step_active) {
+      *joint3_step_active = false;
+    }
+
+    std::array<double, 4> target = final_target;
+    const double joint3_delta = final_target[2] - current[2];
+    if (joint_pregrasp_joint3_max_step_rad_ > 1.0e-9 &&
+      std::abs(joint3_delta) > joint_pregrasp_joint3_max_step_rad_)
+    {
+      // On the real arm, dropping joint2/joint4 before joint3 unfolds loads
+      // joint3 enough to trip torque protection. Step joint3 first, slowly.
+      target = current;
+      target[2] =
+        current[2] + std::copysign(joint_pregrasp_joint3_max_step_rad_, joint3_delta);
+      if (joint3_step_active) {
+        *joint3_step_active = true;
+      }
+    }
+
+    return clampJointPregraspTarget(target);
+  }
+
   std::array<double, 4> jointNudgeRawTargetFromControllerTarget(
     const std::array<double, 4> & current,
     const std::array<double, 4> & controller_target) const
