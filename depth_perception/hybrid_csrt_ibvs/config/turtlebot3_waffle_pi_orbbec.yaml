@@ -14,6 +14,7 @@ csrt_ibvs_node:
     cmd_vel_topic: /cmd_vel
     base_hold_topic: /target/base_hold
     close_range_ready_topic: /target/close_range_ready
+    stable_object_topic: /target/object_in_base
     enable_cmd_vel: true
 
     # Keep arm commands off until MoveIt Servo/OpenManipulator-X is configured.
