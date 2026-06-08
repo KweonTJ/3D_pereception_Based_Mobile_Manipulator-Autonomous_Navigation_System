@@ -2419,17 +2419,18 @@ private:
 
   std::string enforceEefForwardMonotonicTarget(
     const std::array<double, 4> & current,
+    const std::array<double, 4> & start,
     const std::array<double, 4> & reference,
     std::array<double, 4> & target) const
   {
     std::string reason = "none";
     for (std::size_t i = 1; i <= 3; ++i) {
-      const double reference_delta = reference[i] - current[i];
+      const double planned_delta = reference[i] - start[i];
       const double target_delta = target[i] - current[i];
       if (
-        std::abs(reference_delta) > 1.0e-6 &&
+        std::abs(planned_delta) > 1.0e-6 &&
         std::abs(target_delta) > 1.0e-6 &&
-        reference_delta * target_delta < 0.0)
+        planned_delta * target_delta < 0.0)
       {
         target[i] = current[i];
         if (reason == "none") {
