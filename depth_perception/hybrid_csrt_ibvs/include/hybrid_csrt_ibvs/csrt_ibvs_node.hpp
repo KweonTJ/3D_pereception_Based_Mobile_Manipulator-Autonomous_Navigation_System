@@ -170,10 +170,13 @@ private:
   bool use_triangulation_after_min_depth_{false};
   bool use_eef_front_camera_extrinsic_override_{false};
   double triangulation_start_depth_m_{0.47};
+  double triangulation_start_bbox_area_ratio_{0.0};
+  double triangulation_start_bbox_height_ratio_{0.0};
   double triangulation_stop_x_m_{0.30};
   double triangulation_max_speed_mps_{0.04};
   double triangulation_gain_{0.4};
   double triangulation_fallback_speed_mps_{0.005};
+  double triangulation_fallback_max_area_ratio_{0.30};
   double triangulation_timeout_s_{2.0};
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
