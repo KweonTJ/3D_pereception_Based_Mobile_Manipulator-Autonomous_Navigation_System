@@ -96,6 +96,7 @@ private:
     const cv::Mat & frame,
     const std::string & reason) const;
   void publishStatus(const std::string & text, bool force = false);
+  void publishCloseRangeReady(bool ready, bool force = false);
   void publishStop(bool force = false);
   std::string stateToString() const;
 
@@ -115,6 +116,7 @@ private:
   std::string tracked_bbox_topic_;
   std::string cmd_vel_topic_;
   std::string base_hold_topic_;
+  std::string close_range_ready_topic_;
   std::string arm_twist_topic_;
   std::string debug_image_topic_;
   std::string status_topic_;
@@ -212,6 +214,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr debug_image_pub_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr tracked_bbox_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr close_range_ready_pub_;
   rclcpp::TimerBase::SharedPtr watchdog_timer_;
 
 #ifdef HYBRID_CSRT_IBVS_HAS_OPENCV_TRACKING
@@ -230,6 +233,7 @@ private:
   bool stop_sent_{true};
   std::atomic_bool base_hold_active_{false};
   bool min_depth_reached_{false};
+  bool close_range_ready_sent_{false};
 
   mutable std::mutex bbox_mutex_;
   std::optional<cv::Rect> pending_init_bbox_;
