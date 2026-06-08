@@ -1174,6 +1174,14 @@ private:
     }
 
     if (!maybe_object) {
+      if (require_close_range_ready_for_pregrasp_ && !closeRangeReadyFresh()) {
+        publishBaseHold(false);
+        publishStatus(
+          "waiting for close-range ready; base released for depth_perception approach: " +
+          object_block_reason);
+        return;
+      }
+      
       if (use_eef_refinement_ &&
           (!use_color_triangulation_after_min_depth_ || useColorTriangulationAfterMinDepth()) &&
           shouldHoldForEefRefinement()) {
