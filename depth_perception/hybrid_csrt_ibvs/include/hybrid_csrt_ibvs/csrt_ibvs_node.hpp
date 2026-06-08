@@ -83,7 +83,7 @@ private:
     const cv::Size & image_size,
     const rclcpp::Time & current_time) const;
   IbvsResult computeIbvsCommand(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & stamp);
-  std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp) const;
+  std::optional<double> estimateDepthMeters(const cv::Rect & bbox, const cv::Size & image_size, const rclcpp::Time & image_stamp);
   std::optional<double> estimateTriangulatedObjectX(
     const cv::Rect & front_bbox,
     const cv::Size & front_image_size,
@@ -207,6 +207,15 @@ private:
   double max_valid_depth_m_{3.0};
   double emergency_stop_depth_m_{0.18};
   double max_depth_stamp_age_s_{0.35};
+  int min_depth_samples_{30};
+  int stable_depth_frames_{3};
+  double depth_std_max_m_{0.08};
+  double depth_min_fill_ratio_{0.25};
+  double depth_jump_limit_m_{0.10};
+  std::optional<double> last_accepted_depth_m_;
+  std::optional<double> pending_depth_m_;
+  int stable_depth_count_{0};
+  std::string last_depth_filter_status_;
 
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_sub_;
