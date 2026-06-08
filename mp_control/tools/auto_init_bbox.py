@@ -802,10 +802,25 @@ class AutoInitBbox(Node):
                     locked_best = candidate
 
             if locked_best is None:
-                self.throttled_waiting_status(
-                    "YOLO target locked; no same-object box near last bbox")
-                return None
-            best = locked_best
+                self.yolo_lock_miss_count += 1
+                if (
+                    self.yolo_lock_reset_after_misses > 0
+                    and self.yolo_lock_miss_count >= self.yolo_lock_reset_after_misses
+                ):
+                    self.last_bbox = None
+                    self.anchor_bbox = None
+                    self.yolo_lock_miss_count = 0
+                    self.publish_status(
+                        "YOLO target lock reset after consecutive misses; accepting best current box")
+                else:
+                    self.throttled_waiting_status(
+                        "YOLO target locked; no same-object box near last bbox")
+                    return None
+            else:
+                self.yolo_lock_miss_count = 0
+                best = locked_best
+        else:
+            self.yolo_lock_miss_count = 0
 
         x, y, width, height, pixels, confidence, cls_name, _ = best
         self.publish_status(
