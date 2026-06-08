@@ -3205,6 +3205,8 @@ private:
         ik_joint_sync_reason += ik_missing ? ":missing" : ":opposite";
       }
     }
+    const std::string ik_monotonic_hold_reason =
+      enforceEefForwardMonotonicTarget(*current, coupled_waypoint, synchronized_ik_target);
 
     std::array<double, 4> controller_target = *current;
     controller_target[1] = (*current)[1] + clampStep(
@@ -3217,6 +3219,8 @@ private:
       synchronized_ik_target[3] - (*current)[3],
       eef_forward_bezier_joint4_max_step_rad_);
     controller_target = clampJointPregraspTarget(controller_target);
+    const std::string controller_monotonic_hold_reason =
+      enforceEefForwardMonotonicTarget(*current, coupled_waypoint, controller_target);
 
     const auto raw_target =
       jointNudgeRawTargetFromControllerTarget(*current, controller_target);
@@ -3260,6 +3264,8 @@ private:
            << " simultaneous_joints=" << joint_stage
            << " ik_joint_sync_fill=" << (ik_joint_sync_fill ? "true" : "false")
            << " ik_joint_sync_reason=" << ik_joint_sync_reason
+           << " ik_monotonic_hold=" << ik_monotonic_hold_reason
+           << " controller_monotonic_hold=" << controller_monotonic_hold_reason
            << " allow_after_joint3_complete="
            << (allow_after_joint3_complete ? "true" : "false")
            << " target_advance=" << target_advance_m
