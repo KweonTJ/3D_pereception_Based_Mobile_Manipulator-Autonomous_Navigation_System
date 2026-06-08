@@ -200,6 +200,10 @@ void CsrtIbvsNode::readParameters()
     declare_parameter<bool>("use_eef_front_camera_extrinsic_override", false);
   triangulation_start_depth_m_ =
     declare_parameter<double>("triangulation_start_depth_m", 0.47);
+  triangulation_start_bbox_area_ratio_ =
+    declare_parameter<double>("triangulation_start_bbox_area_ratio", 0.0);
+  triangulation_start_bbox_height_ratio_ =
+    declare_parameter<double>("triangulation_start_bbox_height_ratio", 0.0);
   triangulation_stop_x_m_ =
     declare_parameter<double>("triangulation_stop_x_m", 0.30);
   triangulation_max_speed_mps_ =
@@ -208,6 +212,8 @@ void CsrtIbvsNode::readParameters()
     declare_parameter<double>("triangulation_gain", 0.4);
   triangulation_fallback_speed_mps_ =
     declare_parameter<double>("triangulation_fallback_speed_mps", 0.005);
+  triangulation_fallback_max_area_ratio_ =
+    declare_parameter<double>("triangulation_fallback_max_area_ratio", 0.30);
   triangulation_timeout_s_ =
     declare_parameter<double>("triangulation_timeout_s", 2.0);
   triangulation_min_range_m_ =
@@ -258,11 +264,17 @@ void CsrtIbvsNode::readParameters()
   max_angular_z_ = std::max(0.0, max_angular_z_);
   max_arm_linear_ = std::max(0.0, max_arm_linear_);
   triangulation_start_depth_m_ = std::max(0.0, triangulation_start_depth_m_);
+  triangulation_start_bbox_area_ratio_ =
+    clampValue(triangulation_start_bbox_area_ratio_, 0.0, 1.0);
+  triangulation_start_bbox_height_ratio_ =
+    clampValue(triangulation_start_bbox_height_ratio_, 0.0, 1.0);
   triangulation_stop_x_m_ = std::max(0.01, triangulation_stop_x_m_);
   triangulation_max_speed_mps_ = std::max(0.0, triangulation_max_speed_mps_);
   triangulation_gain_ = std::max(0.0, triangulation_gain_);
   triangulation_fallback_speed_mps_ =
     clampValue(triangulation_fallback_speed_mps_, 0.0, triangulation_max_speed_mps_);
+  triangulation_fallback_max_area_ratio_ =
+    clampValue(triangulation_fallback_max_area_ratio_, 0.0, 1.0);
   triangulation_timeout_s_ = std::max(0.1, triangulation_timeout_s_);
   triangulation_min_range_m_ = std::max(0.0, triangulation_min_range_m_);
   triangulation_max_range_m_ = std::max(triangulation_min_range_m_ + 0.01, triangulation_max_range_m_);
