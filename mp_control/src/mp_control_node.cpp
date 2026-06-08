@@ -2176,6 +2176,20 @@ private:
     return eef_forward_joint3_delta_rad_ < 0.0 ? -1.0 : 1.0;
   }
 
+  double bezierEase01(double t) const
+  {
+    t = clampValue(t, 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
+  }
+
+  double clampStep(double delta, double max_abs_step) const
+  {
+    if (max_abs_step <= 0.0) {
+      return delta;
+    }
+    return clampValue(delta, -max_abs_step, max_abs_step);
+  }
+
   double stepJointWithoutReversingTowardLimit(
     double current,
     double delta,
