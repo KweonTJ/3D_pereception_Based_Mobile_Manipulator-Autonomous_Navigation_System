@@ -1148,9 +1148,14 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   const double bbox_area_ratio =
     static_cast<double>(bbox.width * bbox.height) /
     static_cast<double>(image_size.width * image_size.height);
+  const bool front_bbox_scale_close_ready =
+    (close_ready_bbox_height_ratio_ > 0.0 &&
+    bbox_height_ratio >= close_ready_bbox_height_ratio_) ||
+    (close_ready_bbox_area_ratio_ > 0.0 &&
+    bbox_area_ratio >= close_ready_bbox_area_ratio_);
 
   if (use_triangulation_after_min_depth_ && min_depth_reached_) {
-    if (bbox_height_ratio >= 0.70 || bbox_area_ratio >= 0.30) {
+    if (front_bbox_scale_close_ready) {
       linear_x = 0.0;
       angular_z = 0.0;
       publishCloseRangeReady(true);
@@ -1158,7 +1163,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
       std::ostringstream status;
       status << "close range ready by front bbox scale"
             << " height_ratio=" << bbox_height_ratio
-            << " area_ratio=" << bbox_area_ratio;
+            << " threshold=" << close_ready_bbox_height_ratio_
+            << " area_ratio=" << bbox_area_ratio
+            << " area_threshold=" << close_ready_bbox_area_ratio_;
       result.range_status = status.str();
       return result;
     }
@@ -1226,7 +1233,7 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   if (!result.depth_too_close &&
       use_triangulation_after_min_depth_ &&
       min_depth_reached_ &&
-      (bbox_height_ratio >= 0.70 || bbox_area_ratio >= 0.30))
+      front_bbox_scale_close_ready)
   {
     linear_x = 0.0;
     angular_z = 0.0;
@@ -1235,7 +1242,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     std::ostringstream status;
     status << "close range ready by front bbox scale"
            << " height_ratio=" << bbox_height_ratio
-           << " area_ratio=" << bbox_area_ratio;
+           << " threshold=" << close_ready_bbox_height_ratio_
+           << " area_ratio=" << bbox_area_ratio
+           << " area_threshold=" << close_ready_bbox_area_ratio_;
     result.range_status = status.str();
     return result;
   }
