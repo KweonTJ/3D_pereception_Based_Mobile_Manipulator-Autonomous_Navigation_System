@@ -2101,12 +2101,20 @@ private:
       joint_progress_gate_enabled &&
       joint_progress.available &&
       joint_progress.joint3_complete;
+    const bool analytic_ik_extension_complete =
+      eef_forward_use_analytic_ik_ &&
+      joint_progress_gate_enabled &&
+      min_advance_complete &&
+      (!close_after_full_eef_forward_extension_ || distance_extension_complete);
     const bool joint_based_extension_complete =
-      joint3_extension_complete && min_advance_complete;
+      eef_forward_use_analytic_ik_ ?
+      analytic_ik_extension_complete :
+      (joint3_extension_complete && min_advance_complete);
     const bool arm_extension_complete =
       distance_extension_complete ||
       joint_based_extension_complete;
     const bool continue_joint3_after_required =
+      !eef_forward_use_analytic_ik_ &&
       joint_progress_gate_enabled &&
       joint_progress.available &&
       joint_progress.joint3_complete &&
@@ -2182,6 +2190,8 @@ private:
              << (joint3_extension_complete ? "true" : "false")
              << " joint_based_extension_complete="
              << (joint_based_extension_complete ? "true" : "false")
+             << " analytic_ik_extension_complete="
+             << (analytic_ik_extension_complete ? "true" : "false")
              << " continue_joint3_after_required="
              << (continue_joint3_after_required ? "true" : "false")
              << " arm_extension_complete="
@@ -2229,6 +2239,8 @@ private:
              << (joint3_extension_complete ? "true" : "false")
              << " joint_based_extension_complete="
              << (joint_based_extension_complete ? "true" : "false")
+             << " analytic_ik_extension_complete="
+             << (analytic_ik_extension_complete ? "true" : "false")
              << " arm_extension_complete="
              << (arm_extension_complete ? "true" : "false")
              << " close_after_full_eef_forward_extension="
