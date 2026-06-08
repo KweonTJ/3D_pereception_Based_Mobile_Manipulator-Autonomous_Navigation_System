@@ -72,6 +72,17 @@ class AutoInitBbox(Node):
         self.box_center_weight = float(self.declare_parameter("box_center_weight", 0.55).value)
         self.box_area_weight = float(self.declare_parameter("box_area_weight", 0.30).value)
         self.box_depth_weight = float(self.declare_parameter("box_depth_weight", 0.15).value)
+        self.depth_first_front_bbox = bool(
+            self.declare_parameter("depth_first_front_bbox", False).value)
+        self.require_depth_for_front_yolo = bool(
+            self.declare_parameter("require_depth_for_front_yolo", True).value)
+        self.depth_yolo_iou_min = float(
+            self.declare_parameter("depth_yolo_iou_min", 0.30).value)
+        self.yolo_as_assist_only = bool(
+            self.declare_parameter("yolo_as_assist_only", True).value)
+        self.yolo_image_topic = str(self.declare_parameter("yolo_image_topic", "").value)
+        self.yolo_image_max_age_s = float(
+            self.declare_parameter("yolo_image_max_age_s", 0.75).value)
         self.yolo_model_path = str(self.declare_parameter("yolo_model_path", "").value)
         self.yolo_confidence = float(self.declare_parameter("yolo_confidence", 0.35).value)
         self.yolo_imgsz = int(self.declare_parameter("yolo_imgsz", 640).value)
@@ -143,6 +154,13 @@ class AutoInitBbox(Node):
                 topic,
                 lambda msg, source_topic=topic: self.on_image(msg, source_topic),
                 qos_profile_sensor_data))
+        self.yolo_image_sub = None
+        if self.yolo_image_topic and self.yolo_image_topic not in self.image_topics():
+            self.yolo_image_sub = self.create_subscription(
+                Image,
+                self.yolo_image_topic,
+                self.on_yolo_image,
+                qos_profile_sensor_data)
         self.enable_sub = None
         if self.enable_topic:
             self.enable_sub = self.create_subscription(
@@ -165,10 +183,12 @@ class AutoInitBbox(Node):
         self.yolo_lock_miss_count = 0
         self.yolo_model = None
         self.yolo_load_failed = False
+        self.latest_yolo_image = None
+        self.latest_yolo_image_time = 0.0
 
         self.publish_status(
             f"waiting for {self.color_mode} target on {self.image_topics()}; publishing bbox to {self.bbox_topic}")
-        if self.color_mode == "yolo":
+        if self.color_mode == "yolo" or self.depth_first_active():
             self.load_yolo_model()
 
     def on_enable(self, msg):
@@ -180,6 +200,8 @@ class AutoInitBbox(Node):
             self.last_bbox_update_time = 0.0
             self.anchor_bbox = None
             self.yolo_lock_miss_count = 0
+            self.latest_yolo_image = None
+            self.latest_yolo_image_time = 0.0
             self.last_publish_time = 0.0
             self.start_time = time.monotonic()
             self.publish_status(
@@ -200,6 +222,14 @@ class AutoInitBbox(Node):
             if topic and topic not in unique_topics:
                 unique_topics.append(topic)
         return unique_topics
+
+    def depth_first_active(self):
+        return self.color_mode != "yolo" and (
+            self.depth_first_front_bbox or self.color_mode == "depth_first_front_bbox")
+
+    def on_yolo_image(self, msg):
+        self.latest_yolo_image = msg
+        self.latest_yolo_image_time = time.monotonic()
 
     def publish_status(self, text):
         self.last_status = text
