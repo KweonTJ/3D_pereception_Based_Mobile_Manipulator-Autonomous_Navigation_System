@@ -283,7 +283,15 @@ class AutoInitBbox(Node):
                 f"receiving image: topic={source_topic or self.image_topic} encoding={msg.encoding} size={msg.width}x{msg.height}")
 
         bbox = None
-        if self.color_mode == "box":
+        if self.depth_first_active():
+            bbox = self.depth_first_front_bbox_candidate(msg)
+            image_width = msg.width
+            image_height = msg.height
+            if bbox is None:
+                self.republish_last_bbox("fresh depth-first front bbox unavailable")
+                return
+            mask = None
+        elif self.color_mode == "box":
             bbox = self.depth_box_bbox(msg)
             image_width = msg.width
             image_height = msg.height
@@ -673,7 +681,58 @@ class AutoInitBbox(Node):
                 x, y, width, height, pixels, fill_ratio, depth_std, near_depth, band, score))
         return x, y, width, height, pixels
 
-    def yolo_bbox(self, msg):
+    def depth_first_front_bbox_candidate(self, msg):
+        depth_bbox = self.depth_box_bbox(msg)
+        if depth_bbox is None:
+            if self.require_depth_for_front_yolo:
+                self.throttled_waiting_status(
+                    "depth-first front bbox rejected: depth bbox unavailable; YOLO-only publish disabled")
+            return None
+
+        if not self.yolo_as_assist_only:
+            self.publish_status(
+                "depth-first front bbox accepted without YOLO assist: "
+                f"depth_bbox={self.format_bbox(depth_bbox)}")
+            return depth_bbox
+
+        yolo_msg = self.latest_yolo_image
+        yolo_age = time.monotonic() - self.latest_yolo_image_time
+        if yolo_msg is None or yolo_age > max(0.05, self.yolo_image_max_age_s):
+            self.publish_status(
+                "depth-first front bbox accepted: YOLO assist image unavailable "
+                f"age={yolo_age:.2f}s depth_bbox={self.format_bbox(depth_bbox)}")
+            return depth_bbox
+
+        yolo_bbox = self.yolo_bbox(yolo_msg, update_lock=False, emit_status=False)
+        if yolo_bbox is None:
+            self.publish_status(
+                "depth-first front bbox accepted: YOLO assist found no valid box; "
+                f"depth_bbox={self.format_bbox(depth_bbox)}")
+            return depth_bbox
+
+        scaled_yolo = self.scale_bbox(
+            yolo_bbox,
+            yolo_msg.width,
+            yolo_msg.height,
+            msg.width,
+            msg.height)
+        iou = self.bbox_iou(depth_bbox, scaled_yolo)
+        if iou < max(0.0, self.depth_yolo_iou_min):
+            self.throttled_waiting_status(
+                "depth-first front bbox rejected: "
+                f"YOLO/depth IoU={iou:.2f} < {self.depth_yolo_iou_min:.2f}; "
+                f"depth_bbox={self.format_bbox(depth_bbox)} "
+                f"yolo_bbox_scaled={self.format_bbox(scaled_yolo)}")
+            return None
+
+        self.publish_status(
+            "depth-first front bbox accepted: "
+            f"YOLO/depth IoU={iou:.2f} "
+            f"depth_bbox={self.format_bbox(depth_bbox)} "
+            f"yolo_bbox_scaled={self.format_bbox(scaled_yolo)}")
+        return depth_bbox
+
+    def yolo_bbox(self, msg, update_lock=True, emit_status=True):
         model = self.load_yolo_model()
         if model is None:
             return None
@@ -694,16 +753,19 @@ class AutoInitBbox(Node):
                 verbose=False,
             )
         except Exception as exc:
-            self.throttled_waiting_status(f"YOLO inference failed: {exc}")
+            if emit_status:
+                self.throttled_waiting_status(f"YOLO inference failed: {exc}")
             return None
 
         if not results:
-            self.throttled_waiting_status("YOLO returned no result")
+            if emit_status:
+                self.throttled_waiting_status("YOLO returned no result")
             return None
         result = results[0]
         boxes = getattr(result, "boxes", None)
         if boxes is None or len(boxes) == 0:
-            self.throttled_waiting_status("YOLO found no box")
+            if emit_status:
+                self.throttled_waiting_status("YOLO found no box")
             return None
 
         names = getattr(result, "names", {}) or {}
@@ -769,7 +831,7 @@ class AutoInitBbox(Node):
             confidence = float(box.conf[0].detach().cpu().item()) if box.conf is not None else 0.0
             min_accept_confidence = (
                 self.yolo_locked_min_accept_confidence
-                if self.yolo_lock_target and self.last_bbox is not None
+                if self.yolo_lock_target and update_lock and self.last_bbox is not None
                 else self.yolo_min_accept_confidence
             )
             if confidence < min_accept_confidence:
@@ -797,15 +859,16 @@ class AutoInitBbox(Node):
                 f"{key}={value}" for key, value in rejected.items() if value)
             if not reject_text:
                 reject_text = "none"
-            self.throttled_waiting_status(
-                f"YOLO found {seen} box(es), all rejected: {reject_text}; "
-                f"limits area<={self.max_bbox_area_ratio:.2f} "
-                f"aspect=[{self.min_bbox_aspect_ratio:.2f},{self.max_bbox_aspect_ratio:.2f}] "
-                f"roi=x[{self.roi_min_x_ratio:.2f},{self.roi_max_x_ratio:.2f}] "
-                f"y[{self.roi_min_y_ratio:.2f},{self.roi_max_y_ratio:.2f}]")
+            if emit_status:
+                self.throttled_waiting_status(
+                    f"YOLO found {seen} box(es), all rejected: {reject_text}; "
+                    f"limits area<={self.max_bbox_area_ratio:.2f} "
+                    f"aspect=[{self.min_bbox_aspect_ratio:.2f},{self.max_bbox_aspect_ratio:.2f}] "
+                    f"roi=x[{self.roi_min_x_ratio:.2f},{self.roi_max_x_ratio:.2f}] "
+                    f"y[{self.roi_min_y_ratio:.2f},{self.roi_max_y_ratio:.2f}]")
             return None
 
-        if self.yolo_lock_target and self.last_bbox is not None:
+        if self.yolo_lock_target and update_lock and self.last_bbox is not None:
             locked_best = None
             locked_score = -1.0e9
             max_jump = max(0.01, self.yolo_max_center_jump_ratio)
@@ -840,11 +903,13 @@ class AutoInitBbox(Node):
                     self.last_bbox = None
                     self.anchor_bbox = None
                     self.yolo_lock_miss_count = 0
-                    self.publish_status(
-                        "YOLO target lock reset after consecutive misses; accepting best current box")
+                    if emit_status:
+                        self.publish_status(
+                            "YOLO target lock reset after consecutive misses; accepting best current box")
                 else:
-                    self.throttled_waiting_status(
-                        "YOLO target locked; no same-object box near last bbox")
+                    if emit_status:
+                        self.throttled_waiting_status(
+                            "YOLO target locked; no same-object box near last bbox")
                     return None
             else:
                 self.yolo_lock_miss_count = 0
@@ -853,12 +918,30 @@ class AutoInitBbox(Node):
             self.yolo_lock_miss_count = 0
 
         x, y, width, height, pixels, confidence, cls_name, _ = best
-        self.publish_status(
-            "YOLO box: class={} conf={:.2f} bbox=[{:.0f},{:.0f},{:.1f},{:.1f}]".format(
-                cls_name, confidence, x, y, width, height))
-        if self.anchor_bbox is None:
+        if emit_status:
+            self.publish_status(
+                "YOLO box: class={} conf={:.2f} bbox=[{:.0f},{:.0f},{:.1f},{:.1f}]".format(
+                    cls_name, confidence, x, y, width, height))
+        if update_lock and self.anchor_bbox is None:
             self.anchor_bbox = [float(x), float(y), float(width), float(height)]
         return int(round(x)), int(round(y)), float(width), float(height), pixels
+
+    @staticmethod
+    def format_bbox(bbox):
+        return "[{:.1f},{:.1f},{:.1f},{:.1f}]".format(
+            float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3]))
+
+    @staticmethod
+    def scale_bbox(bbox, from_width, from_height, to_width, to_height):
+        sx = float(to_width) / max(1.0, float(from_width))
+        sy = float(to_height) / max(1.0, float(from_height))
+        return (
+            float(bbox[0]) * sx,
+            float(bbox[1]) * sy,
+            float(bbox[2]) * sx,
+            float(bbox[3]) * sy,
+            int(max(1.0, float(bbox[2]) * sx) * max(1.0, float(bbox[3]) * sy)),
+        )
 
     @staticmethod
     def bbox_area_ratio(a, b):
