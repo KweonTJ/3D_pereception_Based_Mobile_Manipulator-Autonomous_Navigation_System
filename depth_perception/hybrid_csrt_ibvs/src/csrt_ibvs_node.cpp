@@ -420,6 +420,11 @@ void CsrtIbvsNode::onEefCameraInfo(const sensor_msgs::msg::CameraInfo::ConstShar
 
 void CsrtIbvsNode::onDepth(const sensor_msgs::msg::Image::ConstSharedPtr msg)
 {
+  if (use_triangulation_after_min_depth_ && min_depth_reached_) {
+    last_depth_filter_status_ = "depth ignored after 0.47m handoff";
+    return;
+  }
+
   try {
     const auto cv_ptr = cv_bridge::toCvShare(msg);
     DepthSample sample;
