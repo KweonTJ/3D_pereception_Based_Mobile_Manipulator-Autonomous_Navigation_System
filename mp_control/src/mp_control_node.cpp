@@ -256,6 +256,16 @@ private:
     double joint4_target_rad{0.0};
   };
 
+  struct DepthStats
+  {
+    double depth_m{0.0};
+    double fill_ratio{0.0};
+    double std_m{0.0};
+    int sample_count{0};
+    int total_count{0};
+    std::string source;
+  };
+
   void readParameters()
   {
     bbox_topic_ = declare_parameter<std::string>("bbox_topic", "/target/tracked_bbox");
@@ -270,6 +280,8 @@ private:
 	    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
     close_range_ready_topic_ =
       declare_parameter<std::string>("close_range_ready_topic", "/target/close_range_ready");
+    stable_object_topic_ =
+      declare_parameter<std::string>("stable_object_topic", "/target/object_in_base");
 	    twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
 	    base_cmd_vel_topic_ = declare_parameter<std::string>("base_cmd_vel_topic", "/cmd_vel");
 	    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
@@ -339,6 +351,11 @@ private:
     depth_unit_scale_ = declare_parameter<double>("depth_unit_scale", 0.001);
     min_valid_depth_m_ = declare_parameter<double>("min_valid_depth_m", 0.12);
     max_valid_depth_m_ = declare_parameter<double>("max_valid_depth_m", 1.2);
+    depth_std_max_m_ = declare_parameter<double>("depth_std_max_m", 0.08);
+    depth_min_fill_ratio_ = declare_parameter<double>("depth_min_fill_ratio", 0.25);
+    depth_jump_limit_m_ = declare_parameter<double>("depth_jump_limit_m", 0.10);
+    stable_depth_frames_ = declare_parameter<int>("stable_depth_frames", 3);
+    min_depth_samples_ = declare_parameter<int>("min_depth_samples", 30);
     grasp_offset_x_ = declare_parameter<double>("grasp_offset_x", 0.0);
     grasp_offset_y_ = declare_parameter<double>("grasp_offset_y", 0.0);
     grasp_offset_z_ = declare_parameter<double>("grasp_offset_z", 0.0);
