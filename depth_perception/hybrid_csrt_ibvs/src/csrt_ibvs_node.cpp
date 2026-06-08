@@ -1484,6 +1484,21 @@ void CsrtIbvsNode::publishStatus(const std::string & text, bool force)
   last_status_stamp_ = stamp;
 }
 
+void CsrtIbvsNode::publishCloseRangeReady(bool ready, bool force)
+{
+  if (!close_range_ready_pub_) {
+    return;
+  }
+  if (!force && close_range_ready_sent_ == ready) {
+    return;
+  }
+
+  std_msgs::msg::Bool msg;
+  msg.data = ready;
+  close_range_ready_pub_->publish(msg);
+  close_range_ready_sent_ = ready;
+}
+
 void CsrtIbvsNode::publishStop(bool force)
 {
   if (stop_sent_ && !force) {
