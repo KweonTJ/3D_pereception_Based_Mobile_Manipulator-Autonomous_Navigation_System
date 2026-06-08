@@ -392,6 +392,8 @@ void CsrtIbvsNode::onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedP
   fy_ = msg->k[4];
   camera_cx_ = msg->k[2];
   camera_cy_ = msg->k[5];
+  camera_width_ = static_cast<int>(msg->width);
+  camera_height_ = static_cast<int>(msg->height);
   camera_frame_id_ = msg->header.frame_id;
   have_camera_info_ = fx_ > 1.0 && fy_ > 1.0;
 }
@@ -1758,6 +1760,8 @@ void CsrtIbvsNode::publishStableObjectPoint(
   double fy = 0.0;
   double cx = 0.0;
   double cy = 0.0;
+  int camera_width = 0;
+  int camera_height = 0;
   std::string frame_id;
   {
     std::lock_guard<std::mutex> lock(camera_info_mutex_);
@@ -1766,6 +1770,8 @@ void CsrtIbvsNode::publishStableObjectPoint(
     fy = fy_;
     cx = camera_cx_;
     cy = camera_cy_;
+    camera_width = camera_width_;
+    camera_height = camera_height_;
     frame_id = camera_frame_id_;
   }
   if (!have_info || fx <= 1.0 || fy <= 1.0) {
@@ -1777,10 +1783,14 @@ void CsrtIbvsNode::publishStableObjectPoint(
 
   const double u = static_cast<double>(bbox.x) + 0.5 * static_cast<double>(bbox.width);
   const double v = static_cast<double>(bbox.y) + 0.5 * static_cast<double>(bbox.height);
+  const double camera_width_f = static_cast<double>(
+    camera_width > 0 ? camera_width : image_size.width);
+  const double camera_height_f = static_cast<double>(
+    camera_height > 0 ? camera_height : image_size.height);
   const double image_width = static_cast<double>(std::max(1, image_size.width));
   const double image_height = static_cast<double>(std::max(1, image_size.height));
-  const double scaled_u = u * (2.0 * cx) / image_width;
-  const double scaled_v = v * (2.0 * cy) / image_height;
+  const double scaled_u = u * camera_width_f / image_width;
+  const double scaled_v = v * camera_height_f / image_height;
 
   geometry_msgs::msg::PointStamped msg;
   msg.header.stamp = stamp.nanoseconds() == 0 ? now() : stamp;
