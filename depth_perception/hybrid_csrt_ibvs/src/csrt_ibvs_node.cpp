@@ -1069,6 +1069,9 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
   result.arm_cmd.header.stamp = stamp;
   result.arm_cmd.header.frame_id = arm_command_frame_id_;
 
+  double linear_x = 0.0;
+  double angular_z = 0.0;
+
   const double target_u = static_cast<double>(bbox.x) + 0.5 * static_cast<double>(bbox.width);
   const double target_v = static_cast<double>(bbox.y) + 0.5 * static_cast<double>(bbox.height);
   const double desired_u = desired_u_ratio_ * static_cast<double>(image_size.width);
@@ -1115,14 +1118,12 @@ CsrtIbvsNode::IbvsResult CsrtIbvsNode::computeIbvsCommand(
     result.y_error_norm = (target_v - desired_v) / static_cast<double>(std::max(1, image_size.height));
   }
 
-  double angular_z = 0.0;
   if (std::abs(result.x_error_norm) > x_deadband_norm_) {
     // Match the TurtleBot3 manipulation base command convention: positive
     // image x error should rotate toward the target in the real robot frame.
     angular_z = yaw_gain_ * result.x_error_norm;
   }
 
-  double linear_x = 0.0;
   result.depth_m = estimateDepthMeters(bbox, image_size, stamp);
   const bool straight_depth_approach =
     force_straight_approach_ &&
