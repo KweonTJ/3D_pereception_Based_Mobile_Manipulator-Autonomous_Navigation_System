@@ -687,6 +687,8 @@ bool CsrtIbvsNode::initializeTracker(const cv::Mat & frame, const cv::Rect & bbo
   } catch (const cv::Exception & ex) {
     resetTracker();
     state_ = TrackerState::LOST;
+    min_depth_reached_ = false;
+    publishCloseRangeReady(false);
     publishStop(true);
     RCLCPP_ERROR(get_logger(), "%s initialization failed: %s", trackerBackendName(), ex.what());
     publishStatus(std::string(trackerBackendName()) + " initialization failed", true);
