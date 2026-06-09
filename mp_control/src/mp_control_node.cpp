@@ -2866,7 +2866,7 @@ private:
     }
 
     target = final_target;
-    target[3] = current[3] + gripper_down_joint4_offset_rad_;
+    target[3] = joint4ForPregraspToolPitch(target, desired_tool_pitch);
 
     return clampJointPregraspTarget(target);
   }
