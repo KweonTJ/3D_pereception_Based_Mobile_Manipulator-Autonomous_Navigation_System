@@ -200,7 +200,7 @@ hardware_interface::CallbackReturn TurtleBot3ManipulationSystemHardware::on_acti
   opencr_->set_gripper_current();
 
   RCLCPP_INFO(logger, "System starting");
-  opencr_->play_sound(opencr::SOUND::ASCENDING);
+  // opencr_->play_sound(opencr::SOUND::ASCENDING);
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
