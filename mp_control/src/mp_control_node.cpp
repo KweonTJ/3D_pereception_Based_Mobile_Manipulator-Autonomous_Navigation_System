@@ -259,6 +259,8 @@ private:
     bool joint3_complete{false};
     bool joint4_complete{true};
     bool complete{false};
+    double joint2_progress_rad{0.0};
+    double joint2_required_rad{0.0};
     double joint3_progress_rad{0.0};
     double joint3_required_rad{0.0};
     double joint4_error_rad{0.0};
