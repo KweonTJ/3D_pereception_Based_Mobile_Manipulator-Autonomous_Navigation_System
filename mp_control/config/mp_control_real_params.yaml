@@ -145,7 +145,7 @@ mp_control_node:
     # Move joint3 first before lowering joint2. The node now creates small
     # controller-side joint3 step targets before joint2/joint4 are allowed to
     # move, so the old raw-space lead waypoint is disabled.
-    pregrasp_joint3_max_step_rad: 0.085
+    pregrasp_joint3_max_step_rad: 0.25
     pregrasp_joint3_lead_enabled: false
     pregrasp_joint3_lead_duration_ratio: 0.45
     pregrasp_joint3_lead_fraction: 0.25
@@ -155,7 +155,7 @@ mp_control_node:
     pregrasp_settle_s: 0.5
     pregrasp_joint_tolerance_rad: 0.04
     pregrasp_republish_period_s: 1.0
-    pregrasp_joint_min_positions: [-3.14, -1.5, -1.65, -1.79]
+    pregrasp_joint_min_positions: [-3.14, -1.5, -1.70, -1.79]
     pregrasp_joint_max_positions: [3.14, 1.5, 1.38, 2.04]
     eef_center_tolerance_px: 28.0
     eef_close_tolerance_px: 70.0
