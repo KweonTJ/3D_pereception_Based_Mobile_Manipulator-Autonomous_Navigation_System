@@ -1239,12 +1239,16 @@ private:
           color_triangulation_base_stop_object_x_m_) ||
           close_visual_bbox_ready;
 
+        // if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
+        //   maybe_object = front_size_object ? front_size_object : depth_reference;
+        //   if (!maybe_object && eef_bbox_ready && visual_reference_close) {
+        //     maybe_object = makeVisualPregraspObject(eef_tf);
+        //     using_visual_bbox_for_pregrasp = true;
+        //   }
+        //   using_latched_depth_for_pregrasp = true;
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
-          maybe_object = front_size_object ? front_size_object : depth_reference;
-          if (!maybe_object && eef_bbox_ready && visual_reference_close) {
-            maybe_object = makeVisualPregraspObject(eef_tf);
-            using_visual_bbox_for_pregrasp = true;
-          }
+          maybe_object = makeVisualPregraspObject(eef_tf);
+          using_visual_bbox_for_pregrasp = true;
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
           std::ostringstream status;
