@@ -109,7 +109,7 @@ mp_control_node:
     # Front depth is trusted only until 0.47 m. Once that near limit is reached,
     # depth is ignored and front RGB + EEF RGB triangulation keeps the base
     # approaching until color_triangulation_base_stop_object_x_m.
-    eef_refinement_start_object_x_m: 0.20
+    eef_refinement_start_object_x_m: 0.32
     arm_start_max_error_m: 0.50
     arm_start_max_object_x_m: 0.22
     object_height_m: 0.10
