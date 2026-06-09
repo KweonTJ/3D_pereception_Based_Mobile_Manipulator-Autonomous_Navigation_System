@@ -5676,7 +5676,7 @@ private:
   double triangulation_extend_max_speed_{0.015};
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
-  double triangulation_max_ray_gap_m_{0.08};
+  double triangulation_max_ray_gap_m_{0.10};
   bool use_eef_front_camera_extrinsic_override_{false};
   double eef_front_camera_offset_x_m_{0.0};
   double eef_front_camera_offset_y_m_{0.0};
