@@ -2139,6 +2139,10 @@ private:
       joint_progress_gate_enabled &&
       min_advance_complete &&
       (!close_after_full_eef_forward_extension_ || distance_extension_complete);
+    const bool all_joints_extended =
+      joint_progress_gate_enabled &&
+      joint_progress.available &&
+      joint_progress.complete;
     const bool joint_based_extension_complete =
       eef_forward_use_analytic_ik_ ?
       analytic_ik_extension_complete :
