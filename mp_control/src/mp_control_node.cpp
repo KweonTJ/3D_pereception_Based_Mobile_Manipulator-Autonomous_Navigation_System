@@ -986,6 +986,7 @@ private:
       latest_stable_object_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       close_range_ready_ = false;
       close_range_ready_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      close_range_pregrasp_latched_ = false;
       resetDepthFilterStateLocked();
     }
     object_pregrasp_horizontal_done_ = false;
