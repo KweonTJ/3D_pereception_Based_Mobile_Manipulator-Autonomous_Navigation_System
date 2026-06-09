@@ -2146,7 +2146,7 @@ private:
     const bool joint_based_extension_complete =
       eef_forward_use_analytic_ik_ ?
       (analytic_ik_extension_complete && all_joints_extended) :
-      (all_joints_extended && min_advance_complete);
+      all_joints_extended;
     const bool arm_extension_complete =
       // distance_extension_complete ||
       joint_based_extension_complete;
