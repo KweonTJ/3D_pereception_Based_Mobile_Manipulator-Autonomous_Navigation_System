@@ -2703,7 +2703,10 @@ private:
     if (!eef_forward_joint4_after_joint3_complete_) {
       progress.joint4_complete = true;
       progress.joint4_target_rad = current[3];
-      progress.complete = progress.joint3_complete;
+      progress.complete =
+        progress.joint2_complete &&
+        progress.joint3_complete &&
+        progress.joint4_complete;
       return progress;
     }
 
