@@ -5766,6 +5766,7 @@ private:
 	  bool joint_pregrasp_done_{false};
   bool close_range_ready_{false};
   rclcpp::Time close_range_ready_stamp_;
+  bool close_range_pregrasp_latched_{false};
   bool eef_forward_advance_active_{false};
   bool safety_abort_latched_{false};
   bool safety_abort_ignore_reported_{false};
