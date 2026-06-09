@@ -175,7 +175,7 @@ mp_control_node:
     eef_refine_max_angular_speed: 0.25
     eef_forward_after_align: true
     eef_forward_distance_m: 0.08
-    eef_forward_speed_mps: 0.024
+    eef_forward_speed_mps: 0.028
     # Real grasp sequence: stop base, build pregrasp pose, advance the EEF by
     # distance instead of a fixed timer, then close the gripper.
     eef_forward_fixed_duration_s: 0.0
