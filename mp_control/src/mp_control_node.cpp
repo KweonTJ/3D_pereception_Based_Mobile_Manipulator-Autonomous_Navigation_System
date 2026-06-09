@@ -1161,17 +1161,31 @@ private:
       if (!maybe_color_object) {
         const bool visual_reference_close =
           isVisualPregraspReferenceClose(front_size_object, depth_reference);
+
+        // const bool front_size_close_ready =
+        //   (front_size_object &&
+        //   objectGoalXForPregrasp(*front_size_object) <=
+        //   color_triangulation_base_stop_object_x_m_) ||
+        //   (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
+
         const bool front_size_close_ready =
+          close_range_pregrasp_latched_ ||
           (front_size_object &&
           objectGoalXForPregrasp(*front_size_object) <=
           color_triangulation_base_stop_object_x_m_) ||
-          (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
+          close_visual_bbox_ready;
+
         if (front_size_close_ready) {
           maybe_object = front_size_object ? front_size_object : depth_reference;
-          if (!maybe_object && eef_bbox_ready && visual_reference_close) {
+          // if (!maybe_object && eef_bbox_ready && visual_reference_close) {
+          //   maybe_object = makeVisualPregraspObject(eef_tf);
+          //   using_visual_bbox_for_pregrasp = true;
+          // }
+          if (close_range_pregrasp_latched_ || close_visual_bbox_ready || !maybe_object) {
             maybe_object = makeVisualPregraspObject(eef_tf);
             using_visual_bbox_for_pregrasp = true;
           }
+
           using_latched_depth_for_pregrasp = true;
           object_block_reason.clear();
           std::ostringstream status;
