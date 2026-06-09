@@ -2712,9 +2712,9 @@ private:
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
     }
-    if (joint_pregrasp_preserve_gripper_roll_) {
-      target[3] = joint4ForPreservedGripperRoll(current, target);
-    }
+    // if (joint_pregrasp_preserve_gripper_roll_) {
+    //   target[3] = joint4ForPreservedGripperRoll(current, target);
+    // }
     target[3] += gripper_down_joint4_offset_rad_;
     return clampJointPregraspTarget(target);
   }
