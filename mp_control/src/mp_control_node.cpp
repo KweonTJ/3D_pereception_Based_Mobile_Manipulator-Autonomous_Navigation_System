@@ -1250,6 +1250,7 @@ private:
           maybe_object = makeVisualPregraspObject(eef_tf);
           using_visual_bbox_for_pregrasp = true;
           using_latched_depth_for_pregrasp = true;
+          
           object_block_reason.clear();
           std::ostringstream status;
           status << "color triangulation still far object_x=" << color_goal_x
