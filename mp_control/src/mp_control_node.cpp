@@ -2870,6 +2870,8 @@ private:
       for (std::size_t i = 0; i < target.size(); ++i) {
         target[i] = current[i] + (final_target[i] - current[i]) * ratio;
       }
+      target[1] = current[1] +
+        clampStep(target[1] - current[1], joint_pregrasp_joint2_max_step_rad_);
       // target[3] = joint4ForPregraspToolPitch(target, desired_tool_pitch);
       const double desired_joint4 =
         joint4ForPregraspToolPitch(target, desired_tool_pitch);
