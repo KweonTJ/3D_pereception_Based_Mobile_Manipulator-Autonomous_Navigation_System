@@ -2852,9 +2852,16 @@ private:
         std::min(joint3_abs_delta, joint_pregrasp_joint3_max_step_rad_) :
         joint3_abs_delta;
 
-      target[0] = current[0];
-      target[1] = current[1];
-      target[2] = current[2] + std::copysign(joint3_step, joint3_delta);
+      // target[0] = current[0];
+      // target[1] = current[1];
+      // target[2] = current[2] + std::copysign(joint3_step, joint3_delta);
+
+      const double ratio =
+        clampValue(joint3_step / joint3_abs_delta, 0.0, 1.0);
+
+      for (std::size_t i = 0; i < target.size(); ++i) {
+        target[i] = current[i] + (final_target[i] - current[i]) * ratio;
+      }
       target[3] = joint4ForPregraspToolPitch(target, desired_tool_pitch);
 
       if (joint3_step_active) {
