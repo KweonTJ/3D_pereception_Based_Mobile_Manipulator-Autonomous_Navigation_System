@@ -729,7 +729,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_yolo_as_assist_only",
-            default_value="false",
+            default_value="true",
             description="Keep YOLO as a validator/assist signal in depth-first mode instead of publishing YOLO bbox directly.",
         ),
         DeclareLaunchArgument(
