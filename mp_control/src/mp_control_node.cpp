@@ -2743,6 +2743,9 @@ private:
   {
     std::ostringstream out;
     out << " joint_progress_available=" << (progress.available ? "true" : "false")
+        << " joint2_progress=" << progress.joint2_progress_rad
+        << "/" << progress.joint2_required_rad
+        << " joint2_complete=" << (progress.joint2_complete ? "true" : "false")
         << " joint3_progress=" << progress.joint3_progress_rad
         << "/" << progress.joint3_required_rad
         << " joint3_complete=" << (progress.joint3_complete ? "true" : "false")
