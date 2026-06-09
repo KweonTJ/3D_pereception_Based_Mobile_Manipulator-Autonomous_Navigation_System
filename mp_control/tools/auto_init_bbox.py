@@ -777,8 +777,7 @@ class AutoInitBbox(Node):
                     "depth-first front bbox rejected: depth bbox unavailable and YOLO assist found no valid box")
                 return None
             depth_area_ratio = self.bbox_area_ratio(
-                depth_bbox,
-                (0.0, 0.0, float(msg.width), float(msg.height))
+                depth_bbox,(0.0, 0.0, float(msg.width), float(msg.height))
             )
 
             if depth_area_ratio > 0.25:
