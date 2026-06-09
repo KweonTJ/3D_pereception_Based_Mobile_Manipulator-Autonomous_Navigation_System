@@ -2860,8 +2860,8 @@ private:
       }
       target[1] = current[1] +
         clampStep(target[1] - current[1], joint_pregrasp_joint2_max_step_rad_);
-      const double desired_joint4 =
-        joint4ForPregraspToolPitch(target, desired_tool_pitch);
+      // const double desired_joint4 =
+      //   joint4ForPregraspToolPitch(target, desired_tool_pitch);
       target[3] = current[3] +
         clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
 
@@ -2875,8 +2875,8 @@ private:
     target = final_target;
     target[1] = current[1] +
       clampStep(final_target[1] - current[1], joint_pregrasp_joint2_max_step_rad_);
-    const double desired_joint4 =
-      joint4ForPregraspToolPitch(target, desired_tool_pitch);
+    // const double desired_joint4 =
+    //   joint4ForPregraspToolPitch(target, desired_tool_pitch);
     target[3] = current[3] +
       clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
 
