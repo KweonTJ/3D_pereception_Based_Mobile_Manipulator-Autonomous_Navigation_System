@@ -544,7 +544,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_bbox_image_topic",
-            default_value="/camera/depth/image_raw",
+            default_value="/camera/color/image_raw",
             description="Front Astra depth topic used for depth-first primary box detection.",
         ),
         DeclareLaunchArgument(
