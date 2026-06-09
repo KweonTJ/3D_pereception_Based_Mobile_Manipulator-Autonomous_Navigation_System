@@ -4973,7 +4973,7 @@ private:
   void startHandoffSequence(const std::string & grasp_status)
   {
     const auto stamp = now();
-    
+
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
@@ -4998,7 +4998,7 @@ private:
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     sendGripperOpenForObject();
     publishCargoEvent("placed", true);
-    publishStatus("handoff joint1 turn complete; opening gripper immediately", true);
+    publishStatus(grasp_status + "; opening gripper immediately", true);
   }
 
   void updateHandoff()
