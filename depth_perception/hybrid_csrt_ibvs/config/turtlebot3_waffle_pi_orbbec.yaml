@@ -120,7 +120,7 @@ csrt_ibvs_node:
     no_depth_visual_approach_max_area_ratio: 0.10
     no_depth_visual_approach_max_height_ratio: 0.60
     triangulation_timeout_s: 2.0
-    triangulation_min_range_m: 0.06
+    triangulation_min_range_m: 0.016
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
     eef_tracked_bbox_topic: /target/eef_tracked_bbox
