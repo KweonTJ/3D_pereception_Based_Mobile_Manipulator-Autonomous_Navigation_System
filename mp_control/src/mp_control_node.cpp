@@ -1853,16 +1853,23 @@ private:
       }
     }
 
+    // if (missing_eef_bbox) {
+    //   if (canStartEefForwardFromFrontBboxFallback()) {
+    //     startEefForwardAdvance(
+    //       eef_tf,
+    //       rpy_error,
+    //       "front bbox close-size fallback; EEF bbox missing, starting fixed-pose forward advance");
+    //     return;
+    //   }
+    //   publishStop();
+    //   publishStatus("waiting for end-effector visual feature bbox");
+    //   return;
+    // }
     if (missing_eef_bbox) {
-      if (canStartEefForwardFromFrontBboxFallback()) {
-        startEefForwardAdvance(
-          eef_tf,
-          rpy_error,
-          "front bbox close-size fallback; EEF bbox missing, starting fixed-pose forward advance");
-        return;
-      }
-      publishStop();
-      publishStatus("waiting for end-effector visual feature bbox");
+      startEefForwardAdvance(
+        eef_tf,
+        rpy_error,
+        "EEF bbox missing/rejected; ignoring EEF bbox and starting joint-based forward advance");
       return;
     }
 
