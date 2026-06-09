@@ -714,7 +714,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_depth_first_front_bbox",
-            default_value="true",
+            default_value="false",
             description="Use front depth component as the primary bbox and validate it against YOLO when available.",
         ),
         DeclareLaunchArgument(
