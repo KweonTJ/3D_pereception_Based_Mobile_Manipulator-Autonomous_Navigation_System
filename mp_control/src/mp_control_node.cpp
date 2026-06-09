@@ -2722,9 +2722,6 @@ private:
 
     progress.joint2_required_rad = std::abs(clamped_joint2_target - start[1]);
 
-    const double joint2_direction =
-      eef_forward_bezier_joint2_total_delta_rad_ >= 0.0 ? 1.0 : -1.0;
-
     progress.joint2_progress_rad =
       std::max(0.0, joint2_direction * (current[1] - start[1]));
 
