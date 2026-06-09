@@ -549,7 +549,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_alternate_image_topics",
-            default_value="/camera/rgb/image,/camera/image_raw,/camera/color/image",
+            default_value="/camera/rgb/image_raw,/camera/image_raw,/camera/color/image",
             description="Comma-separated fallback depth topics for automatic primary box detection.",
         ),
         DeclareLaunchArgument(
