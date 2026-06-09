@@ -59,7 +59,7 @@ mp_control_node:
     auto_init_eef_tracker_from_object: false
     use_depthless_triangulation: true
     use_color_triangulation_after_min_depth: true
-    require_close_range_ready_for_pregrasp: true
+    require_close_range_ready_for_pregrasp: false
     # Real hardware pregrasp bypasses Cartesian Servo because Servo collision
     # scaling can stall while the arm is still mechanically able to extend.
     use_joint_pregrasp: true
