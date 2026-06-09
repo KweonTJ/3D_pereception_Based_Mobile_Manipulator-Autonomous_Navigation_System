@@ -145,7 +145,7 @@ mp_control_node:
     # Move joint3 first before lowering joint2. The node now creates small
     # controller-side joint3 step targets before joint2/joint4 are allowed to
     # move, so the old raw-space lead waypoint is disabled.
-    pregrasp_joint3_max_step_rad: 0.065
+    pregrasp_joint3_max_step_rad: 0.085
     pregrasp_joint3_lead_enabled: false
     pregrasp_joint3_lead_duration_ratio: 0.45
     pregrasp_joint3_lead_fraction: 0.25
@@ -162,7 +162,7 @@ mp_control_node:
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
-    eef_refine_max_linear_speed: 0.02
+    eef_refine_max_linear_speed: 0.03
     # EEF refinement keeps the current EE roll/pitch/yaw while nudging the
     # hand forward after the bbox is aligned, then closes the gripper.
     use_eef_rpy_refinement: true
