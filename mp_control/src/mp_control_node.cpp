@@ -2769,9 +2769,27 @@ private:
     return out.str();
   }
 
+  double pregraspToolPitchTargetRad() const
+  {
+    return normalizeAngle(
+      joint_pregrasp_ready_positions_[1] +
+      joint_pregrasp_ready_positions_[2] +
+      joint_pregrasp_ready_positions_[3] +
+      gripper_down_joint4_offset_rad_);
+  }
+
+  double joint4ForPregraspToolPitch(
+    const std::array<double, 4> & target,
+    double desired_tool_pitch) const
+  {
+    return normalizeAngle(desired_tool_pitch - target[1] - target[2]);
+  }
+
   std::array<double, 4> jointPregraspControllerTargetFromCurrent(
     const std::array<double, 4> & current) const
   {
+    (void)current;
+
     std::array<double, 4> target{};
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
@@ -2779,7 +2797,8 @@ private:
     // if (joint_pregrasp_preserve_gripper_roll_) {
     //   target[3] = joint4ForPreservedGripperRoll(current, target);
     // }
-    target[3] = current[3] + gripper_down_joint4_offset_rad_;
+    const double desired_tool_pitch = pregraspToolPitchTargetRad();
+    target[3] = joint4ForPregraspToolPitch(target, desired_tool_pitch);
     return clampJointPregraspTarget(target);
   }
 
@@ -2802,6 +2821,8 @@ private:
     if (joint3_step_active) {
       *joint3_step_active = false;
     }
+
+    const double desired_tool_pitch = pregraspToolPitchTargetRad();
 
     // std::array<double, 4> target = final_target;
     // const double joint3_delta = final_target[2] - current[2];
@@ -2835,7 +2856,7 @@ private:
       target[0] = current[0];
       target[1] = current[1];
       target[2] = current[2] + std::copysign(joint3_step, joint3_delta);
-      target[3] = current[3] + gripper_down_joint4_offset_rad_;
+      target[3] = joint4ForPregraspToolPitch(target, desired_tool_pitch);
 
       if (joint3_step_active) {
         *joint3_step_active = true;
