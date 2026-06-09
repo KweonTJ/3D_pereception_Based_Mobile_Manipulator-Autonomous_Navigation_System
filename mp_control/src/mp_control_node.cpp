@@ -2406,17 +2406,34 @@ private:
       eef_forward_roll_joint4_weight_ * joints[3];
   }
 
-  double joint4ForPreservedEefForwardRoll(
-    const std::array<double, 4> & reference,
-    const std::array<double, 4> & target) const
-  {
-    const double reference_roll_proxy = eefForwardGripperRollProxyFromJoints(reference);
-    return (
-      reference_roll_proxy -
-      eef_forward_roll_joint2_weight_ * target[1] -
-      eef_forward_roll_joint3_weight_ * target[2]) /
-      eef_forward_roll_joint4_weight_;
-  }
+  // double joint4ForPreservedEefForwardRoll(
+  //   const std::array<double, 4> & reference,
+  //   const std::array<double, 4> & target) const
+  // {
+  //   const double reference_roll_proxy = eefForwardGripperRollProxyFromJoints(reference);
+  //   return (
+  //     reference_roll_proxy -
+  //     eef_forward_roll_joint2_weight_ * target[1] -
+  //     eef_forward_roll_joint3_weight_ * target[2]) /
+  //     eef_forward_roll_joint4_weight_;
+  // }
+    double joint4ForPreservedEefForwardRoll(
+      const std::array<double, 4> & reference,
+      const std::array<double, 4> & target) const
+    {
+      if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
+        return reference[3] -
+          eef_forward_roll_joint2_weight_ * (target[1] - reference[1]) -
+          eef_forward_roll_joint3_weight_ * (target[2] - reference[2]);
+      }
+
+      const double reference_roll_proxy = eefForwardGripperRollProxyFromJoints(reference);
+      return (
+        reference_roll_proxy -
+        eef_forward_roll_joint2_weight_ * target[1] -
+        eef_forward_roll_joint3_weight_ * target[2]) /
+        eef_forward_roll_joint4_weight_;
+    }
 
   double eefForwardJoint3Direction() const
   {
