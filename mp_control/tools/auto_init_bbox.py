@@ -228,8 +228,9 @@ class AutoInitBbox(Node):
         return unique_topics
 
     def depth_first_active(self):
-        return self.color_mode != "yolo" and (
-            self.depth_first_front_bbox or self.color_mode == "depth_first_front_bbox")
+        # return self.color_mode != "yolo" and (
+        #     self.depth_first_front_bbox or self.color_mode == "depth_first_front_bbox")
+        return self.color_mode == "depth_first_front_bbox"
 
     def on_yolo_image(self, msg):
         self.latest_yolo_image = msg
