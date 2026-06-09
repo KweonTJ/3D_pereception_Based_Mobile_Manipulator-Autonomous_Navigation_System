@@ -125,7 +125,7 @@ mp_control_node:
     object_pregrasp_enable_lowering: false
     # Keep the shoulder higher than the old pregrasp pose so the arm does not
     # drop into the front Astra camera view before close-range EEF alignment.
-    pregrasp_ready_joint_positions: [0.0, 0.60, -1.45, -1.05]
+    pregrasp_ready_joint_positions: [0.0, 0.25, -1.45, -0.55]
     # Keep the gripper parallel to the base/body in the pregrasp command.
     # The real arm's gripper-side orientation changes with joint2+joint3+joint4;
     # excluding joint3 makes the gripper point upward when the arm extends.
