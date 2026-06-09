@@ -252,7 +252,7 @@ mp_control_node:
     front_bbox_close_area_ratio: 0.55
     close_on_eef_bbox_shrink: false
     eef_bbox_close_area_ratio: 0.55
-    eef_forward_min_advance_before_close_m: 0.04
+    eef_forward_min_advance_before_close_m: 0.0
     close_after_full_eef_forward_extension: true
     # After visual grasp confirmation, keep holding the base tracker, rotate
     # only manipulator joint1 by 180 degrees toward the follower, open the
