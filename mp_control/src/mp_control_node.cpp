@@ -2707,8 +2707,20 @@ private:
       progress.joint3_progress_rad + eef_forward_joint3_complete_tolerance_rad_ >=
       progress.joint3_required_rad;
 
-    progress.joint2_required_rad =
-      std::abs(eef_forward_bezier_joint2_total_delta_rad_);
+    // progress.joint2_required_rad =
+    //   std::abs(eef_forward_bezier_joint2_total_delta_rad_);
+    const double joint2_direction =
+      eef_forward_bezier_joint2_total_delta_rad_ >= 0.0 ? 1.0 : -1.0;
+
+    const double requested_joint2_target =
+      start[1] + joint2_direction * std::abs(eef_forward_bezier_joint2_total_delta_rad_);
+
+    const double clamped_joint2_target = clampValue(
+      requested_joint2_target,
+      joint_pregrasp_min_positions_[1],
+      joint_pregrasp_max_positions_[1]);
+
+    progress.joint2_required_rad = std::abs(clamped_joint2_target - start[1]);
 
     const double joint2_direction =
       eef_forward_bezier_joint2_total_delta_rad_ >= 0.0 ? 1.0 : -1.0;
