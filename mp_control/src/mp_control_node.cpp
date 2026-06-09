@@ -5721,6 +5721,7 @@ private:
 	  double joint_pregrasp_settle_s_{0.5};
 	  double joint_pregrasp_tolerance_rad_{0.04};
 	  double joint_pregrasp_republish_period_s_{1.0};
+    double joint_pregrasp_joint2_max_step_rad_{0.05};
 	  double joint_pregrasp_joint3_max_step_rad_{0.06};
     double joint_pregrasp_joint4_max_step_rad_{0.04};
 	  std::vector<double> joint_pregrasp_min_positions_{-3.14, -1.79, -0.94, -1.79};
