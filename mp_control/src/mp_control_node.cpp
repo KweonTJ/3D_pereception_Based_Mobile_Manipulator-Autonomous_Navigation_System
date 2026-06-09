@@ -1235,9 +1235,8 @@ private:
         }
 
         const bool front_size_close_ready =
-          front_size_object_close ||
           close_range_pregrasp_latched_ ||
-          close_visual_bbox_ready;
+          front_size_object_close;
 
         // if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
         //   maybe_object = front_size_object ? front_size_object : depth_reference;
