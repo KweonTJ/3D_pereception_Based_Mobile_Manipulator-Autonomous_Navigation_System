@@ -5182,9 +5182,7 @@ private:
   {
     if (!require_visual_grasp_confirmation_) {
       if (close_gripper_on_arrival_ && !close_sent_) {
-        if (!sendGripperGraspForObject()) {
-          return false;
-        }
+        sendGripperGraspForObject();
         close_sent_ = true;
       }
       completeGrasp(complete_status);
