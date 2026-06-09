@@ -4972,6 +4972,8 @@ private:
 
   void startHandoffSequence(const std::string & grasp_status)
   {
+    const auto stamp = now();
+    
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       eef_refinement_requested_ = false;
