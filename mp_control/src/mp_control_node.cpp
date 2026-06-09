@@ -255,6 +255,7 @@ private:
   struct EefForwardJointProgress
   {
     bool available{false};
+    bool joint2_complete{false};
     bool joint3_complete{false};
     bool joint4_complete{true};
     bool complete{false};
