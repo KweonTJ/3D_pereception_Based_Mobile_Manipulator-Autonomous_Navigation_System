@@ -1183,7 +1183,7 @@ private:
           //   maybe_object = makeVisualPregraspObject(eef_tf);
           //   using_visual_bbox_for_pregrasp = true;
           // }
-          if (close_range_pregrasp_latched_ || close_visual_bbox_ready || !maybe_object) {
+          if (close_range_pregrasp_latched_ || front_size_object_close || !maybe_object) {
             maybe_object = makeVisualPregraspObject(eef_tf);
             using_visual_bbox_for_pregrasp = true;
           }
@@ -1235,10 +1235,8 @@ private:
         }
 
         const bool front_size_close_ready =
+          front_size_object_close ||
           close_range_pregrasp_latched_ ||
-          (front_size_object &&
-          objectGoalXForPregrasp(*front_size_object) <=
-          color_triangulation_base_stop_object_x_m_) ||
           close_visual_bbox_ready;
 
         // if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
