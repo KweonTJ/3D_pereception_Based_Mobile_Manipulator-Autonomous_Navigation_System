@@ -2686,6 +2686,20 @@ private:
       progress.joint3_progress_rad + eef_forward_joint3_complete_tolerance_rad_ >=
       progress.joint3_required_rad;
 
+    progress.joint2_required_rad =
+      std::abs(eef_forward_bezier_joint2_total_delta_rad_);
+
+    const double joint2_direction =
+      eef_forward_bezier_joint2_total_delta_rad_ >= 0.0 ? 1.0 : -1.0;
+
+    progress.joint2_progress_rad =
+      std::max(0.0, joint2_direction * (current[1] - start[1]));
+
+    progress.joint2_complete =
+      progress.joint2_required_rad <= 0.0 ||
+      progress.joint2_progress_rad + eef_forward_joint3_complete_tolerance_rad_ >=
+      progress.joint2_required_rad;
+
     if (!eef_forward_joint4_after_joint3_complete_) {
       progress.joint4_complete = true;
       progress.joint4_target_rad = current[3];
