@@ -53,7 +53,7 @@ mp_control_node:
     # Gripper close is triggered only after the front camera object becomes
     # occluded/missing and the EEF camera also loses the object because it is
     # too close. Handoff starts right after that visual close trigger.
-    require_visual_grasp_confirmation: true
+    require_visual_grasp_confirmation: false
     use_eef_refinement: true
     wait_for_base_approach: true
     auto_init_eef_tracker_from_object: false
