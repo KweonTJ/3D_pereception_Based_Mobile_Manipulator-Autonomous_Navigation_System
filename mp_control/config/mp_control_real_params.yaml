@@ -275,7 +275,7 @@ mp_control_node:
     triangulation_extend_z_m: 0.50
     triangulation_extend_tolerance_m: 0.025
     triangulation_extend_gain: 0.7
-    triangulation_extend_max_speed: 0.015
+    triangulation_extend_max_speed: 0.03
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
     triangulation_max_ray_gap_m: 0.08
