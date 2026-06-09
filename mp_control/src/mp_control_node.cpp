@@ -612,7 +612,7 @@ private:
       declare_parameter<double>("triangulation_extend_max_speed", 0.015);
     triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
     triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
-    triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
+    triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.10);
     use_eef_front_camera_extrinsic_override_ =
       declare_parameter<bool>("use_eef_front_camera_extrinsic_override", false);
     eef_front_camera_offset_x_m_ =
