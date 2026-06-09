@@ -1135,8 +1135,8 @@ private:
         (maybe_object ? maybe_object : latestDepthObjectInTarget());
       const bool front_bbox_size_close_ready = isFrontBboxCloseBySize();
       const bool eef_bbox_ready = shouldHoldForEefRefinement();
-      const bool close_visual_bbox_ready =
-        front_bbox_size_close_ready && eef_bbox_ready;
+      // const bool close_visual_bbox_ready =
+      //   front_bbox_size_close_ready && eef_bbox_ready;
 
       const bool front_size_object_close =
         front_size_object &&
