@@ -594,12 +594,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_max_bbox_area_ratio",
-            default_value="0.65",
+            default_value="0.25",
             description="Maximum bbox area ratio allowed for automatic YOLO box detection.",
         ),
         DeclareLaunchArgument(
             "auto_init_min_bbox_aspect_ratio",
-            default_value="0.15",
+            default_value="0.35",
             description="Minimum bbox width/height ratio allowed for automatic depth detection.",
         ),
         DeclareLaunchArgument(
@@ -689,7 +689,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_box_max_depth_std_m",
-            default_value="0.08",
+            default_value="0.16",
             description="Maximum depth standard deviation inside a box candidate.",
         ),
         DeclareLaunchArgument(
