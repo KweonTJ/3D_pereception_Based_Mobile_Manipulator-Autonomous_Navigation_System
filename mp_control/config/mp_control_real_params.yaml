@@ -67,8 +67,8 @@ mp_control_node:
     command_rate_hz: 20.0
     max_target_age_s: 2.0
     close_range_ready_max_age_s: 2.0
-    linear_gain: 1.6
-    max_linear_speed: 0.09
+    linear_gain: 1.4
+    max_linear_speed: 0.05
     position_tolerance_m: 0.035
     close_after_stable_cycles: 4
     grasp_completion_front_max_age_s: 2.0
