@@ -2811,11 +2811,12 @@ private:
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
     }
-    const double desired_tool_pitch = pregraspToolPitchTargetRad();
-    const double desired_joint4 =
-      joint4ForPregraspToolPitch(target, desired_tool_pitch);
-    target[3] = current[3] +
-      clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
+    // const double desired_tool_pitch = pregraspToolPitchTargetRad();
+    // const double desired_joint4 =
+    //   joint4ForPregraspToolPitch(target, desired_tool_pitch);
+    // target[3] = current[3] +
+    //   clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
+    target[3] = joint_pregrasp_ready_positions_[3];
     return clampJointPregraspTarget(target);
   }
 
