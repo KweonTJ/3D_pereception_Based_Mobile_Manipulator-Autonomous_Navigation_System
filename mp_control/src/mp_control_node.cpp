@@ -1250,7 +1250,7 @@ private:
           maybe_object = makeVisualPregraspObject(eef_tf);
           using_visual_bbox_for_pregrasp = true;
           using_latched_depth_for_pregrasp = true;
-          
+
           object_block_reason.clear();
           std::ostringstream status;
           status << "color triangulation still far object_x=" << color_goal_x
@@ -2803,23 +2803,41 @@ private:
       *joint3_step_active = false;
     }
 
+    // std::array<double, 4> target = final_target;
+    // const double joint3_delta = final_target[2] - current[2];
+    // if (joint_pregrasp_joint3_max_step_rad_ > 1.0e-9 &&
+    //   std::abs(joint3_delta) > joint_pregrasp_joint3_max_step_rad_)
+    // {
+    //   // Keep joint3 torque protection, but do not move joint3 alone. Scale the
+    //   // whole arm waypoint so joint2/joint3/joint4 stay synchronized while
+    //   // joint3 is limited to one safe step.
+    //   const double ratio =
+    //     clampValue(joint_pregrasp_joint3_max_step_rad_ / std::abs(joint3_delta), 0.0, 1.0);
+    //   for (std::size_t i = 0; i < target.size(); ++i) {
+    //     target[i] = current[i] + (final_target[i] - current[i]) * ratio;
+    //   }
+    //   if (joint3_step_active) {
+    //     *joint3_step_active = true;
+    //   }
+    // }
+
+    // return clampJointPregraspTarget(target);
     std::array<double, 4> target = final_target;
     const double joint3_delta = final_target[2] - current[2];
+
     if (joint_pregrasp_joint3_max_step_rad_ > 1.0e-9 &&
       std::abs(joint3_delta) > joint_pregrasp_joint3_max_step_rad_)
     {
-      // Keep joint3 torque protection, but do not move joint3 alone. Scale the
-      // whole arm waypoint so joint2/joint3/joint4 stay synchronized while
-      // joint3 is limited to one safe step.
-      const double ratio =
-        clampValue(joint_pregrasp_joint3_max_step_rad_ / std::abs(joint3_delta), 0.0, 1.0);
-      for (std::size_t i = 0; i < target.size(); ++i) {
-        target[i] = current[i] + (final_target[i] - current[i]) * ratio;
-      }
+      target[2] = current[2] + std::copysign(
+        joint_pregrasp_joint3_max_step_rad_,
+        joint3_delta);
+
       if (joint3_step_active) {
         *joint3_step_active = true;
       }
     }
+
+    target[3] = current[3] + gripper_down_joint4_offset_rad_;
 
     return clampJointPregraspTarget(target);
   }
