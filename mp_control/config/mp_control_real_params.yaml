@@ -218,7 +218,7 @@ mp_control_node:
     eef_forward_bezier_joint3_total_delta_rad: 0.30
     eef_forward_bezier_joint2_max_step_rad: 0.060
     eef_forward_bezier_joint3_max_step_rad: 0.030
-    eef_forward_bezier_joint4_max_step_rad: 0.004
+    eef_forward_bezier_joint4_max_step_rad: 0.0
     eef_forward_bezier_preserve_roll: true
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # Hardware observation takes priority over the model sign. Keep the
