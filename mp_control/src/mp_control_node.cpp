@@ -1143,7 +1143,7 @@ private:
         objectGoalXForPregrasp(*front_size_object) <=
         color_triangulation_base_stop_object_x_m_;
 
-      if (close_visual_bbox_ready) {
+      if (front_size_object_close) {
         close_range_pregrasp_latched_ = true;
       }
       if (depth_reference) {
