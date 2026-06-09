@@ -5265,19 +5265,27 @@ private:
     return true;
   }
 
+  // void sendGripperOpenForObject()
+  // {
+  //   const auto target = makeGripperTarget(true);
+  //   if (gripper_width_control_enabled_) {
+  //     RCLCPP_INFO(
+  //       get_logger(),
+  //       "gripper open target: object_width=%.3f m (%s), gap=%.3f m, position=%.4f m",
+  //       target.object_width_m,
+  //       target.measured ? "measured" : "fallback",
+  //       target.target_gap_m,
+  //       target.position);
+  //   }
+  //   sendGripper(target.position);
+  // }
   void sendGripperOpenForObject()
   {
-    const auto target = makeGripperTarget(true);
-    if (gripper_width_control_enabled_) {
-      RCLCPP_INFO(
-        get_logger(),
-        "gripper open target: object_width=%.3f m (%s), gap=%.3f m, position=%.4f m",
-        target.object_width_m,
-        target.measured ? "measured" : "fallback",
-        target.target_gap_m,
-        target.position);
-    }
-    sendGripper(target.position);
+    RCLCPP_INFO(
+      get_logger(),
+      "gripper open target: fully open, position=%.4f m",
+      gripper_max_position_);
+    sendGripper(gripper_max_position_);
   }
 
   void sendGripperGraspForObject()
