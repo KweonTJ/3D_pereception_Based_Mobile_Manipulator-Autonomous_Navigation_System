@@ -1853,23 +1853,16 @@ private:
       }
     }
 
-    // if (missing_eef_bbox) {
-    //   if (canStartEefForwardFromFrontBboxFallback()) {
-    //     startEefForwardAdvance(
-    //       eef_tf,
-    //       rpy_error,
-    //       "front bbox close-size fallback; EEF bbox missing, starting fixed-pose forward advance");
-    //     return;
-    //   }
-    //   publishStop();
-    //   publishStatus("waiting for end-effector visual feature bbox");
-    //   return;
-    // }
     if (missing_eef_bbox) {
-      startEefForwardAdvance(
-        eef_tf,
-        rpy_error,
-        "EEF bbox missing/rejected; ignoring EEF bbox and starting joint-based forward advance");
+      if (canStartEefForwardFromFrontBboxFallback()) {
+        startEefForwardAdvance(
+          eef_tf,
+          rpy_error,
+          "front bbox close-size fallback; EEF bbox missing, starting fixed-pose forward advance");
+        return;
+      }
+      publishStop();
+      publishStatus("waiting for end-effector visual feature bbox");
       return;
     }
 
@@ -1879,23 +1872,16 @@ private:
       return;
     }
 
-    // if ((now() - bbox.stamp).seconds() > max_target_age_s_ && !eef_forward_advance_active_) {
-    //   if (canStartEefForwardFromFrontBboxFallback()) {
-    //     startEefForwardAdvance(
-    //       eef_tf,
-    //       rpy_error,
-    //       "front bbox close-size fallback; EEF bbox stale, starting fixed-pose forward advance");
-    //     return;
-    //   }
-    //   publishStop();
-    //   publishStatus("waiting for fresh end-effector visual feature bbox");
-    //   return;
-    // }
     if ((now() - bbox.stamp).seconds() > max_target_age_s_ && !eef_forward_advance_active_) {
-      startEefForwardAdvance(
-        eef_tf,
-        rpy_error,
-        "EEF bbox stale; ignoring EEF bbox and starting joint-based forward advance");
+      if (canStartEefForwardFromFrontBboxFallback()) {
+        startEefForwardAdvance(
+          eef_tf,
+          rpy_error,
+          "front bbox close-size fallback; EEF bbox stale, starting fixed-pose forward advance");
+        return;
+      }
+      publishStop();
+      publishStatus("waiting for fresh end-effector visual feature bbox");
       return;
     }
 
@@ -2162,6 +2148,7 @@ private:
       (analytic_ik_extension_complete && all_joints_extended) :
       all_joints_extended;
     const bool arm_extension_complete =
+      // distance_extension_complete ||
       joint_based_extension_complete;
     const bool continue_joint3_after_required =
       !eef_forward_use_analytic_ik_ &&
@@ -2261,59 +2248,49 @@ private:
 
     stable_cycles_ += 1;
     publishStop();
-    // if (stable_cycles_ >= close_after_stable_cycles_) {
-    //   if (close_after_full_eef_forward_extension_) {
-    //     if (close_gripper_on_arrival_ && !close_sent_) {
-    //       sendGripperGraspForObject();
-    //       close_sent_ = true;
-    //     }
-    //     completeGrasp(
-    //       "eef full forward extension reached; width-aware gripper command sent; " +
-    //       visualGraspStateText(currentVisualGraspState()));
-    //   } else {
-    //     closeAndCompleteWhenVisualReady(
-    //       "eef fixed-pose forward advance complete; width-aware gripper command sent",
-    //       "gripper close commanded after EEF forward advance; waiting for front-only visual grasp confirmation");
-    //   }
-    // } 
-    if (close_gripper_on_arrival_ && !close_sent_) {
-      sendGripperGraspForObject();
-      close_sent_ = true;
+    if (stable_cycles_ >= close_after_stable_cycles_) {
+      if (close_after_full_eef_forward_extension_) {
+        if (close_gripper_on_arrival_ && !close_sent_) {
+          sendGripperGraspForObject();
+          close_sent_ = true;
+        }
+        completeGrasp(
+          "eef full forward extension reached; width-aware gripper command sent; " +
+          visualGraspStateText(currentVisualGraspState()));
+      } else {
+        closeAndCompleteWhenVisualReady(
+          "eef fixed-pose forward advance complete; width-aware gripper command sent",
+          "gripper close commanded after EEF forward advance; waiting for front-only visual grasp confirmation");
+      }
+    } else {
+      std::ostringstream status;
+      status << "eef forward advance complete; holding before closing"
+             << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
+             << " elapsed=" << elapsed_s
+             << "/" << eef_forward_fixed_duration_s_
+             << " distance_extension_complete="
+             << (distance_extension_complete ? "true" : "false")
+             << " min_advance_complete="
+             << (min_advance_complete ? "true" : "false")
+             << " joint3_extension_complete="
+             << (joint3_extension_complete ? "true" : "false")
+             << " joint_based_extension_complete="
+             << (joint_based_extension_complete ? "true" : "false")
+             << " analytic_ik_extension_complete="
+             << (analytic_ik_extension_complete ? "true" : "false")
+             << " arm_extension_complete="
+             << (arm_extension_complete ? "true" : "false")
+             << " close_after_full_eef_forward_extension="
+             << (close_after_full_eef_forward_extension_ ? "true" : "false")
+             << formatEefForwardJointProgress(joint_progress)
+             << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
+             << ", " << rpy_error.yaw << ")"
+             << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
+             << " roll_ref=" << rpyReferenceMode(rpy_error)
+             << " rpy_frame=" << rpyControlFrame()
+             << poseStatusSuffix(eef_tf);
+      publishStatus(status.str());
     }
-
-    completeGrasp(
-      "joint extension complete; EEF bbox ignored; width-aware gripper command sent");
-
-    return;
-    // else {
-    //   std::ostringstream status;
-    //   status << "eef forward advance complete; holding before closing"
-    //          << " advanced_x=" << advanced_x << "/" << eef_forward_distance_m_
-    //          << " elapsed=" << elapsed_s
-    //          << "/" << eef_forward_fixed_duration_s_
-    //          << " distance_extension_complete="
-    //          << (distance_extension_complete ? "true" : "false")
-    //          << " min_advance_complete="
-    //          << (min_advance_complete ? "true" : "false")
-    //          << " joint3_extension_complete="
-    //          << (joint3_extension_complete ? "true" : "false")
-    //          << " joint_based_extension_complete="
-    //          << (joint_based_extension_complete ? "true" : "false")
-    //          << " analytic_ik_extension_complete="
-    //          << (analytic_ik_extension_complete ? "true" : "false")
-    //          << " arm_extension_complete="
-    //          << (arm_extension_complete ? "true" : "false")
-    //          << " close_after_full_eef_forward_extension="
-    //          << (close_after_full_eef_forward_extension_ ? "true" : "false")
-    //          << formatEefForwardJointProgress(joint_progress)
-    //          << " rpy_err=(" << rpy_error.roll << ", " << rpy_error.pitch
-    //          << ", " << rpy_error.yaw << ")"
-    //          << " rpy_ready=" << (rpy_error.ready ? "true" : "false")
-    //          << " roll_ref=" << rpyReferenceMode(rpy_error)
-    //          << " rpy_frame=" << rpyControlFrame()
-    //          << poseStatusSuffix(eef_tf);
-    //   publishStatus(status.str());
-    // }
   }
 
   bool isDepthUnavailableReason(const std::string & reason) const
