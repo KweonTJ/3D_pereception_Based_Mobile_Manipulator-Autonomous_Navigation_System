@@ -191,7 +191,7 @@ mp_control_node:
     # consistent.
     eef_forward_use_joint_nudge: true
     eef_forward_joint2_delta_rad: 0.040
-    eef_forward_joint3_delta_rad: -0.035
+    eef_forward_joint3_delta_rad: -0.070
     eef_forward_joint_nudge_duration_s: 0.75
     eef_forward_joint_nudge_period_s: 0.80
     # Keep this parameter for compatibility. The real final nudge now sends
