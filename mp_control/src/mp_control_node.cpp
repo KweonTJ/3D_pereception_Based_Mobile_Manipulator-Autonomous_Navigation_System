@@ -1175,10 +1175,7 @@ private:
 
         const bool front_size_close_ready =
           close_range_pregrasp_latched_ ||
-          (front_size_object &&
-          objectGoalXForPregrasp(*front_size_object) <=
-          color_triangulation_base_stop_object_x_m_) ||
-          close_visual_bbox_ready;
+          front_size_object_close;
 
         if (front_size_close_ready) {
           maybe_object = front_size_object ? front_size_object : depth_reference;
