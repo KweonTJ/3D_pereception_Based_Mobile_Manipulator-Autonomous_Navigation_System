@@ -2824,19 +2824,27 @@ private:
     // return clampJointPregraspTarget(target);
     std::array<double, 4> target = final_target;
     const double joint3_delta = final_target[2] - current[2];
+    const double joint3_abs_delta = std::abs(joint3_delta);
 
-    if (joint_pregrasp_joint3_max_step_rad_ > 1.0e-9 &&
-      std::abs(joint3_delta) > joint_pregrasp_joint3_max_step_rad_)
-    {
-      target[2] = current[2] + std::copysign(
-        joint_pregrasp_joint3_max_step_rad_,
-        joint3_delta);
+    if (joint3_abs_delta > joint_pregrasp_tolerance_rad_) {
+      const double joint3_step =
+        joint_pregrasp_joint3_max_step_rad_ > 1.0e-9 ?
+        std::min(joint3_abs_delta, joint_pregrasp_joint3_max_step_rad_) :
+        joint3_abs_delta;
+
+      target[0] = current[0];
+      target[1] = current[1];
+      target[2] = current[2] + std::copysign(joint3_step, joint3_delta);
+      target[3] = current[3] + gripper_down_joint4_offset_rad_;
 
       if (joint3_step_active) {
         *joint3_step_active = true;
       }
+
+      return clampJointPregraspTarget(target);
     }
 
+    target = final_target;
     target[3] = current[3] + gripper_down_joint4_offset_rad_;
 
     return clampJointPregraspTarget(target);
