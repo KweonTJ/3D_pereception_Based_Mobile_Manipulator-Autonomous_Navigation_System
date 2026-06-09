@@ -237,7 +237,7 @@ void CsrtIbvsNode::readParameters()
   triangulation_max_range_m_ =
     declare_parameter<double>("triangulation_max_range_m", 1.0);
   triangulation_max_ray_gap_m_ =
-    declare_parameter<double>("triangulation_max_ray_gap_m", 0.08);
+    declare_parameter<double>("triangulation_max_ray_gap_m", 0.10);
   eef_front_camera_offset_x_m_ =
     declare_parameter<double>("eef_front_camera_offset_x_m", -0.05);
   eef_front_camera_offset_y_m_ =
