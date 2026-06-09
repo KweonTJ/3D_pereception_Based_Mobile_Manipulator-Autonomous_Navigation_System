@@ -54,7 +54,7 @@ def generate_launch_description():
             "roll_parent_joint": "joint2",
             "roll_reversed_joint": "joint3",
             "roll_compensation_joint": "joint4",
-            "max_reversed_joint_delta_rad": 0.12,
+            "max_reversed_joint_delta_rad": 0.14,
             "reversed_joint_min_position_rad": -2.20,
             "reversed_joint_max_position_rad": 1.38,
         }],
