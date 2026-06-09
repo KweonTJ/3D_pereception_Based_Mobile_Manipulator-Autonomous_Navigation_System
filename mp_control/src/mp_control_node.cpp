@@ -1879,16 +1879,23 @@ private:
       return;
     }
 
+    // if ((now() - bbox.stamp).seconds() > max_target_age_s_ && !eef_forward_advance_active_) {
+    //   if (canStartEefForwardFromFrontBboxFallback()) {
+    //     startEefForwardAdvance(
+    //       eef_tf,
+    //       rpy_error,
+    //       "front bbox close-size fallback; EEF bbox stale, starting fixed-pose forward advance");
+    //     return;
+    //   }
+    //   publishStop();
+    //   publishStatus("waiting for fresh end-effector visual feature bbox");
+    //   return;
+    // }
     if ((now() - bbox.stamp).seconds() > max_target_age_s_ && !eef_forward_advance_active_) {
-      if (canStartEefForwardFromFrontBboxFallback()) {
-        startEefForwardAdvance(
-          eef_tf,
-          rpy_error,
-          "front bbox close-size fallback; EEF bbox stale, starting fixed-pose forward advance");
-        return;
-      }
-      publishStop();
-      publishStatus("waiting for fresh end-effector visual feature bbox");
+      startEefForwardAdvance(
+        eef_tf,
+        rpy_error,
+        "EEF bbox stale; ignoring EEF bbox and starting joint-based forward advance");
       return;
     }
 
