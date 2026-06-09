@@ -209,7 +209,15 @@ hardware_interface::CallbackReturn TurtleBot3ManipulationSystemHardware::on_deac
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   RCLCPP_INFO(logger, "Ready for stop");
-  opencr_->play_sound(opencr::SOUND::DESCENDING);
+  // opencr_->play_sound(opencr::SOUND::DESCENDING);
+
+  if (opencr_) {
+    RCLCPP_INFO(logger, "Stopping wheels and turning Dynamixel torque OFF");
+
+    opencr_->set_wheel_velocities(std::vector<double>{0.0, 0.0});
+    opencr_->joints_torque(opencr::OFF);
+    opencr_->wheels_torque(opencr::OFF);
+  }
 
   RCLCPP_INFO(logger, "System stopped");
 
