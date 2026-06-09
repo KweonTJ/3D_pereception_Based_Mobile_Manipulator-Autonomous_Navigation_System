@@ -1221,11 +1221,24 @@ private:
         const double color_goal_x = maybe_color_object->point.x + grasp_offset_x_;
         const bool visual_reference_close =
           isVisualPregraspReferenceClose(front_size_object, depth_reference);
+
+        // const bool front_size_close_ready =
+        //   (front_size_object &&
+        //   objectGoalXForPregrasp(*front_size_object) <=
+        //   color_triangulation_base_stop_object_x_m_) ||
+        //   (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
+        if (color_goal_x <= color_triangulation_base_stop_object_x_m_ ||
+            close_visual_bbox_ready) {
+          close_range_pregrasp_latched_ = true;
+        }
+
         const bool front_size_close_ready =
+          close_range_pregrasp_latched_ ||
           (front_size_object &&
           objectGoalXForPregrasp(*front_size_object) <=
           color_triangulation_base_stop_object_x_m_) ||
-          (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
+          close_visual_bbox_ready;
+
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
           maybe_object = front_size_object ? front_size_object : depth_reference;
           if (!maybe_object && eef_bbox_ready && visual_reference_close) {
