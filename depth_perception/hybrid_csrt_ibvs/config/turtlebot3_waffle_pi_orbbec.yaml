@@ -122,7 +122,7 @@ csrt_ibvs_node:
     triangulation_timeout_s: 2.0
     triangulation_min_range_m: 0.016
     triangulation_max_range_m: 1.0
-    triangulation_max_ray_gap_m: 0.08
+    triangulation_max_ray_gap_m: 0.10
     eef_tracked_bbox_topic: /target/eef_tracked_bbox
     eef_camera_info_topic: /eef_camera/camera_info
     use_eef_front_camera_extrinsic_override: true
