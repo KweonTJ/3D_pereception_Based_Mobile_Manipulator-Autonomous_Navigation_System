@@ -162,7 +162,7 @@ mp_control_node:
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
-    eef_refine_max_linear_speed: 0.016
+    eef_refine_max_linear_speed: 0.02
     # EEF refinement keeps the current EE roll/pitch/yaw while nudging the
     # hand forward after the bbox is aligned, then closes the gripper.
     use_eef_rpy_refinement: true
