@@ -70,7 +70,7 @@ mp_control_node:
     linear_gain: 1.4
     max_linear_speed: 0.08
     position_tolerance_m: 0.035
-    close_after_stable_cycles: 4
+    close_after_stable_cycles: 1
     grasp_completion_front_max_age_s: 2.0
     grasp_completion_eef_lost_timeout_s: 0.8
 
