@@ -446,6 +446,8 @@ private:
 	      declare_parameter<double>("pregrasp_joint_tolerance_rad", 0.04);
 	    joint_pregrasp_republish_period_s_ =
 	      declare_parameter<double>("pregrasp_republish_period_s", 1.0);
+      joint_pregrasp_joint2_max_step_rad_ =
+        declare_parameter<double>("pregrasp_joint2_max_step_rad", 0.05);
 	    joint_pregrasp_joint3_max_step_rad_ =
 	      declare_parameter<double>("pregrasp_joint3_max_step_rad", 0.06);
       joint_pregrasp_joint4_max_step_rad_ =
