@@ -229,7 +229,7 @@ mp_control_node:
     # point down before the arm is fully extended.
     eef_forward_roll_joint2_weight: 1.0
     eef_forward_roll_joint3_weight: 1.0
-    eef_forward_roll_joint4_weight: 0.0
+    eef_forward_roll_joint4_weight: 1.0
     eef_forward_joint4_rpy_roll_gain: 0.0
     eef_forward_joint4_rpy_roll_max_delta_rad: 0.025
     # Cap each joint4 target step so repeated final nudge does not slowly point
