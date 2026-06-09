@@ -68,7 +68,7 @@ mp_control_node:
     max_target_age_s: 2.0
     close_range_ready_max_age_s: 2.0
     linear_gain: 0.9
-    max_linear_speed: 0.025
+    max_linear_speed: 0.045
     position_tolerance_m: 0.035
     close_after_stable_cycles: 4
     grasp_completion_front_max_age_s: 2.0
