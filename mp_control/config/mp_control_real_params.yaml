@@ -146,7 +146,7 @@ mp_control_node:
     # controller-side joint3 step targets before joint2/joint4 are allowed to
     # move, so the old raw-space lead waypoint is disabled.
     pregrasp_joint3_max_step_rad: 0.14
-    pregrasp_joint4_max_step_rad: 0.035
+    pregrasp_joint4_max_step_rad: 0.015
     pregrasp_joint3_lead_enabled: false
     pregrasp_joint3_lead_duration_ratio: 0.45
     pregrasp_joint3_lead_fraction: 0.25
