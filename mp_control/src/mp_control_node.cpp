@@ -1139,9 +1139,6 @@ private:
         (maybe_object ? maybe_object : latestDepthObjectInTarget());
       const bool front_bbox_size_close_ready = isFrontBboxCloseBySize();
       const bool eef_bbox_ready = shouldHoldForEefRefinement();
-      // const bool close_visual_bbox_ready =
-      //   front_bbox_size_close_ready && eef_bbox_ready;
-
       const bool front_size_object_close =
         front_size_object &&
         objectGoalXForPregrasp(*front_size_object) <=
@@ -1171,22 +1168,12 @@ private:
         const bool visual_reference_close =
           isVisualPregraspReferenceClose(front_size_object, depth_reference);
 
-        // const bool front_size_close_ready =
-        //   (front_size_object &&
-        //   objectGoalXForPregrasp(*front_size_object) <=
-        //   color_triangulation_base_stop_object_x_m_) ||
-        //   (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
-
         const bool front_size_close_ready =
           close_range_pregrasp_latched_ ||
           front_size_object_close;
 
         if (front_size_close_ready) {
           maybe_object = front_size_object ? front_size_object : depth_reference;
-          // if (!maybe_object && eef_bbox_ready && visual_reference_close) {
-          //   maybe_object = makeVisualPregraspObject(eef_tf);
-          //   using_visual_bbox_for_pregrasp = true;
-          // }
           if (close_range_pregrasp_latched_ || front_size_object_close || !maybe_object) {
             maybe_object = makeVisualPregraspObject(eef_tf);
             using_visual_bbox_for_pregrasp = true;
@@ -1228,11 +1215,6 @@ private:
         const bool visual_reference_close =
           isVisualPregraspReferenceClose(front_size_object, depth_reference);
 
-        // const bool front_size_close_ready =
-        //   (front_size_object &&
-        //   objectGoalXForPregrasp(*front_size_object) <=
-        //   color_triangulation_base_stop_object_x_m_) ||
-        //   (front_bbox_size_close_ready && eef_bbox_ready && visual_reference_close);
         if (color_goal_x <= color_triangulation_base_stop_object_x_m_ ||
             front_size_object_close) {
           close_range_pregrasp_latched_ = true;
@@ -1242,13 +1224,6 @@ private:
           close_range_pregrasp_latched_ ||
           front_size_object_close;
 
-        // if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
-        //   maybe_object = front_size_object ? front_size_object : depth_reference;
-        //   if (!maybe_object && eef_bbox_ready && visual_reference_close) {
-        //     maybe_object = makeVisualPregraspObject(eef_tf);
-        //     using_visual_bbox_for_pregrasp = true;
-        //   }
-        //   using_latched_depth_for_pregrasp = true;
         if (color_goal_x > color_triangulation_base_stop_object_x_m_ && front_size_close_ready) {
           maybe_object = makeVisualPregraspObject(eef_tf);
           using_visual_bbox_for_pregrasp = true;
@@ -1292,18 +1267,6 @@ private:
       }
 
       const double color_goal_x = maybe_object->point.x + grasp_offset_x_;
-      // if (!using_latched_depth_for_pregrasp &&
-      //     color_goal_x > color_triangulation_base_stop_object_x_m_) {
-      //   stable_cycles_ = 0;
-      //   publishBaseHold(false);
-      //   publishStop();
-      //   std::ostringstream status;
-      //   status << "color triangulation approach: object_x=" << color_goal_x
-      //          << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
-      //          << "; depth ignored after " << eef_refinement_start_depth_m_ << "m";
-      //   publishStatus(status.str());
-      //   return;
-      // }
       if (color_goal_x <= color_triangulation_base_stop_object_x_m_ ||
           front_size_object_close) {
         close_range_pregrasp_latched_ = true;
@@ -2797,11 +2760,7 @@ private:
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
     }
-    // if (joint_pregrasp_preserve_gripper_roll_) {
-    //   target[3] = joint4ForPreservedGripperRoll(current, target);
-    // }
     const double desired_tool_pitch = pregraspToolPitchTargetRad();
-    // target[3] = joint4ForPregraspToolPitch(target, desired_tool_pitch);
     const double desired_joint4 =
       joint4ForPregraspToolPitch(target, desired_tool_pitch);
     target[3] = current[3] +
@@ -2831,25 +2790,6 @@ private:
 
     const double desired_tool_pitch = pregraspToolPitchTargetRad();
 
-    // std::array<double, 4> target = final_target;
-    // const double joint3_delta = final_target[2] - current[2];
-    // if (joint_pregrasp_joint3_max_step_rad_ > 1.0e-9 &&
-    //   std::abs(joint3_delta) > joint_pregrasp_joint3_max_step_rad_)
-    // {
-    //   // Keep joint3 torque protection, but do not move joint3 alone. Scale the
-    //   // whole arm waypoint so joint2/joint3/joint4 stay synchronized while
-    //   // joint3 is limited to one safe step.
-    //   const double ratio =
-    //     clampValue(joint_pregrasp_joint3_max_step_rad_ / std::abs(joint3_delta), 0.0, 1.0);
-    //   for (std::size_t i = 0; i < target.size(); ++i) {
-    //     target[i] = current[i] + (final_target[i] - current[i]) * ratio;
-    //   }
-    //   if (joint3_step_active) {
-    //     *joint3_step_active = true;
-    //   }
-    // }
-
-    // return clampJointPregraspTarget(target);
     std::array<double, 4> target = final_target;
     const double joint3_delta = final_target[2] - current[2];
     const double joint3_abs_delta = std::abs(joint3_delta);
@@ -2860,10 +2800,6 @@ private:
         std::min(joint3_abs_delta, joint_pregrasp_joint3_max_step_rad_) :
         joint3_abs_delta;
 
-      // target[0] = current[0];
-      // target[1] = current[1];
-      // target[2] = current[2] + std::copysign(joint3_step, joint3_delta);
-
       const double ratio =
         clampValue(joint3_step / joint3_abs_delta, 0.0, 1.0);
 
@@ -2872,7 +2808,6 @@ private:
       }
       target[1] = current[1] +
         clampStep(target[1] - current[1], joint_pregrasp_joint2_max_step_rad_);
-      // target[3] = joint4ForPregraspToolPitch(target, desired_tool_pitch);
       const double desired_joint4 =
         joint4ForPregraspToolPitch(target, desired_tool_pitch);
       target[3] = current[3] +
@@ -3352,9 +3287,6 @@ private:
     controller_target[2] = (*current)[2] + clampStep(
       synchronized_ik_target[2] - (*current)[2],
       eef_forward_bezier_joint3_max_step_rad_);
-    // controller_target[3] = (*current)[3] + clampStep(
-    //   synchronized_ik_target[3] - (*current)[3],
-    //   eef_forward_bezier_joint4_max_step_rad_);
     controller_target[3] = (*current)[3];
     controller_target = clampJointPregraspTarget(controller_target);
     const std::string controller_monotonic_hold_reason =
@@ -3612,10 +3544,6 @@ private:
     }
 
 #if 0
-    // Legacy direct joint-delta final reach is intentionally disabled for the
-    // real robot. It could enter a joint4-only loop or let joint3 jump instead
-    // of following a continuous end-effector reach path. Keep this block only
-    // as rollback reference while the Bezier IK nudge above owns final reach.
     const auto stamp = now();
     const double effective_nudge_period_s = std::max(
       eef_forward_joint_nudge_period_s_,
@@ -5402,20 +5330,6 @@ private:
     return true;
   }
 
-  // void sendGripperOpenForObject()
-  // {
-  //   const auto target = makeGripperTarget(true);
-  //   if (gripper_width_control_enabled_) {
-  //     RCLCPP_INFO(
-  //       get_logger(),
-  //       "gripper open target: object_width=%.3f m (%s), gap=%.3f m, position=%.4f m",
-  //       target.object_width_m,
-  //       target.measured ? "measured" : "fallback",
-  //       target.target_gap_m,
-  //       target.position);
-  //   }
-  //   sendGripper(target.position);
-  // }
   void sendGripperOpenForObject()
   {
     RCLCPP_INFO(
