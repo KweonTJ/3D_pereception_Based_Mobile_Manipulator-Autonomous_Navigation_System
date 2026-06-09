@@ -313,7 +313,7 @@ def generate_launch_description():
             "roi_max_x_ratio": ParameterValue(auto_eef_init_roi_max_x_ratio, value_type=float),
             "roi_min_y_ratio": ParameterValue(auto_eef_init_roi_min_y_ratio, value_type=float),
             "roi_max_y_ratio": ParameterValue(auto_eef_init_roi_max_y_ratio, value_type=float),
-            "require_bbox_inside_roi": True,
+            "require_bbox_inside_roi": False,
             "timeout_s": ParameterValue(auto_init_timeout_s, value_type=float),
             "black_max": ParameterValue(auto_init_black_max, value_type=int),
             "black_min_contrast": ParameterValue(auto_init_black_min_contrast, value_type=int),
