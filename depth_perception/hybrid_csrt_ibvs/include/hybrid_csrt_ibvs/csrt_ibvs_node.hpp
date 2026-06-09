@@ -192,7 +192,7 @@ private:
   double triangulation_timeout_s_{2.0};
   double triangulation_min_range_m_{0.06};
   double triangulation_max_range_m_{1.0};
-  double triangulation_max_ray_gap_m_{0.08};
+  double triangulation_max_ray_gap_m_{0.10};
   double eef_front_camera_offset_x_m_{-0.05};
   double eef_front_camera_offset_y_m_{0.0};
   double eef_front_camera_offset_z_m_{0.15};
