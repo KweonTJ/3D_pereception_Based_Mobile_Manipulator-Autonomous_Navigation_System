@@ -1138,6 +1138,11 @@ private:
       const bool close_visual_bbox_ready =
         front_bbox_size_close_ready && eef_bbox_ready;
 
+      const bool front_size_object_close =
+        front_size_object &&
+        objectGoalXForPregrasp(*front_size_object) <=
+        color_triangulation_base_stop_object_x_m_;
+
       if (close_visual_bbox_ready) {
         close_range_pregrasp_latched_ = true;
       }
