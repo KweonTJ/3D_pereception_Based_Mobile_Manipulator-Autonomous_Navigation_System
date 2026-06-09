@@ -2715,7 +2715,7 @@ private:
     // if (joint_pregrasp_preserve_gripper_roll_) {
     //   target[3] = joint4ForPreservedGripperRoll(current, target);
     // }
-    target[3] += gripper_down_joint4_offset_rad_;
+    target[3] = current[3] + gripper_down_joint4_offset_rad_;
     return clampJointPregraspTarget(target);
   }
 
