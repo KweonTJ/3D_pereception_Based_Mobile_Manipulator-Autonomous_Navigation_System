@@ -110,8 +110,8 @@ csrt_ibvs_node:
     triangulation_start_bbox_area_ratio: 0.10
     triangulation_start_bbox_height_ratio: 0.60
     triangulation_stop_x_m: 0.20
-    close_ready_bbox_height_ratio: 0.70
-    close_ready_bbox_area_ratio: 0.30
+    close_ready_bbox_height_ratio: 0.65
+    close_ready_bbox_area_ratio: 0.12
     triangulation_max_speed_mps: 0.07
     triangulation_gain: 0.7
     triangulation_fallback_speed_mps: 0.02
