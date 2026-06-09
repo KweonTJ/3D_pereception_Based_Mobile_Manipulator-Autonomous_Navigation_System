@@ -3312,7 +3312,9 @@ private:
     controller_target[2] = (*current)[2] + clampStep(
       synchronized_ik_target[2] - (*current)[2],
       eef_forward_bezier_joint3_max_step_rad_);
-    controller_target[3] = (*current)[3];
+    controller_target[3] = (*current)[3] + clampStep(
+      coupled_waypoint[3] - (*current)[3],
+      eef_forward_bezier_joint4_max_step_rad_);
     controller_target = clampJointPregraspTarget(controller_target);
     const std::string controller_monotonic_hold_reason =
       enforceEefForwardMonotonicTarget(*current, start, coupled_waypoint, controller_target);
