@@ -574,7 +574,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_color_mode",
-            default_value="depth_first_front_bbox",
+            default_value="box",
             description="Detection mode for the initial front bbox detector. depth_first_front_bbox uses depth components plus YOLO IoU validation; auto_init_color_mode:=yolo keeps YOLO-only mode.",
         ),
         DeclareLaunchArgument(
