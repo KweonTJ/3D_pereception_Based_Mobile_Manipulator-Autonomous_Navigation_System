@@ -776,6 +776,18 @@ class AutoInitBbox(Node):
                 self.throttled_waiting_status(
                     "depth-first front bbox rejected: depth bbox unavailable and YOLO assist found no valid box")
                 return None
+            depth_area_ratio = self.bbox_area_ratio(
+                depth_bbox,
+                (0.0, 0.0, float(msg.width), float(msg.height))
+            )
+
+            if depth_area_ratio > 0.25:
+                self.throttled_waiting_status(
+                    "depth-first front bbox rejected: YOLO missing and depth bbox too large; "
+                    f"area_ratio={depth_area_ratio:.2f} depth_bbox={self.format_bbox(depth_bbox)}")
+                return None
+
+
             self.publish_status(
                 "depth-first front bbox accepted: YOLO assist found no valid box; "
                 f"depth_bbox={self.format_bbox(depth_bbox)}")
