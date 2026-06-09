@@ -1284,17 +1284,41 @@ private:
       }
 
       const double color_goal_x = maybe_object->point.x + grasp_offset_x_;
-      if (!using_latched_depth_for_pregrasp &&
+      // if (!using_latched_depth_for_pregrasp &&
+      //     color_goal_x > color_triangulation_base_stop_object_x_m_) {
+      //   stable_cycles_ = 0;
+      //   publishBaseHold(false);
+      //   publishStop();
+      //   std::ostringstream status;
+      //   status << "color triangulation approach: object_x=" << color_goal_x
+      //          << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
+      //          << "; depth ignored after " << eef_refinement_start_depth_m_ << "m";
+      //   publishStatus(status.str());
+      //   return;
+      // }
+      if (color_goal_x <= color_triangulation_base_stop_object_x_m_ ||
+          close_visual_bbox_ready) {
+        close_range_pregrasp_latched_ = true;
+      }
+
+      if (!close_range_pregrasp_latched_ &&
+          !using_latched_depth_for_pregrasp &&
           color_goal_x > color_triangulation_base_stop_object_x_m_) {
         stable_cycles_ = 0;
         publishBaseHold(false);
         publishStop();
         std::ostringstream status;
         status << "color triangulation approach: object_x=" << color_goal_x
-               << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
-               << "; depth ignored after " << eef_refinement_start_depth_m_ << "m";
+              << " target_stop_x=" << color_triangulation_base_stop_object_x_m_
+              << "; depth ignored after " << eef_refinement_start_depth_m_ << "m";
         publishStatus(status.str());
         return;
+      }
+
+      if (close_range_pregrasp_latched_) {
+        using_latched_depth_for_pregrasp = true;
+        publishBaseHold(true);
+        publishBaseStop();
       }
     }
 
