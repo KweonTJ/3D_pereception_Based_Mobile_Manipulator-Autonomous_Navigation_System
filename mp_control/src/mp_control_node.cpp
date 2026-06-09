@@ -2721,14 +2721,11 @@ private:
     }
     progress.joint4_target_rad += gripper_down_joint4_offset_rad_;
     progress.joint4_target_rad = clampValue(
-      progress.joint4_target_rad,
-      joint_pregrasp_min_positions_[3],
-      joint_pregrasp_max_positions_[3]);
+      progress.joint4_target_rad, joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
     progress.joint4_error_rad = progress.joint4_target_rad - current[3];
     progress.joint4_complete =
-      progress.joint3_complete &&
-      std::abs(progress.joint4_error_rad) <= eef_forward_joint4_finish_tolerance_rad_;
-    progress.complete = progress.joint3_complete && progress.joint4_complete;
+      progress.joint3_complete && std::abs(progress.joint4_error_rad) <= eef_forward_joint4_finish_tolerance_rad_;
+    progress.complete = progress.joint2_complete && progress.joint3_complete && progress.joint4_complete;
     return progress;
   }
 
