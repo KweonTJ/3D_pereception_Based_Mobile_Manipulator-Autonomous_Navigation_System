@@ -1135,6 +1135,12 @@ private:
         (maybe_object ? maybe_object : latestDepthObjectInTarget());
       const bool front_bbox_size_close_ready = isFrontBboxCloseBySize();
       const bool eef_bbox_ready = shouldHoldForEefRefinement();
+      const bool close_visual_bbox_ready =
+        front_bbox_size_close_ready && eef_bbox_ready;
+
+      if (close_visual_bbox_ready) {
+        close_range_pregrasp_latched_ = true;
+      }
       if (depth_reference) {
         prepareEefColorTriangulation(*depth_reference, &color_reason);
       } else {
