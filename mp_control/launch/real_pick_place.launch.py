@@ -604,7 +604,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_max_bbox_aspect_ratio",
-            default_value="3.0",
+            default_value="0.75",
             description="Maximum bbox width/height ratio allowed for automatic box detection.",
         ),
         DeclareLaunchArgument(
