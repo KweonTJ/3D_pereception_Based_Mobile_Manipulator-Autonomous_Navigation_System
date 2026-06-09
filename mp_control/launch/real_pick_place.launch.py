@@ -719,7 +719,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_require_depth_for_front_yolo",
-            default_value="true",
+            default_value="false",
             description="Block YOLO-only front bbox publishing unless auto_init_color_mode:=yolo is explicitly selected.",
         ),
         DeclareLaunchArgument(
