@@ -278,7 +278,7 @@ mp_control_node:
     triangulation_extend_max_speed: 0.017
     triangulation_min_range_m: 0.06
     triangulation_max_range_m: 1.0
-    triangulation_max_ray_gap_m: 0.08
+    triangulation_max_ray_gap_m: 0.10
     # Measured EEF camera optical center relative to the front camera in base_link axes.
     # The EEF camera is 5 cm behind and 15 cm above the front camera.
     use_eef_front_camera_extrinsic_override: true
