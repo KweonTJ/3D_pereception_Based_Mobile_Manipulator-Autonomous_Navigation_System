@@ -308,7 +308,7 @@ def generate_launch_description():
             "min_bbox_height_px": ParameterValue(auto_eef_init_min_bbox_height_px, value_type=float),
             "max_bbox_area_ratio": 0.98,
             "min_bbox_aspect_ratio": 0.15,
-            "max_bbox_aspect_ratio": 4.00,
+            "max_bbox_aspect_ratio": 3.00,
             "roi_min_x_ratio": ParameterValue(auto_eef_init_roi_min_x_ratio, value_type=float),
             "roi_max_x_ratio": ParameterValue(auto_eef_init_roi_max_x_ratio, value_type=float),
             "roi_min_y_ratio": ParameterValue(auto_eef_init_roi_min_y_ratio, value_type=float),
