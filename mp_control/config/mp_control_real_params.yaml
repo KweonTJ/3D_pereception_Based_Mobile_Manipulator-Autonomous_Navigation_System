@@ -155,7 +155,7 @@ mp_control_node:
     # the arm look like it is stepping through joint2 -> joint3 -> joint4.
     pregrasp_sync_steps: 1
     pregrasp_settle_s: 0.5
-    pregrasp_joint_tolerance_rad: 0.04
+    pregrasp_joint_tolerance_rad: 0.05
     pregrasp_republish_period_s: 1.0
     pregrasp_joint_min_positions: [-3.14, -1.5, -2.70, -1.79]
     pregrasp_joint_max_positions: [3.14, 1.5, 1.38, 2.04]
