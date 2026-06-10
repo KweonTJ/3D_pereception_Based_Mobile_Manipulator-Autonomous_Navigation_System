@@ -5094,7 +5094,8 @@ private:
 
   void publishHandoffJointTrajectory(
     const std::array<double, 4> & controller_target,
-    bool preserve_current_non_joint1 = false)
+    bool preserve_current_non_joint1 = false,
+    double duration_override_s = -1.0)
   {
     const auto current = latestArmJointPositions();
     if (!current) {
