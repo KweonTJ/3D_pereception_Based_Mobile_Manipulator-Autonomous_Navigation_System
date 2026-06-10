@@ -2816,7 +2816,6 @@ private:
       joint4ForPregraspToolPitch(target, desired_tool_pitch);
     target[3] = current[3] +
       clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
-    // target[3] = joint_pregrasp_ready_positions_[3];
     return clampJointPregraspTarget(target);
   }
 
@@ -3791,17 +3790,70 @@ private:
         joint_pregrasp_hold_current_duration_s_ +
         joint_pregrasp_move_duration_s_ +
         joint_pregrasp_settle_s_;
+      // const auto current = latestArmJointPositions();
+      // const bool can_check_reached = current && joint_pregrasp_controller_target_;
+      // const double max_error = can_check_reached ?
+      //   maxJointError(*current, *joint_pregrasp_controller_target_) : -1.0;
+      // if (elapsed_s >= wait_s && can_check_reached &&
+      //     max_error <= joint_pregrasp_tolerance_rad_) {
+      //   joint_pregrasp_done_ = true;
+      //   std::ostringstream status;
+      //   status << "joint pregrasp complete; max_joint_err=" << max_error
+      //          << " <= " << joint_pregrasp_tolerance_rad_
+      //          << "; switching to EEF refinement";
+      //   publishStatus(status.str(), true);
+      //   return true;
+      // }
+
       const auto current = latestArmJointPositions();
-      const bool can_check_reached = current && joint_pregrasp_controller_target_;
-      const double max_error = can_check_reached ?
-        maxJointError(*current, *joint_pregrasp_controller_target_) : -1.0;
-      if (elapsed_s >= wait_s && can_check_reached &&
-          max_error <= joint_pregrasp_tolerance_rad_) {
+      const bool can_check_reached =
+        current && joint_pregrasp_controller_target_;
+
+      double max_error = -1.0;
+      bool pregrasp_reached = false;
+
+      if (can_check_reached) {
+        const auto final_errors =
+          jointErrors(*current, *joint_pregrasp_controller_target_);
+
+        const bool joint1_reached =
+          std::abs(final_errors[0]) <= joint_pregrasp_tolerance_rad_;
+        const bool joint2_reached =
+          std::abs(final_errors[1]) <= joint_pregrasp_tolerance_rad_;
+        const bool joint3_reached =
+          std::abs(final_errors[2]) <= joint_pregrasp_tolerance_rad_;
+
+        bool joint4_step_reached = true;
+        double joint4_step_error = 0.0;
+
+        if (joint_pregrasp_controller_step_target_) {
+          joint4_step_error =
+            (*joint_pregrasp_controller_step_target_)[3] - (*current)[3];
+          joint4_step_reached =
+            std::abs(joint4_step_error) <= joint_pregrasp_tolerance_rad_;
+        }
+
+        max_error = std::max({
+          std::abs(final_errors[0]),
+          std::abs(final_errors[1]),
+          std::abs(final_errors[2]),
+          std::abs(joint4_step_error)
+        });
+
+        pregrasp_reached =
+          joint1_reached &&
+          joint2_reached &&
+          joint3_reached &&
+          joint4_step_reached;
+      }
+
+      if (elapsed_s >= wait_s && can_check_reached && pregrasp_reached) {
         joint_pregrasp_done_ = true;
         std::ostringstream status;
-        status << "joint pregrasp complete; max_joint_err=" << max_error
-               << " <= " << joint_pregrasp_tolerance_rad_
-               << "; switching to EEF refinement";
+        status << "joint pregrasp complete; primary joints reached and joint4 step reached"
+              << " max_checked_err=" << max_error
+              << " <= " << joint_pregrasp_tolerance_rad_
+              << "; switching to EEF refinement";
         publishStatus(status.str(), true);
         return true;
       }
