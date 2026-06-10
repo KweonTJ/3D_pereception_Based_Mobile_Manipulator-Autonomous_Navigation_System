@@ -160,7 +160,7 @@ mp_control_node:
     pregrasp_joint_min_positions: [-3.14, -1.5, -2.70, -1.79]
     pregrasp_joint_max_positions: [3.14, 1.5, 1.38, 2.04]
     eef_center_tolerance_px: 28.0
-    eef_close_tolerance_px: 120.0
+    eef_close_tolerance_px: 70.0
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
@@ -186,7 +186,7 @@ mp_control_node:
     eef_forward_gate_timeout_s: 25.0
     # Start final forward before the stricter close-ready threshold because
     # Servo can stall while trying to remove the last few pixels of lateral error.
-    eef_forward_start_tolerance_px: 120.0
+    eef_forward_start_tolerance_px: 90.0
     # Final EEF advance uses a local analytic IK step on real hardware. It
     # keeps joint2/joint3/joint4 in the same trajectory point and routes joint3
     # through the raw trajectory transformer so the hardware direction stays
