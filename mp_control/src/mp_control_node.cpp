@@ -4917,6 +4917,7 @@ private:
     status << "handoff joint trajectory published: controller_target="
            << formatJointArray(target)
            << " direct_topic=" << handoff_joint_trajectory_topic_
+           << " duration=" << duration_s
            << " preserve_current_non_joint1="
            << (preserve_current_non_joint1 ? "true" : "false");
     publishStatus(status.str());
