@@ -2406,17 +2406,6 @@ private:
       eef_forward_roll_joint4_weight_ * joints[3];
   }
 
-  // double joint4ForPreservedEefForwardRoll(
-  //   const std::array<double, 4> & reference,
-  //   const std::array<double, 4> & target) const
-  // {
-  //   const double reference_roll_proxy = eefForwardGripperRollProxyFromJoints(reference);
-  //   return (
-  //     reference_roll_proxy -
-  //     eef_forward_roll_joint2_weight_ * target[1] -
-  //     eef_forward_roll_joint3_weight_ * target[2]) /
-  //     eef_forward_roll_joint4_weight_;
-  // }
     double joint4ForPreservedEefForwardRoll(
       const std::array<double, 4> & reference,
       const std::array<double, 4> & target) const
@@ -2707,8 +2696,6 @@ private:
       progress.joint3_progress_rad + eef_forward_joint3_complete_tolerance_rad_ >=
       progress.joint3_required_rad;
 
-    // progress.joint2_required_rad =
-    //   std::abs(eef_forward_bezier_joint2_total_delta_rad_);
     const double joint2_direction =
       eef_forward_bezier_joint2_total_delta_rad_ >= 0.0 ? 1.0 : -1.0;
 
@@ -3596,183 +3583,6 @@ private:
       return publishEefForwardBezierIkNudge(rpy_error, allow_after_joint3_complete);
     }
 
-#if 0
-    const auto stamp = now();
-    const double effective_nudge_period_s = std::max(
-      eef_forward_joint_nudge_period_s_,
-      eef_forward_joint_nudge_duration_s_);
-    if (eef_forward_last_joint_nudge_stamp_.nanoseconds() != 0 &&
-        (stamp - eef_forward_last_joint_nudge_stamp_).seconds() <
-        effective_nudge_period_s) {
-      return true;
-    }
-
-    const auto current = latestArmJointPositions();
-    if (!current) {
-      return false;
-    }
-
-    std::array<double, 4> controller_target = *current;
-    if (!eef_forward_start_joint_positions_) {
-      eef_forward_start_joint_positions_ = *current;
-    }
-
-    const auto progress = eefForwardJointProgressFromCurrent(*current);
-    const double joint3_direction = eefForwardJoint3Direction();
-    const double joint3_remaining = std::max(
-      0.0, progress.joint3_required_rad - progress.joint3_progress_rad);
-    const bool staged_joint4 = eef_forward_joint4_after_joint3_complete_;
-    const bool defer_joint4 = staged_joint4 && !progress.joint3_complete;
-    std::string joint_stage = defer_joint4 ? "joint2,joint3" : "joint4";
-
-    if (
-      progress.available && progress.complete && !staged_joint4 &&
-      !allow_after_joint3_complete)
-    {
-      publishStop();
-      eef_forward_last_joint_nudge_stamp_ = stamp;
-      std::ostringstream status;
-      status << "eef forward joint nudge skipped: arm extension already complete"
-             << " current=" << formatJointArray(*current)
-             << formatEefForwardJointProgress(progress)
-             << " duration=" << eef_forward_joint_nudge_duration_s_
-             << " configured_period=" << eef_forward_joint_nudge_period_s_
-             << " effective_period=" << effective_nudge_period_s
-             << poseStatusSuffix();
-      publishStatus(status.str());
-      return true;
-    }
-
-    const bool continue_joint3_after_required =
-      allow_after_joint3_complete && progress.available && progress.joint3_complete;
-
-    if (!staged_joint4 || !progress.joint3_complete || continue_joint3_after_required) {
-      controller_target[1] = stepJointWithoutReversingTowardLimit(
-        (*current)[1],
-        eef_forward_joint2_delta_rad_,
-        joint_pregrasp_min_positions_[1],
-        joint_pregrasp_max_positions_[1]);
-      const double joint3_step = staged_joint4 ?
-        std::min(std::abs(eef_forward_joint3_delta_rad_), joint3_remaining) :
-        std::abs(eef_forward_joint3_delta_rad_);
-      controller_target[2] = (*current)[2] + joint3_direction * joint3_step;
-      if (!staged_joint4) {
-        joint_stage = "joint2,joint3,joint4";
-      }
-    } else {
-      controller_target[1] = (*current)[1];
-      controller_target[2] = (*current)[2];
-    }
-
-    double unclamped_joint4_target = (*current)[3];
-    double delta_limited_joint4_target = (*current)[3];
-    bool joint4_delta_limit_active = false;
-    bool joint4_target_past_ground_limit = false;
-    bool joint4_ground_limit_active = false;
-    if (defer_joint4) {
-      controller_target[3] = (*current)[3];
-    } else {
-      if (staged_joint4) {
-        controller_target[3] = progress.joint4_target_rad;
-      } else if (joint_pregrasp_preserve_gripper_roll_) {
-        controller_target[3] = joint4ForPreservedEefForwardRoll(*current, controller_target);
-      }
-      if (!staged_joint4) {
-        controller_target[3] += gripper_down_joint4_offset_rad_;
-      }
-      unclamped_joint4_target = controller_target[3];
-
-      if (eef_forward_joint4_max_delta_rad_ > 0.0) {
-        const double joint4_delta = controller_target[3] - (*current)[3];
-        const double limited_joint4_delta = clampValue(
-          joint4_delta,
-          -eef_forward_joint4_max_delta_rad_,
-          eef_forward_joint4_max_delta_rad_);
-        joint4_delta_limit_active = std::abs(limited_joint4_delta - joint4_delta) > 1.0e-9;
-        controller_target[3] = (*current)[3] + limited_joint4_delta;
-      }
-      delta_limited_joint4_target = controller_target[3];
-      joint4_target_past_ground_limit =
-        eef_forward_joint4_down_positive_ ?
-        controller_target[3] > eef_forward_joint4_ground_parallel_limit_rad_ :
-        controller_target[3] < eef_forward_joint4_ground_parallel_limit_rad_;
-      const bool joint4_near_or_past_ground_limit =
-        eef_forward_joint4_down_positive_ ?
-        (*current)[3] >=
-        eef_forward_joint4_ground_parallel_limit_rad_ -
-        eef_forward_joint4_ground_limit_tolerance_rad_ :
-        (*current)[3] <=
-        eef_forward_joint4_ground_parallel_limit_rad_ +
-        eef_forward_joint4_ground_limit_tolerance_rad_;
-      joint4_ground_limit_active =
-        joint4_target_past_ground_limit || joint4_near_or_past_ground_limit;
-      if (joint4_target_past_ground_limit) {
-        controller_target[3] = joint4_near_or_past_ground_limit ?
-          (*current)[3] :
-          eef_forward_joint4_ground_parallel_limit_rad_;
-      }
-    }
-    controller_target[0] =
-      clampValue(controller_target[0], joint_pregrasp_min_positions_[0], joint_pregrasp_max_positions_[0]);
-    controller_target[3] =
-      clampValue(controller_target[3], joint_pregrasp_min_positions_[3], joint_pregrasp_max_positions_[3]);
-    const auto raw_target =
-      jointNudgeRawTargetFromControllerTarget(*current, controller_target);
-    const double controller_joint2_delta = controller_target[1] - (*current)[1];
-    const double controller_joint3_delta = controller_target[2] - (*current)[2];
-    const double controller_joint4_delta = controller_target[3] - (*current)[3];
-    const double raw_joint3_delta = raw_target[2] - (*current)[2];
-
-    trajectory_msgs::msg::JointTrajectory msg;
-    msg.header.stamp = stamp;
-    msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
-    appendJointTrajectoryPoint(msg, raw_target, eef_forward_joint_nudge_duration_s_);
-    joint_trajectory_pub_->publish(msg);
-    eef_forward_last_joint_nudge_stamp_ = stamp;
-
-    std::ostringstream status;
-    status << "eef forward joint nudge: current=" << formatJointArray(*current)
-           << " raw_target=" << formatJointArray(raw_target)
-           << " controller_target=" << formatJointArray(controller_target)
-           << " simultaneous_joints=" << joint_stage
-           << " allow_after_joint3_complete="
-           << (allow_after_joint3_complete ? "true" : "false")
-           << " continue_joint3_after_required="
-           << (continue_joint3_after_required ? "true" : "false")
-           << " joint4_deferred_until_joint3_complete="
-           << (defer_joint4 ? "true" : "false")
-           << formatEefForwardJointProgress(progress)
-           << " joint3_remaining=" << joint3_remaining
-           << " controller_joint2_delta=" << controller_joint2_delta
-           << " controller_joint3_delta=" << controller_joint3_delta
-           << " controller_joint4_delta=" << controller_joint4_delta
-           << " raw_joint3_delta=" << raw_joint3_delta
-           << " roll_proxy_weights=(" << eef_forward_roll_joint2_weight_ << ", "
-           << eef_forward_roll_joint3_weight_ << ", "
-           << eef_forward_roll_joint4_weight_ << ")"
-           << " joint4_rpy_feedback_disabled=true"
-           << " joint4_roll_feedback=0"
-           << " joint4_down_offset=" << gripper_down_joint4_offset_rad_
-           << " joint4_max_delta=" << eef_forward_joint4_max_delta_rad_
-           << " joint4_delta_limit_active="
-           << (joint4_delta_limit_active ? "true" : "false")
-           << " joint4_ground_parallel_limit=" << eef_forward_joint4_ground_parallel_limit_rad_
-           << " joint4_ground_limit_tolerance=" << eef_forward_joint4_ground_limit_tolerance_rad_
-           << " joint4_ground_limit_active=" << (joint4_ground_limit_active ? "true" : "false")
-           << " joint4_target_past_ground_limit="
-           << (joint4_target_past_ground_limit ? "true" : "false")
-           << " joint4_unclamped_target=" << unclamped_joint4_target
-           << " joint4_delta_limited_target=" << delta_limited_joint4_target
-           << " rpy_roll_err=" << rpy_error.roll
-           << " rpy_frame=" << rpyControlFrame()
-           << " duration=" << eef_forward_joint_nudge_duration_s_
-           << " configured_period=" << eef_forward_joint_nudge_period_s_
-           << " effective_period=" << effective_nudge_period_s
-           << poseStatusSuffix();
-    publishStatus(status.str());
-    return true;
-#endif
-
     publishStatus("eef forward joint nudge disabled: legacy direct joint-delta path is commented out");
     return false;
   }
@@ -3790,20 +3600,6 @@ private:
         joint_pregrasp_hold_current_duration_s_ +
         joint_pregrasp_move_duration_s_ +
         joint_pregrasp_settle_s_;
-      // const auto current = latestArmJointPositions();
-      // const bool can_check_reached = current && joint_pregrasp_controller_target_;
-      // const double max_error = can_check_reached ?
-      //   maxJointError(*current, *joint_pregrasp_controller_target_) : -1.0;
-      // if (elapsed_s >= wait_s && can_check_reached &&
-      //     max_error <= joint_pregrasp_tolerance_rad_) {
-      //   joint_pregrasp_done_ = true;
-      //   std::ostringstream status;
-      //   status << "joint pregrasp complete; max_joint_err=" << max_error
-      //          << " <= " << joint_pregrasp_tolerance_rad_
-      //          << "; switching to EEF refinement";
-      //   publishStatus(status.str(), true);
-      //   return true;
-      // }
 
       const auto current = latestArmJointPositions();
       const bool can_check_reached =
@@ -5042,12 +4838,6 @@ private:
     handoff_joint1_target_rad_.reset();
     handoff_joint1_centering_ = false;
     handoff_joint1_centered_for_rotate_ = false;
-    // stage_ = GraspStage::HANDOFF_RELEASE;
-    // handoff_stage_start_stamp_ = stamp;
-    // handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-    // sendGripperOpenForObject();
-    // publishCargoEvent("placed", true);
-    // publishStatus(grasp_status + "; opening gripper immediately", true);
     stage_ = GraspStage::HANDOFF_ROTATE;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -5114,7 +4904,12 @@ private:
     const auto stamp = now();
     msg.header.stamp = stamp;
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
-    appendJointTrajectoryPoint(msg, target, handoff_joint_move_duration_s_);
+    // appendJointTrajectoryPoint(msg, target, handoff_joint_move_duration_s_);
+    const double duration_s = duration_override_s > 0.0 ?
+      duration_override_s :
+      handoff_joint_move_duration_s_;
+
+    appendJointTrajectoryPoint(msg, target, duration_s);
     handoff_joint_trajectory_pub_->publish(msg);
     handoff_last_publish_stamp_ = stamp;
 
@@ -5250,7 +5045,6 @@ private:
           true);
         return;
       }
-      // stage_ = GraspStage::HANDOFF_PLACE;
       // handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       // handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       // publishStatus("handoff place: holding current arm pose over follower side", true);
