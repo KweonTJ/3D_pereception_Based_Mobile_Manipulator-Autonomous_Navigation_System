@@ -203,7 +203,7 @@ mp_control_node:
     # joint2/joint3 fixed while joint4 alone keeps pushing into the base frame.
     eef_forward_joint4_after_joint3_complete: false
     eef_forward_joint3_complete_delta_rad: 0.70
-    eef_forward_joint3_complete_tolerance_rad: 0.015
+    eef_forward_joint3_complete_tolerance_rad: 0.025
     eef_forward_joint4_finish_tolerance_rad: 0.08
     eef_forward_use_analytic_ik: false
     eef_forward_use_bezier_ik: true
