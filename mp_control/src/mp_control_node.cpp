@@ -2148,7 +2148,7 @@ private:
       (analytic_ik_extension_complete && all_joints_extended) :
       all_joints_extended;
     const bool arm_extension_complete =
-      // distance_extension_complete ||
+      distance_extension_complete ||
       joint_based_extension_complete;
     const bool continue_joint3_after_required =
       !eef_forward_use_analytic_ik_ &&
