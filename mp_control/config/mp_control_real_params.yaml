@@ -168,7 +168,7 @@ mp_control_node:
     # EEF refinement keeps the current EE roll/pitch/yaw while nudging the
     # hand forward after the bbox is aligned, then closes the gripper.
     use_eef_rpy_refinement: false
-    eef_hold_current_rpy: false
+    eef_hold_current_rpy: true
     # Keep the roll angle captured from the initial stay pose. Pitch/yaw are
     # still held from the refinement entry pose so pregrasp can remain natural.
     eef_hold_stay_roll: false
