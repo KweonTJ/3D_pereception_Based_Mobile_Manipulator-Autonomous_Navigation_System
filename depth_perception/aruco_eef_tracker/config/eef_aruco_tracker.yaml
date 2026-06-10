@@ -1,0 +1,14 @@
+aruco_eef_tracker_node:
+  ros__parameters:
+    image_topic: /eef_camera/image_raw
+    camera_info_topic: /eef_camera/camera_info
+
+    pose_topic: /target/aruco_pose
+    visible_topic: /target/aruco_visible
+    status_topic: /target/aruco_status
+    debug_image_topic: /target/aruco_debug_image
+
+    marker_id: 0
+    marker_size_m: 0.05
+    dictionary: DICT_4X4_50
+    publish_debug_image: true
