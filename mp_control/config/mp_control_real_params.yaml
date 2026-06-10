@@ -239,7 +239,7 @@ mp_control_node:
     # rotate farther in the real downward-looking direction. On the current
     # hardware, increasing joint4 during final forward nudge points the gripper
     # and EEF camera toward the floor.
-    eef_forward_joint4_ground_parallel_limit_rad: -1.15
+    eef_forward_joint4_ground_parallel_limit_rad: -0.95
     eef_forward_joint4_ground_limit_tolerance_rad: 0.01
     eef_forward_joint4_down_positive: true
     # Extra offset is disabled; forcing joint4 past its URDF lower limit causes
