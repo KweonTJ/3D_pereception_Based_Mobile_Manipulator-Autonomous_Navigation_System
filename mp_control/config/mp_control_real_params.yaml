@@ -220,7 +220,7 @@ mp_control_node:
     eef_forward_bezier_joint3_total_delta_rad: 0.90
     eef_forward_bezier_joint2_max_step_rad: 0.070
     eef_forward_bezier_joint3_max_step_rad: 0.090
-    eef_forward_bezier_joint4_max_step_rad: 0.050
+    eef_forward_bezier_joint4_max_step_rad: 0.070
     eef_forward_bezier_preserve_roll: true
     # Additional EEF forward keeps the gripper roll, not joint4 itself.
     # Hardware observation takes priority over the model sign. Keep the
@@ -265,7 +265,7 @@ mp_control_node:
     handoff_joint_move_duration_s: 7.0
     handoff_joint_settle_s: 0.4
     handoff_republish_period_s: 0.25
-    handoff_rotate_angle_rad: 1.57079633
+    handoff_rotate_angle_rad: -1.57079633
     handoff_center_joint1_before_rotate: false
     handoff_joint1_center_target_rad: 0.0
     handoff_joint1_center_tolerance_rad: 0.03
