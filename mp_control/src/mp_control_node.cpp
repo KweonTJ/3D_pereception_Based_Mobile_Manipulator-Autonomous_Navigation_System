@@ -5125,41 +5125,154 @@ private:
     publishStatus("handoff release complete; returning manipulator to stay pose", true);
   }
 
+  // void updateHandoffStay()
+  // {
+  //   const auto stamp = now();
+  //   if (handoff_stage_start_stamp_.nanoseconds() == 0) {
+  //     std::array<double, 4> target{};
+  //     for (std::size_t i = 0; i < target.size(); ++i) {
+  //       target[i] = handoff_stay_joint_positions_[i];
+  //     }
+  //     handoff_stay_controller_target_ = clampHandoffTarget(target);
+  //     publishHandoffJointTrajectory(*handoff_stay_controller_target_);
+  //     handoff_stage_start_stamp_ = stamp;
+  //     publishStatus(
+  //       "handoff stay: moving manipulator back to saved stay pose; target=" +
+  //       formatJointArray(*handoff_stay_controller_target_), true);
+  //     return;
+  //   }
+
+  //   publishStop();
+  //   publishBaseStop();
+  //   maybeRepublishHandoffJointTrajectory(handoff_stay_controller_target_);
+  //   if ((stamp - handoff_stage_start_stamp_).seconds() <
+  //       handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
+  //     publishStatus("handoff stay: waiting for manipulator stay pose settle");
+  //     return;
+  //   }
+
+  //   done_ = true;
+  //   active_ = false;
+  //   eef_refinement_object_in_target_.reset();
+  //   publishBaseHold(true);
+  //   publishBaseStop();
+  //   publishCargoEvent("loaded", true);
+  //   publishStatus(
+  //     "cargo_loaded: placed on follower side by joint1 turn; arm in stay pose; base hold kept",
+  //     true);
+  // }
   void updateHandoffStay()
   {
     const auto stamp = now();
+
     if (handoff_stage_start_stamp_.nanoseconds() == 0) {
       std::array<double, 4> target{};
       for (std::size_t i = 0; i < target.size(); ++i) {
         target[i] = handoff_stay_joint_positions_[i];
       }
+
       handoff_stay_controller_target_ = clampHandoffTarget(target);
+
+      // Initial command: give the arm enough time to return to stay pose.
       publishHandoffJointTrajectory(*handoff_stay_controller_target_);
+
       handoff_stage_start_stamp_ = stamp;
+      handoff_last_publish_stamp_ = stamp;
+
       publishStatus(
         "handoff stay: moving manipulator back to saved stay pose; target=" +
-        formatJointArray(*handoff_stay_controller_target_), true);
+        formatJointArray(*handoff_stay_controller_target_),
+        true);
       return;
     }
 
     publishStop();
     publishBaseStop();
-    maybeRepublishHandoffJointTrajectory(handoff_stay_controller_target_);
-    if ((stamp - handoff_stage_start_stamp_).seconds() <
-        handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
-      publishStatus("handoff stay: waiting for manipulator stay pose settle");
+
+    const double elapsed_s = (stamp - handoff_stage_start_stamp_).seconds();
+    const double nominal_wait_s =
+      handoff_joint_move_duration_s_ + handoff_joint_settle_s_;
+
+    double max_error = -1.0;
+    const bool reached = handoffTargetReached(
+      handoff_stay_controller_target_,
+      &max_error);
+
+    if (elapsed_s < nominal_wait_s) {
+      publishStatus(
+        "handoff stay: waiting for manipulator stay pose settle"
+        " elapsed=" + std::to_string(elapsed_s) +
+        "/" + std::to_string(nominal_wait_s) +
+        " max_joint_err=" + std::to_string(max_error) +
+        " tolerance=" + std::to_string(joint_pregrasp_tolerance_rad_));
+      return;
+    }
+
+    if (!reached) {
+      // Corrective command after the nominal trajectory time.
+      // Do not restart a 7-second trajectory forever; use a short correction.
+      constexpr double stay_retry_duration_s = 1.0;
+
+      maybeRepublishHandoffJointTrajectory(
+        handoff_stay_controller_target_,
+        false,
+        stay_retry_duration_s);
+
+      publishStatus(
+        "handoff stay: target not reached; retrying stay pose"
+        " max_joint_err=" + std::to_string(max_error) +
+        " tolerance=" + std::to_string(joint_pregrasp_tolerance_rad_) +
+        " retry_duration=" + std::to_string(stay_retry_duration_s) +
+        " target=" +
+        (handoff_stay_controller_target_ ?
+          formatJointArray(*handoff_stay_controller_target_) :
+          std::string("unavailable")));
+
       return;
     }
 
     done_ = true;
     active_ = false;
     eef_refinement_object_in_target_.reset();
+
     publishBaseHold(true);
     publishBaseStop();
     publishCargoEvent("loaded", true);
+
     publishStatus(
-      "cargo_loaded: placed on follower side by joint1 turn; arm in stay pose; base hold kept",
+      "cargo_loaded: placed on follower side by joint1 turn; arm reached stay pose; "
+      "max_joint_err=" + std::to_string(max_error) +
+      "; base hold kept",
       true);
+  }
+
+  bool handoffTargetReached(
+    const std::optional<std::array<double, 4>> & controller_target,
+    double * max_error_out = nullptr)
+  {
+    if (!controller_target) {
+      if (max_error_out) {
+        *max_error_out = -1.0;
+      }
+      return false;
+    }
+
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      if (max_error_out) {
+        *max_error_out = -1.0;
+      }
+      return false;
+    }
+
+    const auto target = clampHandoffTarget(*controller_target);
+    const double max_error = maxJointError(*current, target);
+
+    if (max_error_out) {
+      *max_error_out = max_error;
+    }
+
+    return max_error <= joint_pregrasp_tolerance_rad_;
   }
 
   bool closeAndCompleteWhenVisualReady(
