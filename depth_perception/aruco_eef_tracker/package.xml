@@ -3,9 +3,9 @@
 <package format="3">
   <name>aruco_eef_tracker</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>EEF camera ArUco marker pose tracker for manipulator grasping.</description>
   <maintainer email="kweontj0701@naver.com">ktj</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache License 2.0</license>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
