@@ -4990,12 +4990,19 @@ private:
     handoff_joint1_target_rad_.reset();
     handoff_joint1_centering_ = false;
     handoff_joint1_centered_for_rotate_ = false;
-    stage_ = GraspStage::HANDOFF_RELEASE;
-    handoff_stage_start_stamp_ = stamp;
+    // stage_ = GraspStage::HANDOFF_RELEASE;
+    // handoff_stage_start_stamp_ = stamp;
+    // handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    // sendGripperOpenForObject();
+    // publishCargoEvent("placed", true);
+    // publishStatus(grasp_status + "; opening gripper immediately", true);
+    stage_ = GraspStage::HANDOFF_ROTATE;
+    handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-    sendGripperOpenForObject();
-    publishCargoEvent("placed", true);
-    publishStatus(grasp_status + "; opening gripper immediately", true);
+
+    publishStatus(
+      grasp_status + "; starting handoff sequence: close -> joint1 rotate -> open",
+      true);
   }
 
   void updateHandoff()
