@@ -160,7 +160,7 @@ mp_control_node:
     pregrasp_joint_min_positions: [-3.14, -1.5, -2.70, -1.79]
     pregrasp_joint_max_positions: [3.14, 1.5, 1.38, 2.04]
     eef_center_tolerance_px: 28.0
-    eef_close_tolerance_px: 70.0
+    eef_close_tolerance_px: 120.0
     eef_depth_tolerance_m: 0.018
     eef_refine_lateral_gain: 0.8
     eef_refine_depth_gain: 0.5
