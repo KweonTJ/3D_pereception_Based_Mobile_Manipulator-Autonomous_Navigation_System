@@ -4925,7 +4925,8 @@ private:
 
   void maybeRepublishHandoffJointTrajectory(
     const std::optional<std::array<double, 4>> & controller_target,
-    bool preserve_current_non_joint1 = false)
+    bool preserve_current_non_joint1 = false,
+    double duration_override_s = -1.0)
   {
     if (!controller_target || handoff_republish_period_s_ <= 0.0) {
       return;
