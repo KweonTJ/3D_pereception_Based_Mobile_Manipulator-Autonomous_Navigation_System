@@ -4938,7 +4938,7 @@ private:
     {
       return;
     }
-    publishHandoffJointTrajectory(*controller_target, preserve_current_non_joint1);
+    publishHandoffJointTrajectory(*controller_target, preserve_current_non_joint1, duration_override_s);
   }
 
   double chooseHandoffJoint1Target(double current_joint1) const
