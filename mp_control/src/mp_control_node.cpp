@@ -540,57 +540,36 @@ private:
     handoff_joint1_center_tolerance_rad_ = declare_parameter<double>("handoff_joint1_center_tolerance_rad", 0.03);
     handoff_rotate_angular_speed_rad_s_ = declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
     handoff_release_settle_s_ = declare_parameter<double>("handoff_release_settle_s", 0.5);
-    handoff_stay_joint_positions_ = 
-      declare_parameter<std::vector<double>>(
-      "handoff_stay_joint_positions",
-      std::vector<double>{0.104311, 0.027612, -0.001534, -1.638291});
+    handoff_stay_joint_positions_ = declare_parameter<std::vector<double>>("handoff_stay_joint_positions", std::vector<double>{0.104311, 0.027612, -0.001534, -1.638291});
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
     triangulation_extend_z_m_ = declare_parameter<double>("triangulation_extend_z_m", 0.12);
-    triangulation_extend_tolerance_m_ =
-      declare_parameter<double>("triangulation_extend_tolerance_m", 0.025);
+    triangulation_extend_tolerance_m_ = declare_parameter<double>("triangulation_extend_tolerance_m", 0.025);
     triangulation_extend_gain_ = declare_parameter<double>("triangulation_extend_gain", 0.7);
-    triangulation_extend_max_speed_ =
-      declare_parameter<double>("triangulation_extend_max_speed", 0.015);
+    triangulation_extend_max_speed_ = declare_parameter<double>("triangulation_extend_max_speed", 0.015);
     triangulation_min_range_m_ = declare_parameter<double>("triangulation_min_range_m", 0.06);
     triangulation_max_range_m_ = declare_parameter<double>("triangulation_max_range_m", 1.0);
     triangulation_max_ray_gap_m_ = declare_parameter<double>("triangulation_max_ray_gap_m", 0.10);
-    use_eef_front_camera_extrinsic_override_ =
-      declare_parameter<bool>("use_eef_front_camera_extrinsic_override", false);
-    eef_front_camera_offset_x_m_ =
-      declare_parameter<double>("eef_front_camera_offset_x_m", 0.0);
-    eef_front_camera_offset_y_m_ =
-      declare_parameter<double>("eef_front_camera_offset_y_m", 0.0);
-    eef_front_camera_offset_z_m_ =
-      declare_parameter<double>("eef_front_camera_offset_z_m", 0.0);
-    color_triangulation_base_stop_object_x_m_ =
-      declare_parameter<double>("color_triangulation_base_stop_object_x_m", 0.30);
-    color_triangulation_min_object_x_m_ =
-      declare_parameter<double>("color_triangulation_min_object_x_m", 0.05);
+    use_eef_front_camera_extrinsic_override_ = declare_parameter<bool>("use_eef_front_camera_extrinsic_override", false);
+    eef_front_camera_offset_x_m_ = declare_parameter<double>("eef_front_camera_offset_x_m", 0.0);
+    eef_front_camera_offset_y_m_ = declare_parameter<double>("eef_front_camera_offset_y_m", 0.0);
+    eef_front_camera_offset_z_m_ = declare_parameter<double>("eef_front_camera_offset_z_m", 0.0);
+    color_triangulation_base_stop_object_x_m_ = declare_parameter<double>("color_triangulation_base_stop_object_x_m", 0.30);
+    color_triangulation_min_object_x_m_ = declare_parameter<double>("color_triangulation_min_object_x_m", 0.05);
     gripper_open_position_ = declare_parameter<double>("gripper_open_position", 0.025);
     gripper_close_position_ = declare_parameter<double>("gripper_close_position", -0.015);
     gripper_max_effort_ = declare_parameter<double>("gripper_max_effort", -1.0);
     gripper_width_control_enabled_ = declare_parameter<bool>("gripper_width_control_enabled", true);
-    gripper_fallback_object_width_m_ =
-      declare_parameter<double>("gripper_fallback_object_width_m", 0.06);
-    gripper_finger_home_half_gap_m_ =
-      declare_parameter<double>("gripper_finger_home_half_gap_m", 0.021);
-    gripper_pre_grasp_clearance_m_ =
-      declare_parameter<double>("gripper_pre_grasp_clearance_m", 0.012);
-    gripper_grasp_compression_m_ =
-      declare_parameter<double>("gripper_grasp_compression_m", 0.002);
-    gripper_grasp_clearance_m_ =
-      declare_parameter<double>("gripper_grasp_clearance_m", 0.0);
-    gripper_grasp_width_scale_ =
-      declare_parameter<double>("gripper_grasp_width_scale", 1.0);
+    gripper_fallback_object_width_m_ = declare_parameter<double>("gripper_fallback_object_width_m", 0.06);
+    gripper_finger_home_half_gap_m_ = declare_parameter<double>("gripper_finger_home_half_gap_m", 0.021);
+    gripper_pre_grasp_clearance_m_ = declare_parameter<double>("gripper_pre_grasp_clearance_m", 0.012);
+    gripper_grasp_compression_m_ = declare_parameter<double>("gripper_grasp_compression_m", 0.002);
+    gripper_grasp_clearance_m_ = declare_parameter<double>("gripper_grasp_clearance_m", 0.0);
+    gripper_grasp_width_scale_ = declare_parameter<double>("gripper_grasp_width_scale", 1.0);
     gripper_min_position_ = declare_parameter<double>("gripper_min_position", -0.010);
     gripper_max_position_ = declare_parameter<double>("gripper_max_position", 0.019);
-    gripper_min_measured_object_width_m_ =
-      declare_parameter<double>("gripper_min_measured_object_width_m", 0.01);
-    gripper_max_measured_object_width_m_ =
-      declare_parameter<double>("gripper_max_measured_object_width_m", 0.08);
-    handoff_grasp_settle_s_ = 
-      declare_parameter<double>("handoff_grasp_settle_s", 0.5);
+    gripper_min_measured_object_width_m_ = declare_parameter<double>("gripper_min_measured_object_width_m", 0.01);
+    gripper_max_measured_object_width_m_ = declare_parameter<double>("gripper_max_measured_object_width_m", 0.08);
 
     command_rate_hz_ = std::max(1.0, command_rate_hz_);
     close_range_ready_max_age_s_ = std::max(0.1, close_range_ready_max_age_s_);
