@@ -631,6 +631,7 @@ private:
     handoff_joint_move_duration_s_ = std::max(0.1, handoff_joint_move_duration_s_);
     handoff_joint_settle_s_ = std::max(0.0, handoff_joint_settle_s_);
     handoff_grasp_settle_s_ = std::max(0.0, handoff_grasp_settle_s_);
+    handoff_lift_duration_s_ = std::max(0.2, handoff_lift_duration_s_);
     handoff_joint1_center_target_rad_ = clampValue(
       handoff_joint1_center_target_rad_,
       joint_pregrasp_min_positions_[0],
