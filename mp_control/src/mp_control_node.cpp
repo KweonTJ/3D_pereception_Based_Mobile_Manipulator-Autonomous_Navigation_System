@@ -2148,8 +2148,7 @@ private:
       (analytic_ik_extension_complete && all_joints_extended) :
       all_joints_extended;
     const bool arm_extension_complete =
-      distance_extension_complete ||
-      joint_based_extension_complete;
+      distance_extension_complete || joint_based_extension_complete;
     const bool continue_joint3_after_required =
       !eef_forward_use_analytic_ik_ &&
       joint_progress_gate_enabled &&
@@ -2201,8 +2200,8 @@ private:
       return;
     }
     const bool should_continue_forward =
-      (fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_) ||
-      (!fixed_duration_mode && !arm_extension_complete);
+      (fixed_duration_mode && elapsed_s < eef_forward_fixed_duration_s_); // ||
+      // (!fixed_duration_mode && !arm_extension_complete);
     if (should_continue_forward) {
       publishEefForwardAdvanceCommand(rpy_error, continue_joint3_after_required);
       std::ostringstream status;
