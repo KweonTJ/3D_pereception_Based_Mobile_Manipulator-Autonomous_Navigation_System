@@ -583,6 +583,7 @@ private:
     close_after_full_eef_forward_extension_ =
       declare_parameter<bool>("close_after_full_eef_forward_extension", false);
     handoff_after_grasp_ = declare_parameter<bool>("handoff_after_grasp", false);
+    handoff_grasp_settle_s_ = declare_parameter<double>("handoff_grasp_settle_s", 0.5);
     handoff_lift_joint2_delta_rad_ =
       declare_parameter<double>("handoff_lift_joint2_delta_rad", 0.25);
     handoff_place_joint2_delta_rad_ =
