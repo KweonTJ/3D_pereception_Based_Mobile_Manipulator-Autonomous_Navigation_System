@@ -1395,20 +1395,49 @@ private:
 	      if (!joint_pregrasp_ready) {
 	        return;
 	      }
-	      if (!startMoveItServo()) {
-	        publishStatus("waiting for MoveIt Servo start before EEF refinement");
-	        return;
-	      }
-	      if (!use_joint_pregrasp_) {
-	        bool extension_cmd_published = false;
-	        if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
-	          return;
-	        }
-	      }
-	      if (!prepareEefRefinement(object)) {
-	        return;
-      }
-      eef_refinement_object_in_target_ = object;
+	      // if (!startMoveItServo()) {
+	      //   publishStatus("waiting for MoveIt Servo start before EEF refinement");
+	      //   return;
+	      // }
+	      // if (!use_joint_pregrasp_) {
+	      //   bool extension_cmd_published = false;
+	      //   if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
+	      //     return;
+	      //   }
+	      // }
+	      // if (!prepareEefRefinement(object)) {
+	      //   return;
+        // }
+        if (use_joint_pregrasp_) {
+          publishStop();
+          publishBaseStop();
+
+          if (close_gripper_on_arrival_ && !close_sent_) {
+            sendGripperGraspForObject();
+            close_sent_ = true;
+          }
+
+          completeGrasp(
+            "joint pregrasp complete; gripper closed; starting handoff joint1 turn");
+          return;
+        }
+
+        if (!startMoveItServo()) {
+          publishStatus("waiting for MoveIt Servo start before EEF refinement");
+          return;
+        }
+
+        if (!use_joint_pregrasp_) {
+          bool extension_cmd_published = false;
+          if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
+            return;
+          }
+        }
+
+        if (!prepareEefRefinement(object)) {
+          return;
+        }
+              eef_refinement_object_in_target_ = object;
       eef_refinement_use_bbox_center_ = using_visual_bbox_for_pregrasp;
       stage_ = GraspStage::EEF_REFINE;
       stable_cycles_ = 0;
