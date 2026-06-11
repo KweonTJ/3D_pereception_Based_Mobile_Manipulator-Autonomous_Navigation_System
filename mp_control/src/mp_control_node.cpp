@@ -304,7 +304,7 @@ private:
     depth_topic_ = declare_parameter<std::string>("depth_topic", "/camera/depth/image_raw");
     camera_info_topic_ = declare_parameter<std::string>("camera_info_topic", "/camera/color/camera_info");
     eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
-    eef_auto_init_enable_topic_ =
+    eef_auto_init_enable_topic_ = 
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
 	    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
     close_range_ready_topic_ =
@@ -333,49 +333,36 @@ private:
     joint4_pose_frame_ = declare_parameter<std::string>("joint4_pose_frame", "link5");
     gripper_pose_frame_ = declare_parameter<std::string>("gripper_pose_frame", end_effector_frame_);
     camera_frame_override_ = declare_parameter<std::string>("camera_frame_override", "");
-    eef_camera_frame_override_ =
-      declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
-    allow_eef_camera_info_fallback_ =
-      declare_parameter<bool>("allow_eef_camera_info_fallback", true);
-    eef_camera_fallback_width_px_ =
-      declare_parameter<int>("eef_camera_fallback_width_px", 640);
-    eef_camera_fallback_height_px_ =
-      declare_parameter<int>("eef_camera_fallback_height_px", 480);
+    eef_camera_frame_override_ = declare_parameter<std::string>("eef_camera_frame_override", "eef_usb_camera_optical_frame");
+    allow_eef_camera_info_fallback_ = declare_parameter<bool>("allow_eef_camera_info_fallback", true);
+    eef_camera_fallback_width_px_ = declare_parameter<int>("eef_camera_fallback_width_px", 640);
+    eef_camera_fallback_height_px_ = declare_parameter<int>("eef_camera_fallback_height_px", 480);
     eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 554.0);
     eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 554.0);
 
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
-    use_fallback_bbox_for_control_ =
-      declare_parameter<bool>("use_fallback_bbox_for_control", false);
+    use_fallback_bbox_for_control_ = declare_parameter<bool>("use_fallback_bbox_for_control", false);
     start_servo_on_start_ = declare_parameter<bool>("start_servo_on_start", true);
     open_gripper_on_start_ = declare_parameter<bool>("open_gripper_on_start", true);
     close_gripper_on_arrival_ = declare_parameter<bool>("close_gripper_on_arrival", true);
-    require_visual_grasp_confirmation_ =
-      declare_parameter<bool>("require_visual_grasp_confirmation", true);
+    require_visual_grasp_confirmation_ = declare_parameter<bool>("require_visual_grasp_confirmation", true);
     use_eef_refinement_ = declare_parameter<bool>("use_eef_refinement", true);
     wait_for_base_approach_ = declare_parameter<bool>("wait_for_base_approach", false);
-    auto_init_eef_tracker_from_object_ =
-      declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
-    use_depthless_triangulation_ =
-      declare_parameter<bool>("use_depthless_triangulation", false);
-	    use_color_triangulation_after_min_depth_ =
-	      declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
-    require_close_range_ready_for_pregrasp_ =
-      declare_parameter<bool>("require_close_range_ready_for_pregrasp", true);
+    auto_init_eef_tracker_from_object_ = declare_parameter<bool>("auto_init_eef_tracker_from_object", true);
+    use_depthless_triangulation_ = declare_parameter<bool>("use_depthless_triangulation", false);
+	    use_color_triangulation_after_min_depth_ = declare_parameter<bool>("use_color_triangulation_after_min_depth", false);
+    require_close_range_ready_for_pregrasp_ = declare_parameter<bool>("require_close_range_ready_for_pregrasp", true);
 	    use_joint_pregrasp_ = declare_parameter<bool>("use_joint_pregrasp", true);
 	    command_rate_hz_ = declare_parameter<double>("command_rate_hz", 20.0);
     max_target_age_s_ = declare_parameter<double>("max_target_age_s", 0.6);
-    close_range_ready_max_age_s_ =
-      declare_parameter<double>("close_range_ready_max_age_s", max_target_age_s_);
+    close_range_ready_max_age_s_ = declare_parameter<double>("close_range_ready_max_age_s", max_target_age_s_);
     linear_gain_ = declare_parameter<double>("linear_gain", 0.9);
     max_linear_speed_ = declare_parameter<double>("max_linear_speed", 0.025);
     position_tolerance_m_ = declare_parameter<double>("position_tolerance_m", 0.035);
     close_after_stable_cycles_ = declare_parameter<int>("close_after_stable_cycles", 8);
-    grasp_completion_front_max_age_s_ =
-      declare_parameter<double>("grasp_completion_front_max_age_s", max_target_age_s_);
-    grasp_completion_eef_lost_timeout_s_ =
-      declare_parameter<double>("grasp_completion_eef_lost_timeout_s", max_target_age_s_);
+    grasp_completion_front_max_age_s_ = declare_parameter<double>("grasp_completion_front_max_age_s", max_target_age_s_);
+    grasp_completion_eef_lost_timeout_s_ = declare_parameter<double>("grasp_completion_eef_lost_timeout_s", max_target_age_s_);
     depth_roi_radius_px_ = declare_parameter<int>("depth_roi_radius_px", 5);
     depth_unit_scale_ = declare_parameter<double>("depth_unit_scale", 0.001);
     min_valid_depth_m_ = declare_parameter<double>("min_valid_depth_m", 0.12);
@@ -475,59 +462,34 @@ private:
     eef_target_yaw_rad_ = declare_parameter<double>("eef_target_yaw_rad", 0.0);
     eef_rpy_tolerance_rad_ = declare_parameter<double>("eef_rpy_tolerance_rad", 0.12);
     eef_rpy_gain_ = declare_parameter<double>("eef_rpy_gain", 0.8);
-    eef_refine_max_angular_speed_ =
-      declare_parameter<double>("eef_refine_max_angular_speed", 0.25);
+    eef_refine_max_angular_speed_ = declare_parameter<double>("eef_refine_max_angular_speed", 0.25);
     eef_forward_after_align_ = declare_parameter<bool>("eef_forward_after_align", true);
     eef_forward_distance_m_ = declare_parameter<double>("eef_forward_distance_m", 0.05);
     eef_forward_speed_mps_ = declare_parameter<double>("eef_forward_speed_mps", 0.012);
-    eef_forward_fixed_duration_s_ =
-      declare_parameter<double>("eef_forward_fixed_duration_s", 0.0);
-    eef_forward_gate_timeout_s_ =
-      declare_parameter<double>("eef_forward_gate_timeout_s", 8.0);
-    eef_forward_start_tolerance_px_ =
-      declare_parameter<double>("eef_forward_start_tolerance_px", eef_close_tolerance_px_);
-    eef_forward_use_joint_nudge_ =
-      declare_parameter<bool>("eef_forward_use_joint_nudge", false);
-    eef_forward_joint2_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint2_delta_rad", 0.025);
-    eef_forward_joint3_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint3_delta_rad", -0.035);
-    eef_forward_joint_nudge_duration_s_ =
-      declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.75);
-    eef_forward_joint_nudge_period_s_ =
-      declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.80);
-    eef_forward_joint3_first_duration_ratio_ =
-      declare_parameter<double>("eef_forward_joint3_first_duration_ratio", 0.65);
-    eef_forward_joint4_after_joint3_complete_ =
-      declare_parameter<bool>("eef_forward_joint4_after_joint3_complete", true);
-    eef_forward_joint3_complete_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint3_complete_delta_rad", 0.14);
-    eef_forward_joint3_complete_tolerance_rad_ =
-      declare_parameter<double>("eef_forward_joint3_complete_tolerance_rad", 0.015);
-    eef_forward_joint4_finish_tolerance_rad_ =
-      declare_parameter<double>("eef_forward_joint4_finish_tolerance_rad", 0.015);
-    eef_forward_use_bezier_ik_ =
-      declare_parameter<bool>("eef_forward_use_bezier_ik", true);
-    eef_forward_use_analytic_ik_ =
-      declare_parameter<bool>("eef_forward_use_analytic_ik", true);
-    eef_forward_ik_link2_x_m_ =
-      declare_parameter<double>("eef_forward_ik_link2_x_m", 0.024);
-    eef_forward_ik_link2_z_m_ =
-      declare_parameter<double>("eef_forward_ik_link2_z_m", 0.128);
-    eef_forward_ik_link3_m_ =
-      declare_parameter<double>("eef_forward_ik_link3_m", 0.124);
-    eef_forward_ik_tool_m_ =
-      declare_parameter<double>("eef_forward_ik_tool_m", 0.126);
-    eef_forward_ik_pitch_weight_ =
-      declare_parameter<double>("eef_forward_ik_pitch_weight", 0.35);
-    eef_forward_ik_damping_ =
-      declare_parameter<double>("eef_forward_ik_damping", 0.03);
-    eef_forward_ik_iterations_ =
-      declare_parameter<int>("eef_forward_ik_iterations", 16);
-    eef_forward_bezier_total_duration_s_ =
-      declare_parameter<double>("eef_forward_bezier_total_duration_s", 5.0);
-    eef_forward_bezier_progress_step_ =
-      declare_parameter<double>("eef_forward_bezier_progress_step", 0.08);
+    eef_forward_fixed_duration_s_ = declare_parameter<double>("eef_forward_fixed_duration_s", 0.0);
+    eef_forward_gate_timeout_s_ = declare_parameter<double>("eef_forward_gate_timeout_s", 8.0);
+    eef_forward_start_tolerance_px_ = declare_parameter<double>("eef_forward_start_tolerance_px", eef_close_tolerance_px_);
+    eef_forward_use_joint_nudge_ = declare_parameter<bool>("eef_forward_use_joint_nudge", false);
+    eef_forward_joint2_delta_rad_ = declare_parameter<double>("eef_forward_joint2_delta_rad", 0.025);
+    eef_forward_joint3_delta_rad_ = declare_parameter<double>("eef_forward_joint3_delta_rad", -0.035);
+    eef_forward_joint_nudge_duration_s_ = declare_parameter<double>("eef_forward_joint_nudge_duration_s", 0.75);
+    eef_forward_joint_nudge_period_s_ = declare_parameter<double>("eef_forward_joint_nudge_period_s", 0.80);
+    eef_forward_joint3_first_duration_ratio_ = declare_parameter<double>("eef_forward_joint3_first_duration_ratio", 0.65);
+    eef_forward_joint4_after_joint3_complete_ = declare_parameter<bool>("eef_forward_joint4_after_joint3_complete", true);
+    eef_forward_joint3_complete_delta_rad_ = declare_parameter<double>("eef_forward_joint3_complete_delta_rad", 0.14);
+    eef_forward_joint3_complete_tolerance_rad_ = declare_parameter<double>("eef_forward_joint3_complete_tolerance_rad", 0.015);
+    eef_forward_joint4_finish_tolerance_rad_ = declare_parameter<double>("eef_forward_joint4_finish_tolerance_rad", 0.015);
+    eef_forward_use_bezier_ik_ = declare_parameter<bool>("eef_forward_use_bezier_ik", true);
+    eef_forward_use_analytic_ik_ = declare_parameter<bool>("eef_forward_use_analytic_ik", true);
+    eef_forward_ik_link2_x_m_ = declare_parameter<double>("eef_forward_ik_link2_x_m", 0.024);
+    eef_forward_ik_link2_z_m_ = declare_parameter<double>("eef_forward_ik_link2_z_m", 0.128);
+    eef_forward_ik_link3_m_ = declare_parameter<double>("eef_forward_ik_link3_m", 0.124);
+    eef_forward_ik_tool_m_ = declare_parameter<double>("eef_forward_ik_tool_m", 0.126);
+    eef_forward_ik_pitch_weight_ = declare_parameter<double>("eef_forward_ik_pitch_weight", 0.35);
+    eef_forward_ik_damping_ = declare_parameter<double>("eef_forward_ik_damping", 0.03);
+    eef_forward_ik_iterations_ = declare_parameter<int>("eef_forward_ik_iterations", 16);
+    eef_forward_bezier_total_duration_s_ = declare_parameter<double>("eef_forward_bezier_total_duration_s", 5.0);
+    eef_forward_bezier_progress_step_ = declare_parameter<double>("eef_forward_bezier_progress_step", 0.08);
     eef_forward_bezier_joint2_total_delta_rad_ =
       declare_parameter<double>(
       "eef_forward_bezier_joint2_total_delta_rad",
@@ -548,65 +510,37 @@ private:
       declare_parameter<double>(
       "eef_forward_bezier_joint4_max_step_rad",
       std::max(0.0, eef_forward_joint4_max_delta_rad_));
-    eef_forward_bezier_preserve_roll_ =
-      declare_parameter<bool>("eef_forward_bezier_preserve_roll", true);
-    eef_forward_roll_joint2_weight_ =
-      declare_parameter<double>("eef_forward_roll_joint2_weight", 0.0);
-    eef_forward_roll_joint3_weight_ =
-      declare_parameter<double>("eef_forward_roll_joint3_weight", 1.0);
-    eef_forward_roll_joint4_weight_ =
-      declare_parameter<double>("eef_forward_roll_joint4_weight", 1.0);
-    eef_forward_joint4_rpy_roll_gain_ =
-      declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.0);
-    eef_forward_joint4_rpy_roll_max_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.0);
-    eef_forward_joint4_max_delta_rad_ =
-      declare_parameter<double>("eef_forward_joint4_max_delta_rad", 0.0);
-    eef_forward_joint4_ground_parallel_limit_rad_ =
-      declare_parameter<double>("eef_forward_joint4_ground_parallel_limit_rad", -1.05);
-    eef_forward_joint4_ground_limit_tolerance_rad_ =
-      declare_parameter<double>("eef_forward_joint4_ground_limit_tolerance_rad", 0.01);
-    eef_forward_joint4_down_positive_ =
-      declare_parameter<bool>("eef_forward_joint4_down_positive", true);
-    gripper_down_joint4_offset_rad_ =
-      declare_parameter<double>("gripper_down_joint4_offset_rad", 0.0);
-    close_on_front_bbox_shrink_ =
-      declare_parameter<bool>("close_on_front_bbox_shrink", false);
-    front_bbox_close_area_ratio_ =
-      declare_parameter<double>("front_bbox_close_area_ratio", 0.60);
-    close_on_eef_bbox_shrink_ =
-      declare_parameter<bool>("close_on_eef_bbox_shrink", false);
-    eef_bbox_close_area_ratio_ =
-      declare_parameter<double>("eef_bbox_close_area_ratio", 0.60);
-    eef_forward_min_advance_before_close_m_ =
-      declare_parameter<double>("eef_forward_min_advance_before_close_m", 0.025);
-    close_after_full_eef_forward_extension_ =
-      declare_parameter<bool>("close_after_full_eef_forward_extension", false);
+    eef_forward_bezier_preserve_roll_ = declare_parameter<bool>("eef_forward_bezier_preserve_roll", true);
+    eef_forward_roll_joint2_weight_ = declare_parameter<double>("eef_forward_roll_joint2_weight", 0.0);
+    eef_forward_roll_joint3_weight_ = declare_parameter<double>("eef_forward_roll_joint3_weight", 1.0);
+    eef_forward_roll_joint4_weight_ = declare_parameter<double>("eef_forward_roll_joint4_weight", 1.0);
+    eef_forward_joint4_rpy_roll_gain_ = declare_parameter<double>("eef_forward_joint4_rpy_roll_gain", 0.0);
+    eef_forward_joint4_rpy_roll_max_delta_rad_ = declare_parameter<double>("eef_forward_joint4_rpy_roll_max_delta_rad", 0.0);
+    eef_forward_joint4_max_delta_rad_ = declare_parameter<double>("eef_forward_joint4_max_delta_rad", 0.0);
+    eef_forward_joint4_ground_parallel_limit_rad_ = declare_parameter<double>("eef_forward_joint4_ground_parallel_limit_rad", -1.05);
+    eef_forward_joint4_ground_limit_tolerance_rad_ = declare_parameter<double>("eef_forward_joint4_ground_limit_tolerance_rad", 0.01);
+    eef_forward_joint4_down_positive_ = declare_parameter<bool>("eef_forward_joint4_down_positive", true);
+    gripper_down_joint4_offset_rad_ = declare_parameter<double>("gripper_down_joint4_offset_rad", 0.0);
+    close_on_front_bbox_shrink_ = declare_parameter<bool>("close_on_front_bbox_shrink", false);
+    front_bbox_close_area_ratio_ = declare_parameter<double>("front_bbox_close_area_ratio", 0.60);
+    close_on_eef_bbox_shrink_ = declare_parameter<bool>("close_on_eef_bbox_shrink", false);
+    eef_bbox_close_area_ratio_ = declare_parameter<double>("eef_bbox_close_area_ratio", 0.60);
+    eef_forward_min_advance_before_close_m_ = declare_parameter<double>("eef_forward_min_advance_before_close_m", 0.025);
+    close_after_full_eef_forward_extension_ = declare_parameter<bool>("close_after_full_eef_forward_extension", false);
     handoff_after_grasp_ = declare_parameter<bool>("handoff_after_grasp", false);
     handoff_grasp_settle_s_ = declare_parameter<double>("handoff_grasp_settle_s", 0.5);
-    handoff_lift_joint2_delta_rad_ =
-      declare_parameter<double>("handoff_lift_joint2_delta_rad", 0.25);
-    handoff_place_joint2_delta_rad_ =
-      declare_parameter<double>("handoff_place_joint2_delta_rad", -0.20);
-    handoff_joint_move_duration_s_ =
-      declare_parameter<double>("handoff_joint_move_duration_s", 1.0);
-    handoff_joint_settle_s_ =
-      declare_parameter<double>("handoff_joint_settle_s", 0.4);
-    handoff_republish_period_s_ =
-      declare_parameter<double>("handoff_republish_period_s", 0.25);
-    handoff_rotate_angle_rad_ =
-      declare_parameter<double>("handoff_rotate_angle_rad", 3.14159265358979323846);
-    handoff_center_joint1_before_rotate_ =
-      declare_parameter<bool>("handoff_center_joint1_before_rotate", true);
-    handoff_joint1_center_target_rad_ =
-      declare_parameter<double>("handoff_joint1_center_target_rad", 0.0);
-    handoff_joint1_center_tolerance_rad_ =
-      declare_parameter<double>("handoff_joint1_center_tolerance_rad", 0.03);
-    handoff_rotate_angular_speed_rad_s_ =
-      declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
-    handoff_release_settle_s_ =
-      declare_parameter<double>("handoff_release_settle_s", 0.5);
-    handoff_stay_joint_positions_ =
+    handoff_lift_joint2_delta_rad_ = declare_parameter<double>("handoff_lift_joint2_delta_rad", 0.25);
+    handoff_place_joint2_delta_rad_ = declare_parameter<double>("handoff_place_joint2_delta_rad", -0.20);
+    handoff_joint_move_duration_s_ = declare_parameter<double>("handoff_joint_move_duration_s", 1.0);
+    handoff_joint_settle_s_ = declare_parameter<double>("handoff_joint_settle_s", 0.4);
+    handoff_republish_period_s_ = declare_parameter<double>("handoff_republish_period_s", 0.25);
+    handoff_rotate_angle_rad_ = declare_parameter<double>("handoff_rotate_angle_rad", 3.14159265358979323846);
+    handoff_center_joint1_before_rotate_ = declare_parameter<bool>("handoff_center_joint1_before_rotate", true);
+    handoff_joint1_center_target_rad_ = declare_parameter<double>("handoff_joint1_center_target_rad", 0.0);
+    handoff_joint1_center_tolerance_rad_ = declare_parameter<double>("handoff_joint1_center_tolerance_rad", 0.03);
+    handoff_rotate_angular_speed_rad_s_ = declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
+    handoff_release_settle_s_ = declare_parameter<double>("handoff_release_settle_s", 0.5);
+    handoff_stay_joint_positions_ = 
       declare_parameter<std::vector<double>>(
       "handoff_stay_joint_positions",
       std::vector<double>{0.104311, 0.027612, -0.001534, -1.638291});
