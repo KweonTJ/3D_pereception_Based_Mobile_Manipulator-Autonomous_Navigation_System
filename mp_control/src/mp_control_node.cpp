@@ -4859,34 +4859,41 @@ private:
   // void updateHandoffLift()
   // {
   //   const auto stamp = now();
+
   //   if (handoff_stage_start_stamp_.nanoseconds() == 0) {
-  //     const auto current = latestArmJointPositions();
-  //     if (!current) {
-  //       publishStatus("handoff lift waiting for joint states");
-  //       return;
-  //     }
-  //     std::array<double, 4> target = *current;
-  //     target[1] += handoff_lift_joint2_delta_rad_;
-  //     handoff_lift_controller_target_ = clampHandoffTarget(target);
-  //     publishHandoffJointTrajectory(*handoff_lift_controller_target_);
   //     handoff_stage_start_stamp_ = stamp;
+  //     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+
+  //     publishStop();
+  //     publishBaseStop();
+
   //     publishStatus(
-  //       "handoff lift: object grasped, lifting before 180deg turn; target=" +
-  //       formatJointArray(*handoff_lift_controller_target_), true);
+  //       "handoff grasp settle: gripper closed; waiting before joint1 turn",
+  //       true);
   //     return;
   //   }
 
   //   publishStop();
   //   publishBaseStop();
-  //   maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_);
-  //   if ((stamp - handoff_stage_start_stamp_).seconds() >=
-  //       handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
-  //     stage_ = GraspStage::HANDOFF_ROTATE;
-  //     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-  //     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-  //     publishStatus("handoff rotate: turning 180deg toward follower", true);
+
+  //   const double elapsed_s = (stamp - handoff_stage_start_stamp_).seconds();
+  //   if (elapsed_s < handoff_grasp_settle_s_) {
+  //     publishStatus(
+  //       "handoff grasp settle: waiting before joint1 turn elapsed=" +
+  //       std::to_string(elapsed_s) +
+  //       "/" + std::to_string(handoff_grasp_settle_s_));
+  //     return;
   //   }
+
+  //   stage_ = GraspStage::HANDOFF_ROTATE;
+  //   handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  //   handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+
+  //   publishStatus(
+  //     "handoff rotate: grasp settle complete; starting joint1 turn",
+  //     true);
   // }
+
   void updateHandoffLift()
   {
     const auto stamp = now();
@@ -4899,7 +4906,7 @@ private:
       publishBaseStop();
 
       publishStatus(
-        "handoff grasp settle: gripper closed; waiting before joint1 turn",
+        "handoff grasp settle: gripper closed; waiting before joint2 lift",
         true);
       return;
     }
@@ -4908,11 +4915,53 @@ private:
     publishBaseStop();
 
     const double elapsed_s = (stamp - handoff_stage_start_stamp_).seconds();
-    if (elapsed_s < handoff_grasp_settle_s_) {
+
+    if (!handoff_lift_controller_target_) {
+      if (elapsed_s < handoff_grasp_settle_s_) {
+        publishStatus(
+          "handoff grasp settle: waiting before joint2 lift elapsed=" +
+          std::to_string(elapsed_s) +
+          "/" + std::to_string(handoff_grasp_settle_s_));
+        return;
+      }
+
+      const auto current = latestArmJointPositions();
+      if (!current) {
+        publishStatus("handoff joint2 lift waiting for joint states");
+        return;
+      }
+
+      std::array<double, 4> target = *current;
+      target[1] += handoff_lift_joint2_delta_rad_;
+      handoff_lift_controller_target_ = clampHandoffTarget(target);
+
+      publishHandoffJointTrajectory(
+        *handoff_lift_controller_target_,
+        false,
+        handoff_lift_duration_s_);
+
+      handoff_stage_start_stamp_ = stamp;
+      handoff_last_publish_stamp_ = stamp;
+
       publishStatus(
-        "handoff grasp settle: waiting before joint1 turn elapsed=" +
-        std::to_string(elapsed_s) +
-        "/" + std::to_string(handoff_grasp_settle_s_));
+        "handoff joint2 lift: lifting object slightly before joint1 turn; target=" +
+        formatJointArray(*handoff_lift_controller_target_) +
+        " joint2_delta_rad=" + std::to_string(handoff_lift_joint2_delta_rad_),
+        true);
+      return;
+    }
+
+    maybeRepublishHandoffJointTrajectory(
+      handoff_lift_controller_target_,
+      false,
+      handoff_lift_duration_s_);
+
+    const double lift_elapsed_s = (stamp - handoff_stage_start_stamp_).seconds();
+    if (lift_elapsed_s < handoff_lift_duration_s_ + handoff_joint_settle_s_) {
+      publishStatus(
+        "handoff joint2 lift: waiting for lift settle elapsed=" +
+        std::to_string(lift_elapsed_s) +
+        "/" + std::to_string(handoff_lift_duration_s_ + handoff_joint_settle_s_));
       return;
     }
 
@@ -4921,7 +4970,7 @@ private:
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
 
     publishStatus(
-      "handoff rotate: grasp settle complete; starting joint1 turn",
+      "handoff rotate: joint2 lift complete; starting joint1 turn",
       true);
   }
 
