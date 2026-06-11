@@ -261,7 +261,7 @@ mp_control_node:
     # grasp height.
     handoff_after_grasp: true
     handoff_grasp_settle_s: 0.5
-    handoff_lift_joint2_delta_rad: 0.0
+    handoff_lift_joint2_delta_rad: 0.25
     handoff_place_joint2_delta_rad: 0.0
     handoff_joint_move_duration_s: 7.0
     handoff_joint_settle_s: 0.4
