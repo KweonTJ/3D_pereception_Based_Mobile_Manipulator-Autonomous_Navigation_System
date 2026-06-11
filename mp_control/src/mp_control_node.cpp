@@ -3331,11 +3331,11 @@ private:
     std::array<double, 4> controller_target = *current;
 
     const double next_joint2 = (*current)[1] + clampStep(
-      bezier_waypoint[1] - (*current)[1],
+      synchronized_ik_target[1] - (*current)[1],
       eef_forward_bezier_joint2_max_step_rad_);
 
     const double next_joint3 = (*current)[2] + clampStep(
-      bezier_waypoint[2] - (*current)[2],
+      synchronized_ik_target[2] - (*current)[2],
       eef_forward_bezier_joint3_max_step_rad_);
 
     controller_target[1] = next_joint2;
@@ -3347,7 +3347,7 @@ private:
 
     if (joint2_or_joint3_active) {
       controller_target[3] = (*current)[3] + clampStep(
-        bezier_waypoint[3] - (*current)[3],
+        coupled_waypoint[3] - (*current)[3],
         eef_forward_bezier_joint4_max_step_rad_);
     } 
     else {
