@@ -307,24 +307,19 @@ private:
     eef_auto_init_enable_topic_ = 
       declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
 	    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
-    close_range_ready_topic_ =
-      declare_parameter<std::string>("close_range_ready_topic", "/target/close_range_ready");
+    close_range_ready_topic_ = declare_parameter<std::string>("close_range_ready_topic", "/target/close_range_ready");
     stable_object_topic_ =
       declare_parameter<std::string>("stable_object_topic", "/target/object_in_base");
 	    twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
 	    base_cmd_vel_topic_ = declare_parameter<std::string>("base_cmd_vel_topic", "/cmd_vel");
 	    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
-	    joint_trajectory_topic_ =
-	      declare_parameter<std::string>("joint_trajectory_topic", "/arm_controller/joint_trajectory");
-    handoff_joint_trajectory_topic_ =
-      declare_parameter<std::string>(
-      "handoff_joint_trajectory_topic", "/arm_controller/joint_trajectory");
+	    joint_trajectory_topic_ = declare_parameter<std::string>("joint_trajectory_topic", "/arm_controller/joint_trajectory");
+    handoff_joint_trajectory_topic_ = declare_parameter<std::string>("handoff_joint_trajectory_topic", "/arm_controller/joint_trajectory");
 	    start_topic_ = declare_parameter<std::string>("start_topic", "/mp_control/start");
     cancel_topic_ = declare_parameter<std::string>("cancel_topic", "/mp_control/cancel");
     status_topic_ = declare_parameter<std::string>("status_topic", "/mp_control/status");
     cargo_event_topic_ = declare_parameter<std::string>("cargo_event_topic", "/cargo/events");
-    cargo_current_id_topic_ =
-      declare_parameter<std::string>("cargo_current_id_topic", "/cargo/current_id");
+    cargo_current_id_topic_ = declare_parameter<std::string>("cargo_current_id_topic", "/cargo/current_id");
     cargo_id_prefix_ = declare_parameter<std::string>("cargo_id_prefix", "PKG");
     cargo_sequence_next_ = declare_parameter<int>("cargo_sequence_start", 1);
     gripper_action_name_ = declare_parameter<std::string>("gripper_action_name", "/gripper_controller/gripper_cmd");
@@ -376,78 +371,45 @@ private:
     grasp_offset_y_ = declare_parameter<double>("grasp_offset_y", 0.0);
     grasp_offset_z_ = declare_parameter<double>("grasp_offset_z", 0.0);
     eef_refinement_switch_distance_m_ = declare_parameter<double>("eef_refinement_switch_distance_m", 0.12);
-    eef_refinement_start_depth_m_ =
-      declare_parameter<double>("eef_refinement_start_depth_m", min_valid_depth_m_);
-    eef_yolo_pre_enable_depth_m_ =
-      declare_parameter<double>("eef_yolo_pre_enable_depth_m", eef_refinement_start_depth_m_);
-    min_depth_handoff_margin_m_ =
-      declare_parameter<double>("min_depth_handoff_margin_m", 0.02);
-    min_depth_handoff_bbox_area_ratio_ =
-      declare_parameter<double>("min_depth_handoff_bbox_area_ratio", 0.30);
-    min_depth_handoff_bbox_height_ratio_ =
-      declare_parameter<double>("min_depth_handoff_bbox_height_ratio", 0.75);
-    eef_refinement_start_object_x_m_ =
-      declare_parameter<double>("eef_refinement_start_object_x_m", 0.50);
+    eef_refinement_start_depth_m_ = declare_parameter<double>("eef_refinement_start_depth_m", min_valid_depth_m_);
+    eef_yolo_pre_enable_depth_m_ = declare_parameter<double>("eef_yolo_pre_enable_depth_m", eef_refinement_start_depth_m_);
+    min_depth_handoff_margin_m_ = declare_parameter<double>("min_depth_handoff_margin_m", 0.02);
+    min_depth_handoff_bbox_area_ratio_ = declare_parameter<double>("min_depth_handoff_bbox_area_ratio", 0.30);
+    min_depth_handoff_bbox_height_ratio_ = declare_parameter<double>("min_depth_handoff_bbox_height_ratio", 0.75);
+    eef_refinement_start_object_x_m_ = declare_parameter<double>("eef_refinement_start_object_x_m", 0.50);
     arm_start_max_error_m_ = declare_parameter<double>("arm_start_max_error_m", 0.40);
     arm_start_max_object_x_m_ = declare_parameter<double>("arm_start_max_object_x_m", 0.60);
     object_height_m_ = declare_parameter<double>("object_height_m", 0.10);
     eef_init_bbox_min_size_px_ = declare_parameter<double>("eef_init_bbox_min_size_px", 32.0);
     eef_init_bbox_max_size_px_ = declare_parameter<double>("eef_init_bbox_max_size_px", 180.0);
     eef_init_bbox_padding_scale_ = declare_parameter<double>("eef_init_bbox_padding_scale", 1.6);
-    eef_init_bbox_republish_period_s_ =
-      declare_parameter<double>("eef_init_bbox_republish_period_s", 0.5);
+    eef_init_bbox_republish_period_s_ = declare_parameter<double>("eef_init_bbox_republish_period_s", 0.5);
     eef_final_depth_m_ = declare_parameter<double>("eef_final_depth_m", 0.08);
     object_pregrasp_standoff_m_ = declare_parameter<double>("object_pregrasp_standoff_m", 0.08);
     object_pregrasp_min_z_m_ = declare_parameter<double>("object_pregrasp_min_z_m", 0.50);
-    object_pregrasp_lower_standoff_m_ =
-      declare_parameter<double>("object_pregrasp_lower_standoff_m", 0.02);
-    object_pregrasp_min_lower_z_m_ =
-      declare_parameter<double>("object_pregrasp_min_lower_z_m", 0.12);
-	    object_pregrasp_enable_lowering_ =
-	      declare_parameter<bool>("object_pregrasp_enable_lowering", false);
-	    joint_pregrasp_ready_positions_ =
-	      declare_parameter<std::vector<double>>(
-	      "pregrasp_ready_joint_positions", std::vector<double>{0.0, 0.65, -0.85, -1.20});
-	    joint_pregrasp_preserve_gripper_roll_ =
-	      declare_parameter<bool>("pregrasp_preserve_gripper_roll", true);
-	    pregrasp_roll_joint2_weight_ =
-	      declare_parameter<double>("pregrasp_roll_joint2_weight", 1.0);
-	    pregrasp_roll_joint3_weight_ =
-	      declare_parameter<double>("pregrasp_roll_joint3_weight", 1.0);
-	    pregrasp_roll_joint4_weight_ =
-	      declare_parameter<double>("pregrasp_roll_joint4_weight", 1.0);
-	    joint_pregrasp_reverse_joint3_delta_ =
-	      declare_parameter<bool>("pregrasp_reverse_joint3_delta", true);
-	    joint_pregrasp_hold_current_duration_s_ =
-	      declare_parameter<double>("pregrasp_hold_current_duration_s", 0.0);
-	    joint_pregrasp_move_duration_s_ =
-	      declare_parameter<double>("pregrasp_move_duration_s", 1.2);
-	    joint_pregrasp_joint3_lead_enabled_ =
-	      declare_parameter<bool>("pregrasp_joint3_lead_enabled", false);
-	    joint_pregrasp_joint3_lead_duration_ratio_ =
-	      declare_parameter<double>("pregrasp_joint3_lead_duration_ratio", 0.45);
-	    joint_pregrasp_joint3_lead_fraction_ =
-	      declare_parameter<double>("pregrasp_joint3_lead_fraction", 1.0);
-	    joint_pregrasp_sync_steps_ =
-	      declare_parameter<int>("pregrasp_sync_steps", 1);
-	    joint_pregrasp_settle_s_ =
-	      declare_parameter<double>("pregrasp_settle_s", 0.5);
-	    joint_pregrasp_tolerance_rad_ =
-	      declare_parameter<double>("pregrasp_joint_tolerance_rad", 0.04);
-	    joint_pregrasp_republish_period_s_ =
-	      declare_parameter<double>("pregrasp_republish_period_s", 1.0);
-      joint_pregrasp_joint2_max_step_rad_ =
-        declare_parameter<double>("pregrasp_joint2_max_step_rad", 0.05);
-	    joint_pregrasp_joint3_max_step_rad_ =
-	      declare_parameter<double>("pregrasp_joint3_max_step_rad", 0.06);
-      joint_pregrasp_joint4_max_step_rad_ =
-        declare_parameter<double>("pregrasp_joint4_max_step_rad", 0.04);
-	    joint_pregrasp_min_positions_ =
-	      declare_parameter<std::vector<double>>(
-	      "pregrasp_joint_min_positions", std::vector<double>{-3.14, -1.79, -0.94, -1.79});
-	    joint_pregrasp_max_positions_ =
-	      declare_parameter<std::vector<double>>(
-	      "pregrasp_joint_max_positions", std::vector<double>{3.14, 1.57, 1.38, 2.04});
+    object_pregrasp_lower_standoff_m_ = declare_parameter<double>("object_pregrasp_lower_standoff_m", 0.02);
+    object_pregrasp_min_lower_z_m_ = declare_parameter<double>("object_pregrasp_min_lower_z_m", 0.12);
+	    object_pregrasp_enable_lowering_ = declare_parameter<bool>("object_pregrasp_enable_lowering", false);
+	    joint_pregrasp_ready_positions_ = declare_parameter<std::vector<double>>("pregrasp_ready_joint_positions", std::vector<double>{0.0, 0.65, -0.85, -1.20});
+	    joint_pregrasp_preserve_gripper_roll_ = declare_parameter<bool>("pregrasp_preserve_gripper_roll", true);
+	    pregrasp_roll_joint2_weight_ = declare_parameter<double>("pregrasp_roll_joint2_weight", 1.0);
+	    pregrasp_roll_joint3_weight_ = declare_parameter<double>("pregrasp_roll_joint3_weight", 1.0);
+	    pregrasp_roll_joint4_weight_ = declare_parameter<double>("pregrasp_roll_joint4_weight", 1.0);
+	    joint_pregrasp_reverse_joint3_delta_ = declare_parameter<bool>("pregrasp_reverse_joint3_delta", true);
+	    joint_pregrasp_hold_current_duration_s_ = declare_parameter<double>("pregrasp_hold_current_duration_s", 0.0);
+	    joint_pregrasp_move_duration_s_ = declare_parameter<double>("pregrasp_move_duration_s", 1.2);
+	    joint_pregrasp_joint3_lead_enabled_ = declare_parameter<bool>("pregrasp_joint3_lead_enabled", false);
+	    joint_pregrasp_joint3_lead_duration_ratio_ = declare_parameter<double>("pregrasp_joint3_lead_duration_ratio", 0.45);
+	    joint_pregrasp_joint3_lead_fraction_ = declare_parameter<double>("pregrasp_joint3_lead_fraction", 1.0);
+	    joint_pregrasp_sync_steps_ = declare_parameter<int>("pregrasp_sync_steps", 1);
+	    joint_pregrasp_settle_s_ = declare_parameter<double>("pregrasp_settle_s", 0.5);
+	    joint_pregrasp_tolerance_rad_ = declare_parameter<double>("pregrasp_joint_tolerance_rad", 0.04);
+	    joint_pregrasp_republish_period_s_ = declare_parameter<double>("pregrasp_republish_period_s", 1.0);
+      joint_pregrasp_joint2_max_step_rad_ = declare_parameter<double>("pregrasp_joint2_max_step_rad", 0.05);
+	    joint_pregrasp_joint3_max_step_rad_ = declare_parameter<double>("pregrasp_joint3_max_step_rad", 0.06);
+      joint_pregrasp_joint4_max_step_rad_ = declare_parameter<double>("pregrasp_joint4_max_step_rad", 0.04);
+	    joint_pregrasp_min_positions_ = declare_parameter<std::vector<double>>("pregrasp_joint_min_positions", std::vector<double>{-3.14, -1.79, -0.94, -1.79});
+	    joint_pregrasp_max_positions_ = declare_parameter<std::vector<double>>("pregrasp_joint_max_positions", std::vector<double>{3.14, 1.57, 1.38, 2.04});
 	    eef_center_tolerance_px_ = declare_parameter<double>("eef_center_tolerance_px", 18.0);
     eef_close_tolerance_px_ = declare_parameter<double>("eef_close_tolerance_px", eef_center_tolerance_px_);
     eef_depth_tolerance_m_ = declare_parameter<double>("eef_depth_tolerance_m", 0.018);
@@ -491,9 +453,7 @@ private:
     eef_forward_bezier_total_duration_s_ = declare_parameter<double>("eef_forward_bezier_total_duration_s", 5.0);
     eef_forward_bezier_progress_step_ = declare_parameter<double>("eef_forward_bezier_progress_step", 0.08);
     eef_forward_bezier_joint2_total_delta_rad_ =
-      declare_parameter<double>(
-      "eef_forward_bezier_joint2_total_delta_rad",
-      std::abs(eef_forward_joint2_delta_rad_) * 5.0);
+      declare_parameter<double>("eef_forward_bezier_joint2_total_delta_rad", std::abs(eef_forward_joint2_delta_rad_) * 5.0);
     eef_forward_bezier_joint3_total_delta_rad_ =
       declare_parameter<double>(
       "eef_forward_bezier_joint3_total_delta_rad",
@@ -540,6 +500,7 @@ private:
     handoff_joint1_center_tolerance_rad_ = declare_parameter<double>("handoff_joint1_center_tolerance_rad", 0.03);
     handoff_rotate_angular_speed_rad_s_ = declare_parameter<double>("handoff_rotate_angular_speed_rad_s", 0.45);
     handoff_release_settle_s_ = declare_parameter<double>("handoff_release_settle_s", 0.5);
+    handoff_lift_duration_s_ = declare_parameter<double>("handoff_lift_duration_s", 1.0);
     handoff_stay_joint_positions_ = declare_parameter<std::vector<double>>("handoff_stay_joint_positions", std::vector<double>{0.104311, 0.027612, -0.001534, -1.638291});
     triangulation_extend_x_m_ = declare_parameter<double>("triangulation_extend_x_m", 0.25);
     triangulation_extend_y_m_ = declare_parameter<double>("triangulation_extend_y_m", 0.0);
@@ -608,30 +569,23 @@ private:
     object_pregrasp_min_z_m_ = std::max(0.0, object_pregrasp_min_z_m_);
 	    object_pregrasp_lower_standoff_m_ = std::max(0.0, object_pregrasp_lower_standoff_m_);
 	    object_pregrasp_min_lower_z_m_ = std::max(0.0, object_pregrasp_min_lower_z_m_);
-	    joint_pregrasp_ready_positions_ =
-	      normalizedJointVector(joint_pregrasp_ready_positions_, {0.0, 0.65, -0.85, -1.20});
-	    joint_pregrasp_min_positions_ =
-	      normalizedJointVector(joint_pregrasp_min_positions_, {-3.14, -1.79, -0.94, -1.79});
-	    joint_pregrasp_max_positions_ =
-	      normalizedJointVector(joint_pregrasp_max_positions_, {3.14, 1.57, 1.38, 2.04});
+	    joint_pregrasp_ready_positions_ = normalizedJointVector(joint_pregrasp_ready_positions_, {0.0, 0.65, -0.85, -1.20});
+	    joint_pregrasp_min_positions_ = normalizedJointVector(joint_pregrasp_min_positions_, {-3.14, -1.79, -0.94, -1.79});
+	    joint_pregrasp_max_positions_ = normalizedJointVector(joint_pregrasp_max_positions_, {3.14, 1.57, 1.38, 2.04});
 	    for (std::size_t i = 0; i < arm_joint_names_.size(); ++i) {
 	      if (joint_pregrasp_min_positions_[i] > joint_pregrasp_max_positions_[i]) {
 	        std::swap(joint_pregrasp_min_positions_[i], joint_pregrasp_max_positions_[i]);
 	      }
 	    }
-	    joint_pregrasp_hold_current_duration_s_ =
-	      std::max(0.0, joint_pregrasp_hold_current_duration_s_);
+	    joint_pregrasp_hold_current_duration_s_ = std::max(0.0, joint_pregrasp_hold_current_duration_s_);
 	    joint_pregrasp_move_duration_s_ = std::max(0.2, joint_pregrasp_move_duration_s_);
-	    joint_pregrasp_joint3_lead_duration_ratio_ =
-	      clampValue(joint_pregrasp_joint3_lead_duration_ratio_, 0.1, 0.8);
-	    joint_pregrasp_joint3_lead_fraction_ =
-	      clampValue(joint_pregrasp_joint3_lead_fraction_, 0.1, 1.0);
+	    joint_pregrasp_joint3_lead_duration_ratio_ = clampValue(joint_pregrasp_joint3_lead_duration_ratio_, 0.1, 0.8);
+	    joint_pregrasp_joint3_lead_fraction_ = clampValue(joint_pregrasp_joint3_lead_fraction_, 0.1, 1.0);
 	    joint_pregrasp_sync_steps_ = std::max(1, joint_pregrasp_sync_steps_);
 	    joint_pregrasp_settle_s_ = std::max(0.0, joint_pregrasp_settle_s_);
 	    joint_pregrasp_tolerance_rad_ = std::max(0.001, joint_pregrasp_tolerance_rad_);
 	    joint_pregrasp_republish_period_s_ = std::max(0.2, joint_pregrasp_republish_period_s_);
-	    joint_pregrasp_joint3_max_step_rad_ =
-	      std::max(0.0, joint_pregrasp_joint3_max_step_rad_);
+	    joint_pregrasp_joint3_max_step_rad_ = std::max(0.0, joint_pregrasp_joint3_max_step_rad_);
 	    eef_center_tolerance_px_ = std::max(1.0, eef_center_tolerance_px_);
     eef_close_tolerance_px_ = std::max(eef_center_tolerance_px_, eef_close_tolerance_px_);
     eef_depth_tolerance_m_ = std::max(0.001, eef_depth_tolerance_m_);
@@ -643,20 +597,13 @@ private:
     eef_forward_speed_mps_ = std::max(0.0, eef_forward_speed_mps_);
     eef_forward_fixed_duration_s_ = std::max(0.0, eef_forward_fixed_duration_s_);
     eef_forward_gate_timeout_s_ = std::max(0.0, eef_forward_gate_timeout_s_);
-    eef_forward_start_tolerance_px_ =
-      std::max(eef_close_tolerance_px_, eef_forward_start_tolerance_px_);
-    eef_forward_joint_nudge_duration_s_ =
-      std::max(0.1, eef_forward_joint_nudge_duration_s_);
-    eef_forward_joint_nudge_period_s_ =
-      std::max(0.05, eef_forward_joint_nudge_period_s_);
-    eef_forward_joint3_first_duration_ratio_ =
-      clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
-    eef_forward_joint3_complete_delta_rad_ =
-      std::max(0.0, std::abs(eef_forward_joint3_complete_delta_rad_));
-    eef_forward_joint3_complete_tolerance_rad_ =
-      clampValue(eef_forward_joint3_complete_tolerance_rad_, 0.001, 0.10);
-    eef_forward_joint4_finish_tolerance_rad_ =
-      clampValue(eef_forward_joint4_finish_tolerance_rad_, 0.001, 0.10);
+    eef_forward_start_tolerance_px_ = std::max(eef_close_tolerance_px_, eef_forward_start_tolerance_px_);
+    eef_forward_joint_nudge_duration_s_ = std::max(0.1, eef_forward_joint_nudge_duration_s_);
+    eef_forward_joint_nudge_period_s_ = std::max(0.05, eef_forward_joint_nudge_period_s_);
+    eef_forward_joint3_first_duration_ratio_ = clampValue(eef_forward_joint3_first_duration_ratio_, 0.1, 0.9);
+    eef_forward_joint3_complete_delta_rad_ = std::max(0.0, std::abs(eef_forward_joint3_complete_delta_rad_));
+    eef_forward_joint3_complete_tolerance_rad_ = clampValue(eef_forward_joint3_complete_tolerance_rad_, 0.001, 0.10);
+    eef_forward_joint4_finish_tolerance_rad_ = clampValue(eef_forward_joint4_finish_tolerance_rad_, 0.001, 0.10);
     if (std::abs(eef_forward_roll_joint4_weight_) < 1.0e-6) {
       eef_forward_roll_joint4_weight_ = 1.0;
     }
@@ -667,27 +614,20 @@ private:
     eef_forward_ik_link2_z_m_ = std::max(0.0, eef_forward_ik_link2_z_m_);
     eef_forward_ik_link3_m_ = std::max(0.01, eef_forward_ik_link3_m_);
     eef_forward_ik_tool_m_ = std::max(0.0, eef_forward_ik_tool_m_);
-    eef_forward_ik_pitch_weight_ =
-      clampValue(eef_forward_ik_pitch_weight_, 0.0, 2.0);
+    eef_forward_ik_pitch_weight_ = clampValue(eef_forward_ik_pitch_weight_, 0.0, 2.0);
     eef_forward_ik_damping_ = clampValue(eef_forward_ik_damping_, 1.0e-4, 0.5);
     eef_forward_ik_iterations_ = std::max(1, eef_forward_ik_iterations_);
     eef_forward_joint4_rpy_roll_gain_ = std::max(0.0, eef_forward_joint4_rpy_roll_gain_);
-    eef_forward_joint4_rpy_roll_max_delta_rad_ =
-      std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
-    eef_forward_joint4_max_delta_rad_ =
-      std::max(0.0, eef_forward_joint4_max_delta_rad_);
+    eef_forward_joint4_rpy_roll_max_delta_rad_ = std::max(0.0, eef_forward_joint4_rpy_roll_max_delta_rad_);
+    eef_forward_joint4_max_delta_rad_ = std::max(0.0, eef_forward_joint4_max_delta_rad_);
     eef_forward_joint4_ground_parallel_limit_rad_ = clampValue(
       eef_forward_joint4_ground_parallel_limit_rad_,
       joint_pregrasp_min_positions_[3],
       joint_pregrasp_max_positions_[3]);
-    eef_forward_joint4_ground_limit_tolerance_rad_ =
-      clampValue(eef_forward_joint4_ground_limit_tolerance_rad_, 0.0, 0.10);
-    front_bbox_close_area_ratio_ =
-      clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
-    eef_bbox_close_area_ratio_ =
-      clampValue(eef_bbox_close_area_ratio_, 0.05, 1.0);
-    eef_forward_min_advance_before_close_m_ =
-      clampValue(eef_forward_min_advance_before_close_m_, 0.0, eef_forward_distance_m_);
+    eef_forward_joint4_ground_limit_tolerance_rad_ = clampValue(eef_forward_joint4_ground_limit_tolerance_rad_, 0.0, 0.10);
+    front_bbox_close_area_ratio_ = clampValue(front_bbox_close_area_ratio_, 0.05, 1.0);
+    eef_bbox_close_area_ratio_ = clampValue(eef_bbox_close_area_ratio_, 0.05, 1.0);
+    eef_forward_min_advance_before_close_m_ = clampValue(eef_forward_min_advance_before_close_m_, 0.0, eef_forward_distance_m_);
     handoff_joint_move_duration_s_ = std::max(0.1, handoff_joint_move_duration_s_);
     handoff_joint_settle_s_ = std::max(0.0, handoff_joint_settle_s_);
     handoff_grasp_settle_s_ = std::max(0.0, handoff_grasp_settle_s_);
@@ -695,13 +635,10 @@ private:
       handoff_joint1_center_target_rad_,
       joint_pregrasp_min_positions_[0],
       joint_pregrasp_max_positions_[0]);
-    handoff_joint1_center_tolerance_rad_ =
-      clampValue(handoff_joint1_center_tolerance_rad_, 0.001, 0.30);
-    handoff_rotate_angular_speed_rad_s_ =
-      std::max(0.05, std::abs(handoff_rotate_angular_speed_rad_s_));
+    handoff_joint1_center_tolerance_rad_ = clampValue(handoff_joint1_center_tolerance_rad_, 0.001, 0.30);
+    handoff_rotate_angular_speed_rad_s_ = std::max(0.05, std::abs(handoff_rotate_angular_speed_rad_s_));
     handoff_release_settle_s_ = std::max(0.0, handoff_release_settle_s_);
-    handoff_stay_joint_positions_ =
-      normalizedJointVector(handoff_stay_joint_positions_, {0.104311, 0.027612, -0.001534, -1.638291});
+    handoff_stay_joint_positions_ = normalizedJointVector(handoff_stay_joint_positions_, {0.104311, 0.027612, -0.001534, -1.638291});
     triangulation_extend_tolerance_m_ = std::max(0.005, triangulation_extend_tolerance_m_);
     triangulation_extend_gain_ = std::max(0.0, triangulation_extend_gain_);
     triangulation_extend_max_speed_ = std::max(0.0, triangulation_extend_max_speed_);
@@ -717,10 +654,8 @@ private:
     if (!std::isfinite(eef_front_camera_offset_z_m_)) {
       eef_front_camera_offset_z_m_ = 0.0;
     }
-    color_triangulation_base_stop_object_x_m_ =
-      std::max(0.01, color_triangulation_base_stop_object_x_m_);
-    color_triangulation_min_object_x_m_ =
-      clampValue(color_triangulation_min_object_x_m_, 0.0, color_triangulation_base_stop_object_x_m_);
+    color_triangulation_base_stop_object_x_m_ = std::max(0.01, color_triangulation_base_stop_object_x_m_);
+    color_triangulation_min_object_x_m_ = clampValue(color_triangulation_min_object_x_m_, 0.0, color_triangulation_base_stop_object_x_m_);
     cargo_sequence_next_ = std::max(1, cargo_sequence_next_);
     if (gripper_min_position_ > gripper_max_position_) {
       std::swap(gripper_min_position_, gripper_max_position_);
@@ -732,10 +667,8 @@ private:
     eef_camera_fallback_height_px_ = std::max(1, eef_camera_fallback_height_px_);
     eef_camera_fallback_fx_ = std::max(1.0, eef_camera_fallback_fx_);
     eef_camera_fallback_fy_ = std::max(1.0, eef_camera_fallback_fy_);
-    gripper_open_position_ = clampValue(
-      gripper_open_position_, gripper_min_position_, gripper_max_position_);
-    gripper_close_position_ = clampValue(
-      gripper_close_position_, gripper_min_position_, gripper_max_position_);
+    gripper_open_position_ = clampValue(gripper_open_position_, gripper_min_position_, gripper_max_position_);
+    gripper_close_position_ = clampValue(gripper_close_position_, gripper_min_position_, gripper_max_position_);
     gripper_fallback_object_width_m_ = std::max(0.0, gripper_fallback_object_width_m_);
     gripper_finger_home_half_gap_m_ = std::max(0.0, gripper_finger_home_half_gap_m_);
     gripper_pre_grasp_clearance_m_ = std::max(0.0, gripper_pre_grasp_clearance_m_);
