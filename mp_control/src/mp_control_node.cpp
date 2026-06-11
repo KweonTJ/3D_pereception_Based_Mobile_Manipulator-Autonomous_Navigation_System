@@ -654,6 +654,8 @@ private:
       declare_parameter<double>("gripper_min_measured_object_width_m", 0.01);
     gripper_max_measured_object_width_m_ =
       declare_parameter<double>("gripper_max_measured_object_width_m", 0.08);
+    handoff_grasp_settle_s_ = 
+      declare_parameter<double>("handoff_grasp_settle_s", 0.5);
 
     command_rate_hz_ = std::max(1.0, command_rate_hz_);
     close_range_ready_max_age_s_ = std::max(0.1, close_range_ready_max_age_s_);
@@ -3109,7 +3111,7 @@ private:
     eef_forward_start_x_m_ = 0.0;
     eef_forward_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     eef_forward_start_joint_positions_.reset();
-    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     front_bbox_area_at_eef_forward_start_.reset();
     eef_bbox_area_at_eef_forward_start_.reset();
   }
