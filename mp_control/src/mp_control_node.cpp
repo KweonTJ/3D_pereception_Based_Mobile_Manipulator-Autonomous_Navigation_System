@@ -3047,7 +3047,7 @@ private:
     eef_forward_start_x_m_ = 0.0;
     eef_forward_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     eef_forward_start_joint_positions_.reset();
-    last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    eef_forward_last_joint_nudge_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     front_bbox_area_at_eef_forward_start_.reset();
     eef_bbox_area_at_eef_forward_start_.reset();
   }
