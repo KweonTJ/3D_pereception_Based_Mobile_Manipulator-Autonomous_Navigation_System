@@ -4629,7 +4629,7 @@ private:
   double gripperPositionForGap(double gap_m) const
   {
     const double joint_position =
-      0.05 * std::max(0.0, gap_m) - gripper_finger_home_half_gap_m_;
+      0.05 * std::max(0.0, gap_m);
     return clampValue(joint_position, gripper_min_position_, gripper_max_position_);
   }
 
