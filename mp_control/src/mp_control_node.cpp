@@ -4900,7 +4900,7 @@ private:
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
 
     publishStatus(
-      grasp_status + "; starting handoff sequence: close -> joint1 rotate -> open",
+      grasp_status + "; starting handoff sequence: close -> wait -> joint1 rotate -> wait -> open",
       true);
   }
 
