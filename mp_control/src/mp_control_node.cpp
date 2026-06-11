@@ -3318,16 +3318,43 @@ private:
     const std::string ik_monotonic_hold_reason =
       enforceEefForwardMonotonicTarget(*current, start, coupled_waypoint, synchronized_ik_target);
 
+    // std::array<double, 4> controller_target = *current;
+    // controller_target[1] = (*current)[1] + clampStep(
+    //   synchronized_ik_target[1] - (*current)[1],
+    //   eef_forward_bezier_joint2_max_step_rad_);
+    // controller_target[2] = (*current)[2] + clampStep(
+    //   synchronized_ik_target[2] - (*current)[2],
+    //   eef_forward_bezier_joint3_max_step_rad_);
+    // controller_target[3] = (*current)[3] + clampStep(
+    //   coupled_waypoint[3] - (*current)[3],
+    //   eef_forward_bezier_joint4_max_step_rad_);
+
     std::array<double, 4> controller_target = *current;
-    controller_target[1] = (*current)[1] + clampStep(
-      synchronized_ik_target[1] - (*current)[1],
+
+    const double next_joint2 = (*current)[1] + clampStep(
+      bezier_waypoint[1] - (*current)[1],
       eef_forward_bezier_joint2_max_step_rad_);
-    controller_target[2] = (*current)[2] + clampStep(
-      synchronized_ik_target[2] - (*current)[2],
+
+    const double next_joint3 = (*current)[2] + clampStep(
+      bezier_waypoint[2] - (*current)[2],
       eef_forward_bezier_joint3_max_step_rad_);
-    controller_target[3] = (*current)[3] + clampStep(
-      coupled_waypoint[3] - (*current)[3],
-      eef_forward_bezier_joint4_max_step_rad_);
+
+    controller_target[1] = next_joint2;
+    controller_target[2] = next_joint3;
+
+    const bool joint2_or_joint3_active =
+      std::abs(next_joint2 - (*current)[1]) > 1.0e-6 ||
+      std::abs(next_joint3 - (*current)[2]) > 1.0e-6;
+
+    if (joint2_or_joint3_active) {
+      controller_target[3] = (*current)[3] + clampStep(
+        bezier_waypoint[3] - (*current)[3],
+        eef_forward_bezier_joint4_max_step_rad_);
+    } 
+    else {
+      controller_target[3] = (*current)[3];
+    }
+
     controller_target = clampJointPregraspTarget(controller_target);
     const std::string controller_monotonic_hold_reason =
       enforceEefForwardMonotonicTarget(*current, start, coupled_waypoint, controller_target);
