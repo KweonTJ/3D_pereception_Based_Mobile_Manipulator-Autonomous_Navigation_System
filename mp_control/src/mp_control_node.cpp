@@ -533,7 +533,6 @@ private:
     handoff_place_joint2_delta_rad_ = declare_parameter<double>("handoff_place_joint2_delta_rad", -0.20);
     handoff_joint_move_duration_s_ = declare_parameter<double>("handoff_joint_move_duration_s", 1.0);
     handoff_joint_settle_s_ = declare_parameter<double>("handoff_joint_settle_s", 0.4);
-    handoff_grasp_settle_s_ = declare_parameter<double>("handoff_grasp_settle_s", 0.5);
     handoff_republish_period_s_ = declare_parameter<double>("handoff_republish_period_s", 0.25);
     handoff_rotate_angle_rad_ = declare_parameter<double>("handoff_rotate_angle_rad", 3.14159265358979323846);
     handoff_center_joint1_before_rotate_ = declare_parameter<bool>("handoff_center_joint1_before_rotate", true);
@@ -712,6 +711,7 @@ private:
       clampValue(eef_forward_min_advance_before_close_m_, 0.0, eef_forward_distance_m_);
     handoff_joint_move_duration_s_ = std::max(0.1, handoff_joint_move_duration_s_);
     handoff_joint_settle_s_ = std::max(0.0, handoff_joint_settle_s_);
+    handoff_grasp_settle_s_ = std::max(0.0, handoff_grasp_settle_s_);
     handoff_joint1_center_target_rad_ = clampValue(
       handoff_joint1_center_target_rad_,
       joint_pregrasp_min_positions_[0],
