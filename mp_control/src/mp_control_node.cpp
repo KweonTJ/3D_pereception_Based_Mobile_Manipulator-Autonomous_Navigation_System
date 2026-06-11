@@ -5736,6 +5736,7 @@ private:
   bool close_after_full_eef_forward_extension_{false};
   bool handoff_after_grasp_{false};
   double handoff_lift_joint2_delta_rad_{0.25};
+  double handoff_grasp_settle_s_{0.5};
   double handoff_place_joint2_delta_rad_{-0.20};
   double handoff_joint_move_duration_s_{1.0};
   double handoff_joint_settle_s_{0.4};
