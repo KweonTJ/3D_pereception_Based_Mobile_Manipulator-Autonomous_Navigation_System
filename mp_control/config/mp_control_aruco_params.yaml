@@ -65,7 +65,7 @@ mp_control_node:
 
     # Keep the proven real-robot joint pregrasp values.
     use_joint_pregrasp: true
-    pregrasp_ready_joint_positions: [0.0, 1.2, -2.65, -0.55]
+    pregrasp_ready_joint_positions: [0.0, 0.35, -0.65, -0.90]
     pregrasp_preserve_gripper_roll: true
     pregrasp_roll_joint2_weight: 1.0
     pregrasp_roll_joint3_weight: 1.0
