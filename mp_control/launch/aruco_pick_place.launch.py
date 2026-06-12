@@ -19,7 +19,7 @@ def generate_launch_description():
     start_aruco_tracker = LaunchConfiguration("start_aruco_tracker")
     start_servo = LaunchConfiguration("start_servo")
     start_joint_trajectory_transformer = LaunchConfiguration("start_joint_trajectory_transformer")
-    start_aruco_control = LaunchConfiguration("start_aruco_control")
+    start_mp_control = LaunchConfiguration("start_mp_control")
     control_start_delay = LaunchConfiguration("control_start_delay")
 
     joint_trajectory_raw_topic = LaunchConfiguration("joint_trajectory_raw_topic")
@@ -38,7 +38,7 @@ def generate_launch_description():
     eef_camera_info_url = LaunchConfiguration("eef_camera_info_url")
 
     aruco_config_file = LaunchConfiguration("aruco_config_file")
-    aruco_control_config_file = LaunchConfiguration("aruco_control_config_file")
+    mp_control_config_file = LaunchConfiguration("mp_control_config_file")
 
     hardware_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -139,14 +139,13 @@ def generate_launch_description():
         condition=IfCondition(start_aruco_tracker),
     )
 
-    # 이후 새로 만들 ArUco 전용 매니퓰레이터 제어 노드
-    aruco_control_node = Node(
+    mp_control_node = Node(
         package="mp_control",
-        executable="aruco_manipulator_control.py",
-        name="aruco_manipulator_control",
+        executable="mp_control_node",
+        name="mp_control_node",
         output="screen",
-        parameters=[aruco_control_config_file],
-        condition=IfCondition(start_aruco_control),
+        parameters=[mp_control_config_file],
+        condition=IfCondition(start_mp_control),
     )
 
     return LaunchDescription([
@@ -164,7 +163,7 @@ def generate_launch_description():
             default_value="true",
         ),
         DeclareLaunchArgument(
-            "start_aruco_control",
+            "start_mp_control",
             default_value="true",
         ),
         DeclareLaunchArgument(
@@ -209,11 +208,11 @@ def generate_launch_description():
             ]),
         ),
         DeclareLaunchArgument(
-            "aruco_control_config_file",
+            "mp_control_config_file",
             default_value=PathJoinSubstitution([
                 FindPackageShare("mp_control"),
                 "config",
-                "aruco_manipulator_control.yaml",
+                "mp_control_real_params.yaml",
             ]),
         ),
 
@@ -269,7 +268,7 @@ def generate_launch_description():
                 servo_launch,
                 start_servo_call,
                 aruco_tracker_launch,
-                aruco_control_node,
+                mp_control_node,
             ],
         ),
     ])
