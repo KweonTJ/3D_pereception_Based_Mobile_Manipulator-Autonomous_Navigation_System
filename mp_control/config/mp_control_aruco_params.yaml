@@ -73,7 +73,7 @@ mp_control_node:
     pregrasp_reverse_joint3_delta: true
     pregrasp_move_duration_s: 1.0
     pregrasp_joint2_max_step_rad: 0.12
-    pregrasp_joint3_max_step_rad: 0.20
+    pregrasp_joint3_max_step_rad: 0.17
     pregrasp_joint4_max_step_rad: 0.12
     pregrasp_joint3_lead_enabled: false
     pregrasp_joint3_lead_fraction: 0.25
