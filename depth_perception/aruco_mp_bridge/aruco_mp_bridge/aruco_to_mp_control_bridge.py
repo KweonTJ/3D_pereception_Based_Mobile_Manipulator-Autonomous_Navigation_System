@@ -142,7 +142,7 @@ class ArucoToMpControlBridge(Node):
             pose = self.tf_buffer.transform(
                 self.latest_pose,
                 self.target_frame,
-                timeout=Duration(seconds=0.05))
+                timeout=Duration(seconds=0.10))
         except Exception as exc:
             return None, f"TF {self.latest_pose.header.frame_id}->{self.target_frame} failed: {exc}"
 
