@@ -1201,6 +1201,26 @@ private:
     const double err_y = goal_y - eef_y;
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
+    if (use_stable_object_point_ && use_joint_pregrasp_ && !use_eef_refinement_) {
+      publishBaseHold(true);
+      publishBaseStop();
+      publishStop();
+
+      const bool joint_pregrasp_ready = updateJointPregrasp();
+      if (!joint_pregrasp_ready) {
+        publishStatus("aruco joint pregrasp running");
+        return;
+      }
+
+      if (close_gripper_on_arrival_ && !close_sent_) {
+        sendGripperGraspForObject();
+        close_sent_ = true;
+      }
+
+      completeGrasp(
+        "joint pregrasp complete; gripper closed; grasp sequence complete");
+      return;
+    }
 
     const bool object_x_ready_for_eef = use_color_triangulation_after_min_depth_ ?
       (using_latched_depth_for_pregrasp || goal_x <= color_triangulation_base_stop_object_x_m_) :
