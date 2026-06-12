@@ -19,7 +19,7 @@ aruco_to_mp_control_bridge:
     object_z_offset_m: 0.0
 
     publish_start_on_visible: true
-    start_publish_count: 3
+    start_publish_count: 1
     start_publish_period_s: 0.2
-    continuous_start_publish: true
+    continuous_start_publish: false
     publish_close_range_ready: true
