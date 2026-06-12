@@ -18,8 +18,9 @@ aruco_to_mp_control_bridge:
     object_y_offset_m: 0.0
     object_z_offset_m: 0.0
 
-    publish_start_on_visible: true
-    start_publish_count: 1
+    # 통합 모드에서는 rover 도착 이후 coordinator가 /mp_control/start를 발행한다.
+    publish_start_on_visible: false
+    start_publish_count: 0
     start_publish_period_s: 0.2
     continuous_start_publish: false
     publish_close_range_ready: true

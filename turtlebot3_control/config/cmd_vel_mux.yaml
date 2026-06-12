@@ -1,0 +1,12 @@
+cmd_vel_mux_node:
+  ros__parameters:
+    nav_cmd_vel_topic: /leader/cmd_vel
+    pick_cmd_vel_topic: /turtlebot3_control/pick_cmd_vel
+    output_cmd_vel_topic: /cmd_vel
+    mode_topic: /turtlebot3_control/mux_mode
+    base_hold_topic: /target/base_hold
+    status_topic: /turtlebot3_control/mux_status
+    default_mode: NAV
+    control_rate_hz: 20.0
+    nav_cmd_timeout_s: 0.5
+    pick_cmd_timeout_s: 0.5

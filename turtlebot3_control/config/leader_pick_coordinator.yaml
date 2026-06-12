@@ -1,0 +1,28 @@
+leader_pick_coordinator_node:
+  ros__parameters:
+    nav_feedback_topic: /leader/nav_feedback
+    aruco_visible_topic: /target/aruco_visible
+    mp_control_status_topic: /mp_control/status
+    mp_control_start_topic: /mp_control/start
+    mux_mode_topic: /turtlebot3_control/mux_mode
+    status_topic: /turtlebot3_control/coordinator_status
+
+    # host PC가 준 목적지에 도착한 뒤에만 pick-place를 시작한다.
+    wait_for_nav_arrival: true
+    require_aruco_visible: true
+    arrived_states: [ARRIVED, HOLDING]
+
+    start_publish_count: 3
+    start_publish_period_s: 0.2
+    aruco_visible_timeout_s: 0.8
+    nav_feedback_timeout_s: 2.0
+
+    done_status_keywords:
+      - handoff release complete
+      - handoff stay complete
+      - pick place complete
+      - grasp complete
+    error_status_keywords:
+      - abort
+      - ERROR
+      - failed

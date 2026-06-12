@@ -16,7 +16,9 @@ mp_control_node:
     gripper_action_name: /gripper_controller/gripper_cmd
     target_frame: base_link
     eef_frame: end_effector_link
-    base_cmd_vel_topic: /cmd_vel
+    # 통합 런치에서는 실제 /cmd_vel을 mux 하나만 발행한다.
+    # mp_control의 베이스 정지/보정 명령은 mux의 PICK 입력으로 분리한다.
+    base_cmd_vel_topic: /turtlebot3_control/pick_cmd_vel
     base_hold_topic: /target/base_hold
     eef_auto_init_enable_topic: /target/eef_auto_init_enable
     servo_start_service: /servo_node/start_servo
