@@ -1201,7 +1201,7 @@ private:
     const double err_y = goal_y - eef_y;
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
-    if (use_stable_object_point_ && !use_eef_refinement_) {
+    if (use_joint_pregrasp_ && !use_eef_refinement_) {
       publishBaseHold(true);
       publishBaseStop();
       publishStop();
