@@ -5065,9 +5065,6 @@ private:
           true);
         return;
       }
-      // handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-      // handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-      // publishStatus("handoff place: holding current arm pose over follower side", true);
       stage_ = GraspStage::HANDOFF_RELEASE;
       handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -5137,48 +5134,13 @@ private:
       return;
     }
 
-    stage_ = GraspStage::HANDOFF_STAY;
+    stage_ = GraspStage::HANDOFF_PLACE;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handoff_place_controller_target_.reset();
     publishStatus("handoff release complete; returning manipulator to stay pose", true);
   }
 
-  // void updateHandoffStay()
-  // {
-  //   const auto stamp = now();
-  //   if (handoff_stage_start_stamp_.nanoseconds() == 0) {
-  //     std::array<double, 4> target{};
-  //     for (std::size_t i = 0; i < target.size(); ++i) {
-  //       target[i] = handoff_stay_joint_positions_[i];
-  //     }
-  //     handoff_stay_controller_target_ = clampHandoffTarget(target);
-  //     publishHandoffJointTrajectory(*handoff_stay_controller_target_);
-  //     handoff_stage_start_stamp_ = stamp;
-  //     publishStatus(
-  //       "handoff stay: moving manipulator back to saved stay pose; target=" +
-  //       formatJointArray(*handoff_stay_controller_target_), true);
-  //     return;
-  //   }
-
-  //   publishStop();
-  //   publishBaseStop();
-  //   maybeRepublishHandoffJointTrajectory(handoff_stay_controller_target_);
-  //   if ((stamp - handoff_stage_start_stamp_).seconds() <
-  //       handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
-  //     publishStatus("handoff stay: waiting for manipulator stay pose settle");
-  //     return;
-  //   }
-
-  //   done_ = true;
-  //   active_ = false;
-  //   eef_refinement_object_in_target_.reset();
-  //   publishBaseHold(true);
-  //   publishBaseStop();
-  //   publishCargoEvent("loaded", true);
-  //   publishStatus(
-  //     "cargo_loaded: placed on follower side by joint1 turn; arm in stay pose; base hold kept",
-  //     true);
-  // }
   void updateHandoffStay()
   {
     const auto stamp = now();
