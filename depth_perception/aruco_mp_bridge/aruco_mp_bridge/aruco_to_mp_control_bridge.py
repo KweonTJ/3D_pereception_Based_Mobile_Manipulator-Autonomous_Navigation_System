@@ -41,6 +41,8 @@ class ArucoToMpControlBridge(Node):
         self.start_publish_count = int(self.declare_parameter("start_publish_count", 3).value)
         self.start_publish_period_s = float(
             self.declare_parameter("start_publish_period_s", 0.2).value)
+        self.continuous_start_publish = bool(
+            self.declare_parameter("continuous_start_publish", True).value)
         self.publish_close_range_ready = bool(
             self.declare_parameter("publish_close_range_ready", True).value)
 
@@ -109,7 +111,7 @@ class ArucoToMpControlBridge(Node):
     def maybe_publish_start(self):
         if not self.publish_start_on_visible:
             return
-        if self.start_published >= self.start_publish_count:
+        if not self.continuous_start_publish and self.start_published >= self.start_publish_count:
             return
         now = self.get_clock().now()
         if (
@@ -121,6 +123,8 @@ class ArucoToMpControlBridge(Node):
         msg.data = True
         self.start_pub.publish(msg)
         self.start_published += 1
+        if self.continuous_start_publish and self.start_publish_count > 0:
+            self.start_published = min(self.start_published, self.start_publish_count)
         self.last_start_time = now
 
     def transformed_object_point(self):

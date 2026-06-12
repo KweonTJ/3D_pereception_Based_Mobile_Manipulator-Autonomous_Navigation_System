@@ -21,4 +21,5 @@ aruco_to_mp_control_bridge:
     publish_start_on_visible: true
     start_publish_count: 3
     start_publish_period_s: 0.2
+    continuous_start_publish: true
     publish_close_range_ready: true
