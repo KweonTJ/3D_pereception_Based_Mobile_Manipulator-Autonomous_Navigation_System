@@ -14,7 +14,7 @@ aruco_to_mp_control_bridge:
 
     # This launch is for the already-positioned test case: robot-object distance
     # is measured manually as 22 cm before starting the manipulator flow.
-    force_object_x_m: 0.22
+    force_object_x_m: 0.29
     object_y_offset_m: 0.0
     object_z_offset_m: 0.0
 
