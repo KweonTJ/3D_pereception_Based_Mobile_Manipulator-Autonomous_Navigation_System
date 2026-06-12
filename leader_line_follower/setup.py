@@ -32,6 +32,7 @@ setup(
         'console_scripts': [
             'leader_rover_nav_node = leader_line_follower_nodes.leader_rover_nav_node:main',
             'leader_rover_base_nav_node = leader_line_follower_nodes.rover_nav_node:main',
+            'imu_forward_align = leader_line_follower_nodes.imu_forward_align:main',
         ],
     },
 )
