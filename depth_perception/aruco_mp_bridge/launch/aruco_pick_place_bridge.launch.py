@@ -73,7 +73,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "force_object_x_m",
-            default_value="0.22",
+            default_value="0.29",
         ),
         DeclareLaunchArgument(
             "control_start_delay",
