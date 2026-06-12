@@ -5117,10 +5117,12 @@ private:
       std::abs(handoff_place_joint2_delta_rad_) <= 1.0e-9);
     if ((stamp - handoff_stage_start_stamp_).seconds() >=
         handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
-      stage_ = GraspStage::HANDOFF_RELEASE;
-      handoff_stage_start_stamp_ = stamp;
-      sendGripperOpenForObject();
-      publishCargoEvent("placed", true);
+      stage_ = GraspStage::HANDOFF_STAY;
+      handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      // handoff_stage_start_stamp_ = stamp;
+      // sendGripperOpenForObject();
+      // publishCargoEvent("placed", true);
       publishStatus("handoff release: opening gripper on follower side", true);
     }
   }
