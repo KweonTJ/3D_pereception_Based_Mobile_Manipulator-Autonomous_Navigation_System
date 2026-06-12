@@ -111,6 +111,8 @@ class ArucoToMpControlBridge(Node):
         self.ready_pub.publish(msg)
 
     def maybe_publish_start(self):
+        if self.start_sent_once:
+            return
         if not self.publish_start_on_visible:
             return
         if not self.continuous_start_publish and self.start_published >= self.start_publish_count:
