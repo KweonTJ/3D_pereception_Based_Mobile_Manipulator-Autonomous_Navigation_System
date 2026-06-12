@@ -134,6 +134,11 @@ class ArucoToMpControlBridge(Node):
             return None, "aruco pose stale"
 
         try:
+            pose_msg = PoseStamped()
+            pose_msg.header = self.latest_pose.header
+            pose_msg.pose = self.latest_pose.pose
+
+            pose_msg.header.stamp = rclpy.time.Time().to_msg()
             pose = self.tf_buffer.transform(
                 self.latest_pose,
                 self.target_frame,
