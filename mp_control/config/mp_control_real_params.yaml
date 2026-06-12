@@ -141,7 +141,7 @@ mp_control_node:
     # preserving the real hardware's required joint3 command direction.
     pregrasp_reverse_joint3_delta: true
     pregrasp_hold_current_duration_s: 0.0
-    pregrasp_move_duration_s: 1.4
+    pregrasp_move_duration_s: 1.0
     # Move joint3 first before lowering joint2. The node now creates small
     # controller-side joint3 step targets before joint2/joint4 are allowed to
     # move, so the old raw-space lead waypoint is disabled.
