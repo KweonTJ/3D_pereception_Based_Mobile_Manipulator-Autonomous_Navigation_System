@@ -164,7 +164,7 @@ mp_control_node:
     handoff_joint_move_duration_s: 7.0
     handoff_joint_settle_s: 0.4
     handoff_republish_period_s: 0.25
-    handoff_rotate_angle_rad: -2.09439510
+    handoff_rotate_angle_rad: -1.57079633
     handoff_center_joint1_before_rotate: false
     handoff_joint1_center_target_rad: 0.0
     handoff_joint1_center_tolerance_rad: 0.03
