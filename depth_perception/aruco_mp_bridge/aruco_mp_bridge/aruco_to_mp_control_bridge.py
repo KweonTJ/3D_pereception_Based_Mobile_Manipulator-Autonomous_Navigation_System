@@ -90,7 +90,7 @@ class ArucoToMpControlBridge(Node):
     def on_visible(self, msg):
         self.visible = bool(msg.data)
         self.latest_visible_time = self.get_clock().now()
-        if not self.visible and self.locked_object_xyz is not None:
+        if not self.visible and self.locked_object_xyz is None:
             self.start_published = 0
 
     def fresh(self, stamp, timeout_s):
