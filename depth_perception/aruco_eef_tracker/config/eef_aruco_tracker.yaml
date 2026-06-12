@@ -11,7 +11,7 @@ aruco_eef_tracker_node:
     marker_id: 0
     accept_any_marker: false
     marker_size_m: 0.05
-    dictionary: DICT_4X4_50
+    dictionary: DICT_6X6_50
     publish_debug_image: true
     draw_axes: true
     axis_length_m: 0.03
