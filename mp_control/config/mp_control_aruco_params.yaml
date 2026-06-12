@@ -37,8 +37,9 @@ mp_control_node:
     use_color_triangulation_after_min_depth: false
     use_stable_object_point: true
 
-    # EEF refinement is disabled in this ArUco-only profile.
-    use_eef_refinement: false
+    # This flag also gates joint pregrasp/arm motion in mp_control_node.
+    # Keep it enabled, while ArUco bridge supplies the object point.
+    use_eef_refinement: true
     auto_init_eef_tracker_from_object: false
     allow_eef_camera_info_fallback: true
 
