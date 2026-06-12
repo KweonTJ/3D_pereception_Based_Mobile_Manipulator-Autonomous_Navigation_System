@@ -45,6 +45,8 @@ class ArucoToMpControlBridge(Node):
             self.declare_parameter("continuous_start_publish", True).value)
         self.publish_close_range_ready = bool(
             self.declare_parameter("publish_close_range_ready", True).value)
+        self.locked_object_xyz = None
+        self.start_sent_once = False
 
         latched_qos = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
