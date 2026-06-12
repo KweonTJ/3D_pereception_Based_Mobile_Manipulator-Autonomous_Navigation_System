@@ -830,6 +830,11 @@ private:
       return;
     }
 
+    if (active_ && !done_) {
+      publishStatus("start ignored because sequence already active", false);
+      return;
+    }
+
     active_ = true;
     done_ = false;
     safety_abort_ignore_reported_ = false;
