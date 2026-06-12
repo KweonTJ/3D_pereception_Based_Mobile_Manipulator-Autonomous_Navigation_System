@@ -5052,27 +5052,81 @@ private:
     publishStop();
     publishBaseStop();
     maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
-    if ((stamp - handoff_stage_start_stamp_).seconds() >=
-        handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
-      if (handoff_joint1_centering_) {
-        handoff_joint1_centering_ = false;
-        handoff_joint1_centered_for_rotate_ = true;
-        handoff_lift_controller_target_.reset();
-        handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-        handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-        publishStatus(
-          "handoff joint1 center complete; starting same-direction 180deg joint1 turn",
-          true);
-        return;
-      }
-      stage_ = GraspStage::HANDOFF_RELEASE;
+    // if ((stamp - handoff_stage_start_stamp_).seconds() >=
+    //     handoff_joint_move_duration_s_ + handoff_joint_settle_s_) {
+    //   if (handoff_joint1_centering_) {
+    //     handoff_joint1_centering_ = false;
+    //     handoff_joint1_centered_for_rotate_ = true;
+    //     handoff_lift_controller_target_.reset();
+    //     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    //     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    //     publishStatus("handoff joint1 center complete; starting same-direction 180deg joint1 turn", true);
+    //     return;
+    //   }
+    //   stage_ = GraspStage::HANDOFF_RELEASE;
+    //   handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    //   handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    //   sendGripperOpenForObject();
+    //   publishCargoEvent("placed", true);
+    //   publishStatus("handoff release: joint1 turn complete; opening gripper", true);
+    // }
+    const double rotate_elapsed_s = (stamp - handoff_stage_start_stamp_).seconds();
+    const double rotate_wait_s = handoff_joint_move_duration_s_ + handoff_joint_settle_s_;
+
+    if (rotate_elapsed_s < rotate_wait_s) {
+      publishStatus(
+        "handoff joint1 turn: waiting for timed settle elapsed=" +
+        std::to_string(rotate_elapsed_s) +
+        "/" + std::to_string(rotate_wait_s));
+      return;
+    }
+
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      publishStatus("handoff joint1 turn: waiting for joint states before gripper open");
+      return;
+    }
+
+    double target_joint1 = (*current)[0];
+    if (handoff_lift_controller_target_) {
+      target_joint1 = (*handoff_lift_controller_target_)[0];
+    } else if (handoff_joint1_target_rad_) {
+      target_joint1 = *handoff_joint1_target_rad_;
+    }
+
+    const double joint1_error = normalizeAngle(target_joint1 - (*current)[0]);
+    const double joint1_error_abs = std::abs(joint1_error);
+
+    if (joint1_error_abs > handoff_joint1_center_tolerance_rad_) {
+      maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
+      publishStatus(
+        "handoff joint1 turn: waiting for joint1 target before gripper open"
+        " current=" + std::to_string((*current)[0]) +
+        " target=" + std::to_string(target_joint1) +
+        " error=" + std::to_string(joint1_error) +
+        " tolerance=" + std::to_string(handoff_joint1_center_tolerance_rad_));
+      return;
+    }
+
+    if (handoff_joint1_centering_) {
+      handoff_joint1_centering_ = false;
+      handoff_joint1_centered_for_rotate_ = true;
+      handoff_lift_controller_target_.reset();
       handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-
-      sendGripperOpenForObject();
-      publishCargoEvent("placed", true);
-      publishStatus("handoff release: joint1 turn complete; opening gripper", true);
+      publishStatus(
+        "handoff joint1 center complete; starting same-direction joint1 turn",
+        true);
+      return;
     }
+
+    stage_ = GraspStage::HANDOFF_RELEASE;
+    handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+
+    sendGripperOpenForObject();
+    publishCargoEvent("placed", true);
+    publishStatus("handoff release: joint1 turn reached target; opening gripper", true);
   }
 
   void updateHandoffPlace()
