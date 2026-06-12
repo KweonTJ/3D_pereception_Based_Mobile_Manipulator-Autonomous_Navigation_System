@@ -53,9 +53,9 @@ mp_control_node:
     position_tolerance_m: 0.035
 
     # Match real robot arm-entry distance gates.
-    arm_start_max_object_x_m: 0.22
+    arm_start_max_object_x_m: 0.30
     arm_start_max_error_m: 0.50
-    eef_refinement_start_object_x_m: 0.22
+    eef_refinement_start_object_x_m: 0.30
     object_height_m: 0.12
     object_width_m: 0.12
     object_pregrasp_standoff_m: 0.06
