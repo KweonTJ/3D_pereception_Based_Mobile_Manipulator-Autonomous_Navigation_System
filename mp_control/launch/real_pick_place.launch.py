@@ -529,7 +529,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_domain_bridge",
-            default_value="true",
+            default_value="false",
             description="Leader default starts the leader-to-follower domain bridge.",
         ),
         DeclareLaunchArgument(

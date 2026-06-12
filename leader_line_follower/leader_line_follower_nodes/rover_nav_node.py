@@ -9,9 +9,13 @@ import rclpy
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist
+from host_mission_interfaces.msg import LeaderRoute
 from host_mission_interfaces.msg import NavFeedback
 from host_mission_interfaces.msg import TargetCommand
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy
+from rclpy.qos import QoSProfile
+from rclpy.qos import ReliabilityPolicy
 
 try:
     from ament_index_python.packages import get_package_share_directory
@@ -104,6 +108,15 @@ class RoverNavNode(Node):
         self.path_error_pub = self.create_publisher(
             Point, f'{prefix}/path_error', 10
         )
+        # Planned route over the shared lane graph, for platooning. Latched
+        # (transient_local) so a late-joining follower gets the current route;
+        # QoS matches the host mission bridge (25->30->73) that relays it.
+        route_qos = QoSProfile(depth=1)
+        route_qos.reliability = ReliabilityPolicy.RELIABLE
+        route_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.route_pub = self.create_publisher(
+            LeaderRoute, f'{prefix}/route', route_qos
+        )
 
         self.current_xy = None
         self.current_yaw = None
@@ -168,6 +181,7 @@ class RoverNavNode(Node):
             self.detail = 'stop command'
             self._publish_stop()
             self._publish_feedback(force=True)
+            self._publish_route()
         elif mode == 'HOLD':
             self.pending_command = None
             self.state = 'HOLDING'
@@ -236,6 +250,20 @@ class RoverNavNode(Node):
         self.detail = 'route=' + '->'.join(str(node_id) for node_id in route_nodes)
         self._publish_feedback(force=True)
         self._publish_active_waypoint()
+        self._publish_route()
+
+    def _publish_route(self):
+        # Share the planned lane-graph route for platooning. node_ids is the
+        # ordered route current->target; an empty list signals "no active route"
+        # (e.g. after STOP). The follower decides where to JOIN/BRANCH off it.
+        msg = LeaderRoute()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self.frame_id
+        msg.robot = self.robot
+        msg.cmd_id = self.current_cmd_id
+        msg.target_node = self.current_target_node
+        msg.node_ids = [int(node_id) for node_id in self.route_nodes]
+        self.route_pub.publish(msg)
 
     def control_callback(self):
         if self.command_timeout_sec > 0.0 and self.command_stamp_sec > 0.0:

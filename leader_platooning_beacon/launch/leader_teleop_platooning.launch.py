@@ -159,7 +159,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "start_domain_bridge",
-            default_value="true",
+            default_value="false",
             description="Bridge /leader/* topics from leader domain to follower domain.",
         ),
         DeclareLaunchArgument(
