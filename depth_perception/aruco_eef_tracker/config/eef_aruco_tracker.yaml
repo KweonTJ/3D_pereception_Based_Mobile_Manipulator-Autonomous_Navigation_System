@@ -9,6 +9,14 @@ aruco_eef_tracker_node:
     debug_image_topic: /target/aruco_debug_image
 
     marker_id: 0
+    accept_any_marker: false
     marker_size_m: 0.05
     dictionary: DICT_4X4_50
     publish_debug_image: true
+    draw_axes: true
+    axis_length_m: 0.03
+    status_period_s: 0.5
+    min_marker_perimeter_px: 20.0
+    max_reprojection_error_px: 6.0
+    pose_z_min_m: 0.02
+    pose_z_max_m: 1.20
