@@ -127,6 +127,7 @@ class ArucoToMpControlBridge(Node):
         msg.data = True
         self.start_pub.publish(msg)
         self.start_published += 1
+        self.start_sent_once = True
         if self.continuous_start_publish and self.start_publish_count > 0:
             self.start_published = min(self.start_published, self.start_publish_count)
         self.last_start_time = now
