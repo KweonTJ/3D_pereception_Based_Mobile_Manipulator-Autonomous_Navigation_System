@@ -122,7 +122,7 @@ mp_control_node:
     object_pregrasp_min_z_m: 0.50
     object_pregrasp_lower_standoff_m: 0.02
     object_pregrasp_min_lower_z_m: 0.12
-    object_pregrasp_enable_lowering: false
+    object_pregrasp_enable_lowering: true
     # Keep the shoulder higher than the old pregrasp pose so the arm does not
     # drop into the front Astra camera view before close-range EEF alignment.
     pregrasp_ready_joint_positions: [0.0, 1.2, -2.65, -0.55]
