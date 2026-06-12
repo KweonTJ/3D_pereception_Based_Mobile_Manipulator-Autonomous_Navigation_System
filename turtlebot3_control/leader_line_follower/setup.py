@@ -1,0 +1,37 @@
+from glob import glob
+import os
+
+from setuptools import find_packages, setup
+
+
+package_name = 'leader_line_follower'
+
+setup(
+    name=package_name,
+    version='0.0.0',
+    packages=find_packages(exclude=['test']),
+    data_files=[
+        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'urdf'), glob('urdf/*')),
+        (os.path.join('share', package_name, 'maps'), glob('maps/*')),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='team6',
+    maintainer_email='team6@todo.todo',
+    description='Standalone leader rover line follower using routed Pure Pursuit control.',
+    license='Apache-2.0',
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
+    entry_points={
+        'console_scripts': [
+            'leader_rover_nav_node = leader_line_follower_nodes.leader_rover_nav_node:main',
+            'leader_rover_base_nav_node = leader_line_follower_nodes.rover_nav_node:main',
+        ],
+    },
+)
