@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
+from launch.actions import TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
@@ -13,6 +14,8 @@ def generate_launch_description():
     aruco_config_file = LaunchConfiguration("aruco_config_file")
     bridge_config_file = LaunchConfiguration("bridge_config_file")
     force_object_x_m = LaunchConfiguration("force_object_x_m")
+    control_start_delay = LaunchConfiguration("control_start_delay")
+    bridge_start_delay = LaunchConfiguration("bridge_start_delay")
 
     aruco_pick_place = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -28,6 +31,7 @@ def generate_launch_description():
             "start_mp_control": "true",
             "mp_control_config_file": mp_control_config_file,
             "aruco_config_file": aruco_config_file,
+            "control_start_delay": control_start_delay,
         }.items(),
     )
 
@@ -73,6 +77,18 @@ def generate_launch_description():
             "force_object_x_m",
             default_value="0.22",
         ),
+        DeclareLaunchArgument(
+            "control_start_delay",
+            default_value="8.0",
+        ),
+        DeclareLaunchArgument(
+            "bridge_start_delay",
+            default_value="10.0",
+            description="Delay bridge startup until mp_control has created its subscriptions.",
+        ),
         aruco_pick_place,
-        aruco_bridge,
+        TimerAction(
+            period=bridge_start_delay,
+            actions=[aruco_bridge],
+        ),
     ])
