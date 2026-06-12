@@ -594,7 +594,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_max_bbox_area_ratio",
-            default_value="0.25",
+            default_value="0.45",
             description="Maximum bbox area ratio allowed for automatic YOLO box detection.",
         ),
         DeclareLaunchArgument(
@@ -604,7 +604,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_init_max_bbox_aspect_ratio",
-            default_value="0.75",
+            default_value="0.85",
             description="Maximum bbox width/height ratio allowed for automatic box detection.",
         ),
         DeclareLaunchArgument(
