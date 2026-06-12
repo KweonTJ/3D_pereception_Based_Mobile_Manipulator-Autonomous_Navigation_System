@@ -1,0 +1,26 @@
+aruco_to_mp_control_bridge:
+  ros__parameters:
+    aruco_pose_topic: /target/aruco_pose
+    aruco_visible_topic: /target/aruco_visible
+    object_topic: /target/object_in_base
+    close_range_ready_topic: /target/close_range_ready
+    start_topic: /mp_control/start
+    status_topic: /target/aruco_mp_bridge_status
+
+    target_frame: base_link
+    visible_timeout_s: 0.5
+    pose_timeout_s: 0.5
+    publish_rate_hz: 20.0
+
+    # This launch is for the already-positioned test case: robot-object distance
+    # is measured manually as 22 cm before starting the manipulator flow.
+    force_object_x_m: 0.29
+    object_y_offset_m: 0.0
+    object_z_offset_m: 0.0
+
+    publish_start_on_visible: true
+    start_publish_count: 1
+    start_publish_period_s: 0.2
+    continuous_start_publish: false
+    publish_close_range_ready: true
+    lock_on_first_detection: true
