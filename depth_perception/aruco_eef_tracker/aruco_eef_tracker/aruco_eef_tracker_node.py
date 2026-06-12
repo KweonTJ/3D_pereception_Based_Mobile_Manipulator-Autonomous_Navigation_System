@@ -163,7 +163,7 @@ class ArucoEefTracker(Node):
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
         if (
             self.draw_axes and rvec is not None and tvec is not None and
-            self.camera_matrix is not None
+            self.camera_matrix is not None and hasattr(cv2, "drawFrameAxes")
         ):
             cv2.drawFrameAxes(
                 frame,
