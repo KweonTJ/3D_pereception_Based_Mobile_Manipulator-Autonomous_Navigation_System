@@ -50,7 +50,7 @@ def generate_launch_description():
             default_value=PathJoinSubstitution([
                 FindPackageShare("mp_control"),
                 "config",
-                "mp_control_real_params.yaml",
+                "mp_control_aruco_params.yaml",
             ]),
         ),
         DeclareLaunchArgument(
