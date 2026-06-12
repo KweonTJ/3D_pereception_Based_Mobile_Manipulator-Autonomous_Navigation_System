@@ -5120,9 +5120,6 @@ private:
       stage_ = GraspStage::HANDOFF_STAY;
       handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-      // handoff_stage_start_stamp_ = stamp;
-      // sendGripperOpenForObject();
-      // publishCargoEvent("placed", true);
       publishStatus("handoff release: opening gripper on follower side", true);
     }
   }
