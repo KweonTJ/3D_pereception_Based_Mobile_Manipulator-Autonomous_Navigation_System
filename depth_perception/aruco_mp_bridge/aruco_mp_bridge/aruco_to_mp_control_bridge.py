@@ -140,7 +140,7 @@ class ArucoToMpControlBridge(Node):
 
             pose_msg.header.stamp = rclpy.time.Time().to_msg()
             pose = self.tf_buffer.transform(
-                self.latest_pose,
+                pose_msg,
                 self.target_frame,
                 timeout=Duration(seconds=0.10))
         except Exception as exc:
