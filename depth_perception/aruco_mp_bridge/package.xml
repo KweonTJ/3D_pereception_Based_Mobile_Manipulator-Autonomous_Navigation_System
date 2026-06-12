@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>aruco_mp_bridge</name>
+  <version>0.0.0</version>
+  <description>Bridge EEF ArUco marker pose into the existing mp_control target topics.</description>
+  <maintainer email="kweontj0701@naver.com">ktj</maintainer>
+  <license>Apache License 2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>mp_control</depend>
+  <depend>aruco_eef_tracker</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
