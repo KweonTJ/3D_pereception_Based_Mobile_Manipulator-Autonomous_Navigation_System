@@ -163,9 +163,44 @@ class ArucoToMpControlBridge(Node):
 
         return point, None
 
+    # def on_timer(self):
+    #     visible_ready = self.visible and self.fresh(
+    #         self.latest_visible_time, self.visible_timeout_s)
+    #     if not visible_ready:
+    #         self.publish_ready(False)
+    #         self.publish_status("waiting for visible aruco marker")
+    #         return
+
+    #     point, reason = self.transformed_object_point()
+    #     if point is None:
+    #         self.publish_ready(False)
+    #         self.publish_status(reason)
+    #         return
+
+    #     self.object_pub.publish(point)
+    #     self.publish_ready(True)
+    #     self.maybe_publish_start()
+    #     self.publish_status(
+    #         f"aruco object ready: xyz=({point.point.x:.3f}, {point.point.y:.3f}, {point.point.z:.3f}) frame={point.header.frame_id}")
     def on_timer(self):
+        if self.locked_object_xyz is not None:
+            point = PointStamped()
+            point.header.stamp = self.get_clock().now().to_msg()
+            point.header.frame_id = self.target_frame
+            point.point.x = self.locked_object_xyz[0]
+            point.point.y = self.locked_object_xyz[1]
+            point.point.z = self.locked_object_xyz[2]
+
+            self.object_pub.publish(point)
+            self.publish_ready(True)
+            self.maybe_publish_start()
+            self.publish_status(
+                f"locked aruco object ready: xyz=({point.point.x:.3f}, {point.point.y:.3f}, {point.point.z:.3f}) frame={point.header.frame_id}")
+            return
+
         visible_ready = self.visible and self.fresh(
             self.latest_visible_time, self.visible_timeout_s)
+
         if not visible_ready:
             self.publish_ready(False)
             self.publish_status("waiting for visible aruco marker")
@@ -177,12 +212,18 @@ class ArucoToMpControlBridge(Node):
             self.publish_status(reason)
             return
 
+        if self.lock_on_first_detection:
+            self.locked_object_xyz = (
+                float(point.point.x),
+                float(point.point.y),
+                float(point.point.z),
+            )
+
         self.object_pub.publish(point)
         self.publish_ready(True)
         self.maybe_publish_start()
         self.publish_status(
             f"aruco object ready: xyz=({point.point.x:.3f}, {point.point.y:.3f}, {point.point.z:.3f}) frame={point.header.frame_id}")
-
 
 def main(args=None):
     rclpy.init(args=args)
