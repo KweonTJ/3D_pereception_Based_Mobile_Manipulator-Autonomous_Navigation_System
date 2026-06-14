@@ -106,6 +106,9 @@ public:
     joint_state_sub_ = create_subscription<sensor_msgs::msg::JointState>(
       joint_state_topic_, default_qos,
       [this](const sensor_msgs::msg::JointState::ConstSharedPtr msg) { onJointState(msg); });
+    aruco_pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+      aruco_pose_topic_, default_qos,
+      [this](const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg) { onArucoPose(msg); });
     start_sub_ = create_subscription<std_msgs::msg::Bool>(
       start_topic_, default_qos,
       [this](const std_msgs::msg::Bool::ConstSharedPtr msg) {
@@ -333,6 +336,17 @@ private:
     eef_camera_fallback_height_px_ = declare_parameter<int>("eef_camera_fallback_height_px", 480);
     eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 554.0);
     eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 554.0);
+    aruco_pose_topic_ = declare_parameter<std::string>("aruco_pose_topic", "/target/aruco_pose");
+    aruco_center_align_enabled_ = declare_parameter<bool>("aruco_center_align_enabled", true);
+    aruco_center_pose_timeout_s_ = declare_parameter<double>("aruco_center_pose_timeout_s", 0.5);
+    aruco_gripper_center_x_offset_m_ = declare_parameter<double>("aruco_gripper_center_x_offset_m", 0.0);
+    aruco_gripper_center_y_offset_m_ = declare_parameter<double>("aruco_gripper_center_y_offset_m", 0.0);
+    aruco_center_x_tolerance_m_ = declare_parameter<double>("aruco_center_x_tolerance_m", 0.012);
+    aruco_center_y_tolerance_m_ = declare_parameter<double>("aruco_center_y_tolerance_m", 0.015);
+    aruco_require_center_before_grasp_ = declare_parameter<bool>("aruco_require_center_before_grasp", true);
+    aruco_joint1_align_gain_ = declare_parameter<double>("aruco_joint1_align_gain", 0.6);
+    aruco_joint1_align_max_step_rad_ = declare_parameter<double>("aruco_joint1_align_max_step_rad", 0.020);
+    aruco_joint1_align_sign_ = declare_parameter<double>("aruco_joint1_align_sign", -1.0);
     release_base_hold_after_handoff_ = declare_parameter<bool>("release_base_hold_after_handoff", true);
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
@@ -733,6 +747,13 @@ private:
     std::lock_guard<std::mutex> lock(data_mutex_);
     latest_stable_object_point_ = *msg;
     latest_stable_object_stamp_ = now();
+  }
+
+  void onArucoPose(const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg)
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_aruco_pose_ = *msg;
+    latest_aruco_pose_stamp_ = now();
   }
 
   void onCameraInfo(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg)
@@ -1187,26 +1208,6 @@ private:
     const double err_y = goal_y - eef_y;
     const double err_z = goal_z - eef_z;
     const double err_norm = vectorNorm(err_x, err_y, err_z);
-    // if (use_joint_pregrasp_ && !use_eef_refinement_) {
-    //   publishBaseHold(true);
-    //   publishBaseStop();
-    //   publishStop();
-
-    //   const bool joint_pregrasp_ready = updateJointPregrasp();
-    //   if (!joint_pregrasp_ready) {
-    //     publishStatus("aruco joint pregrasp running");
-    //     return;
-    //   }
-
-    //   if (close_gripper_on_arrival_ && !close_sent_) {
-    //     sendGripperGraspForObject();
-    //     close_sent_ = true;
-    //   }
-
-    //   completeGrasp(
-    //     "joint pregrasp complete; gripper closed; grasp sequence complete");
-    //   return;
-    // }
 
     const bool object_x_ready_for_eef = use_color_triangulation_after_min_depth_ ?
       (using_latched_depth_for_pregrasp || goal_x <= color_triangulation_base_stop_object_x_m_) :
@@ -1258,22 +1259,14 @@ private:
 	      if (!joint_pregrasp_ready) {
 	        return;
 	      }
-	      // if (!startMoveItServo()) {
-	      //   publishStatus("waiting for MoveIt Servo start before EEF refinement");
-	      //   return;
-	      // }
-	      // if (!use_joint_pregrasp_) {
-	      //   bool extension_cmd_published = false;
-	      //   if (!moveArmToObjectPregraspPose(eef_tf, object, &extension_cmd_published)) {
-	      //     return;
-	      //   }
-	      // }
-	      // if (!prepareEefRefinement(object)) {
-	      //   return;
-        // }
+
         if (use_joint_pregrasp_) {
           publishStop();
           publishBaseStop();
+
+          if (!arucoAlignedForClose()) {
+            return;
+          }
 
           if (close_gripper_on_arrival_ && !close_sent_) {
             sendGripperGraspForObject();
@@ -2708,6 +2701,110 @@ private:
     return clampJointPregraspTarget(target);
   }
 
+  std::optional<double> latestArucoCenterXError()
+  {
+    if (!aruco_center_align_enabled_) {
+      return std::nullopt;
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+
+    if (!latest_aruco_pose_) {
+      return std::nullopt;
+    }
+
+    if (latest_aruco_pose_stamp_.nanoseconds() == 0 ||
+        (now() - latest_aruco_pose_stamp_).seconds() > aruco_center_pose_timeout_s_) {
+      return std::nullopt;
+    }
+
+    return latest_aruco_pose_->pose.position.x - aruco_gripper_center_x_offset_m_;
+  }
+
+  std::optional<double> latestArucoCenterYError()
+  {
+    if (!aruco_center_align_enabled_) {
+      return std::nullopt;
+    }
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+
+    if (!latest_aruco_pose_) {
+      return std::nullopt;
+    }
+
+    if (latest_aruco_pose_stamp_.nanoseconds() == 0 ||
+        (now() - latest_aruco_pose_stamp_).seconds() > aruco_center_pose_timeout_s_) {
+      return std::nullopt;
+    }
+
+    return latest_aruco_pose_->pose.position.y - aruco_gripper_center_y_offset_m_;
+  }
+
+  void applyArucoJoint1Correction(
+    const std::array<double, 4> & current,
+    std::array<double, 4> * target)
+  {
+    if (!target || !aruco_center_align_enabled_) {
+      return;
+    }
+
+    const auto error_x_opt = latestArucoCenterXError();
+    if (!error_x_opt) {
+      return;
+    }
+
+    const double error_x = *error_x_opt;
+
+    if (std::abs(error_x) <= aruco_center_x_tolerance_m_) {
+      return;
+    }
+
+    const double raw_delta =
+      aruco_joint1_align_sign_ * aruco_joint1_align_gain_ * error_x;
+
+    const double joint1_delta =
+      clampStep(raw_delta, aruco_joint1_align_max_step_rad_);
+
+    (*target)[0] = clampValue(
+      current[0] + joint1_delta,
+      joint_pregrasp_min_positions_[0],
+      joint_pregrasp_max_positions_[0]);
+  }
+
+  bool arucoAlignedForClose()
+  {
+    if (!aruco_center_align_enabled_ || !aruco_require_center_before_grasp_) {
+      return true;
+    }
+
+    const auto error_x_opt = latestArucoCenterXError();
+    if (!error_x_opt) {
+      publishStatus("aruco close blocked: waiting for fresh /target/aruco_pose");
+      return false;
+    }
+
+    const double error_x = *error_x_opt;
+    const auto error_y_opt = latestArucoCenterYError();
+    const double error_y = error_y_opt.value_or(0.0);
+
+    const bool x_ok = std::abs(error_x) <= aruco_center_x_tolerance_m_;
+    const bool y_ok = std::abs(error_y) <= aruco_center_y_tolerance_m_;
+
+    if (!x_ok || !y_ok) {
+      std::ostringstream status;
+      status << "aruco close blocked: center not aligned"
+             << " error_x=" << error_x
+             << "/" << aruco_center_x_tolerance_m_
+             << " error_y=" << error_y
+             << "/" << aruco_center_y_tolerance_m_;
+      publishStatus(status.str());
+      return false;
+    }
+
+    return true;
+  }
+
   std::array<double, 4> jointPregraspControllerStepTarget(
     const std::array<double, 4> & current,
     const std::array<double, 4> & final_target,
@@ -2746,6 +2843,8 @@ private:
         *joint3_step_active = true;
       }
 
+      applyArucoJoint1Correction(current, &target);
+
       return clampJointPregraspTarget(target);
     }
 
@@ -2756,6 +2855,8 @@ private:
       joint4ForPregraspToolPitch(target, desired_tool_pitch);
     target[3] = current[3] +
       clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
+
+    applyArucoJoint1Correction(current, &target);
 
     return clampJointPregraspTarget(target);
   }
@@ -3245,6 +3346,8 @@ private:
     else {
       controller_target[3] = (*current)[3];
     }
+
+    applyArucoJoint1Correction(*current, &controller_target);
 
     controller_target = clampJointPregraspTarget(controller_target);
     const std::string controller_monotonic_hold_reason =
@@ -5618,6 +5721,8 @@ private:
   std::string gripper_pose_frame_;
   std::string camera_frame_override_;
   std::string eef_camera_frame_override_;
+  std::string aruco_pose_topic_{"/target/aruco_pose"};
+
 
   bool auto_start_{false};
   bool auto_start_on_bbox_{false};
@@ -5633,6 +5738,8 @@ private:
 	  bool use_depthless_triangulation_{false};
 	  bool use_color_triangulation_after_min_depth_{false};
   bool require_close_range_ready_for_pregrasp_{true};
+  bool aruco_center_align_enabled_{true};
+  bool aruco_require_center_before_grasp_{true};
   bool release_base_hold_after_handoff_{true};
 	  bool use_joint_pregrasp_{true};
 	  double command_rate_hz_{20.0};
@@ -5671,6 +5778,14 @@ private:
   double eef_init_bbox_padding_scale_{1.6};
   double eef_init_bbox_republish_period_s_{0.5};
   double eef_final_depth_m_{0.08};
+  double aruco_center_pose_timeout_s_{0.5};
+  double aruco_gripper_center_x_offset_m_{0.0};
+  double aruco_gripper_center_y_offset_m_{0.0};
+  double aruco_center_x_tolerance_m_{0.012};
+  double aruco_center_y_tolerance_m_{0.015};
+  double aruco_joint1_align_gain_{0.6};
+  double aruco_joint1_align_max_step_rad_{0.020};
+  double aruco_joint1_align_sign_{-1.0};
   double object_pregrasp_standoff_m_{0.08};
   double object_pregrasp_min_z_m_{0.50};
 	  double object_pregrasp_lower_standoff_m_{0.02};
@@ -5837,6 +5952,8 @@ private:
   rclcpp::Client<Trigger>::SharedPtr servo_start_client_;
   rclcpp::Client<Trigger>::SharedPtr servo_stop_client_;
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr aruco_pose_sub_;
+  rclcpp::Time latest_aruco_pose_stamp_{0, 0, RCL_ROS_TIME};
 
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
@@ -5852,6 +5969,7 @@ private:
   std::optional<geometry_msgs::msg::PointStamped> latest_depth_object_in_target_;
 	  rclcpp::Time latest_depth_object_stamp_;
   std::optional<geometry_msgs::msg::PointStamped> latest_stable_object_point_;
+  std::optional<geometry_msgs::msg::PoseStamped> latest_aruco_pose_;
   rclcpp::Time latest_stable_object_stamp_;
   std::optional<double> depth_filter_last_accepted_m_;
   std::optional<double> depth_filter_pending_m_;

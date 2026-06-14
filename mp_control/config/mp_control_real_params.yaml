@@ -262,14 +262,11 @@ mp_control_node:
     aruco_pose_topic: /target/aruco_pose
     aruco_center_align_enabled: true
     aruco_center_pose_timeout_s: 0.5
-
     aruco_gripper_center_x_offset_m: 0.0
     aruco_gripper_center_y_offset_m: 0.0
-
     aruco_center_x_tolerance_m: 0.012
     aruco_center_y_tolerance_m: 0.015
     aruco_require_center_before_grasp: true
-
     aruco_joint1_align_gain: 0.6
     aruco_joint1_align_max_step_rad: 0.020
     aruco_joint1_align_sign: -1.0

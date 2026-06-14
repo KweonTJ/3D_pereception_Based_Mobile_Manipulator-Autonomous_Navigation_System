@@ -72,7 +72,7 @@ public:
       get_parameter("mp_control_start_topic").as_string(), 10);
 
 
-    pnp_start_pub_ = create_subscription<std_msgs::msg::Empty>(
+    pnp_start_sub_ = create_subscription<std_msgs::msg::Empty>(
       get_parameter("pnp_start_topic").as_string(), 10,
       [this](std_msgs::msg::Empty::SharedPtr) {
         handle_pnp_start();
@@ -490,7 +490,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr platoon_mode_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pnp_working_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr mp_control_start_pub_;
-  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr pnp_start_pub_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr pnp_start_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mp_control_status_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr cargo_events_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr cargo_current_id_sub_;
