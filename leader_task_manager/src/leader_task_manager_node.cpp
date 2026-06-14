@@ -70,14 +70,13 @@ public:
       rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local());
     mp_control_start_pub_ = create_publisher<std_msgs::msg::Bool>(
       get_parameter("mp_control_start_topic").as_string(), 10);
-    pnp_start_pub_ = create_subscriber<std_msgs::msg::Empty>(
+
+
+    pnp_start_pub_ = create_subscription<std_msgs::msg::Empty>(
       get_parameter("pnp_start_topic").as_string(), 10,
       [this](std_msgs::msg::Empty::SharedPtr) {
         handle_pnp_start();
-      }
-    )
-    
-
+      });  
     mp_control_status_sub_ = create_subscription<std_msgs::msg::String>(
       get_parameter("mp_control_status_topic").as_string(), 10,
       [this](std_msgs::msg::String::SharedPtr msg) {
@@ -453,7 +452,7 @@ private:
 
   void handle_pnp_start()
   {
-    pup_active_ = true;
+    pnp_active_ = true;
     publish_pnp_working(true);
 
     std_msgs::msg::Bool start_msg;
@@ -463,12 +462,24 @@ private:
     set_task_state("PICKING");
   }
 
+  void publish_pnp_working(bool value)
+  {
+    pnp_working_ = value;
+
+    std_msgs::msg::Bool msg;
+    msg.data = value;
+    pnp_working_pub_->publish(msg);
+  }
+
+
 
   std::string task_state_;
   std::string cargo_state_;
   std::string platoon_mode_;
   std::string current_cargo_id_;
   bool follower_enable_{false};
+  bool pnp_active_{false};
+  bool pnp_working_{false};
   bool follow_while_idle_{true};
   bool resume_follow_after_loaded_{false};
   bool mp_control_active_{false};
@@ -477,6 +488,9 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr cargo_state_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr follower_enable_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr platoon_mode_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pnp_working_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr mp_control_start_pub_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr pnp_start_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mp_control_status_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr cargo_events_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr cargo_current_id_sub_;
