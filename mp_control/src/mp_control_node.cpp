@@ -5254,7 +5254,7 @@ private:
     active_ = false;
     eef_refinement_object_in_target_.reset();
 
-    publishBaseHold(true);
+    publishBaseHold(false);
     publishBaseStop();
     publishCargoEvent("loaded", true);
 
@@ -5633,7 +5633,7 @@ private:
 	  bool use_depthless_triangulation_{false};
 	  bool use_color_triangulation_after_min_depth_{false};
   bool require_close_range_ready_for_pregrasp_{true};
-  bool release_base_hold_on_handoff_{true};
+  bool release_base_hold_after_handoff_{true};
 	  bool use_joint_pregrasp_{true};
 	  double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};

@@ -39,7 +39,7 @@ class LeaderPickCoordinatorNode(Node):
             # 'handoff stay complete',
             # 'pick place complete',
             # 'grasp complete',
-            'carge_loaded',
+            'cargo_loaded',
         ])
         self.declare_parameter('error_status_keywords', [
             'abort',

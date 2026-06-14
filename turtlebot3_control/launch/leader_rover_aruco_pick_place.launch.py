@@ -56,6 +56,7 @@ def generate_launch_description():
             'map_path': map_path,
             'command_timeout_sec': command_timeout_sec,
             'publish_description': 'false',
+            'cmd_vel_topic': '/leader/cmd_vel',
         }.items(),
         condition=IfCondition(start_rover),
     )
