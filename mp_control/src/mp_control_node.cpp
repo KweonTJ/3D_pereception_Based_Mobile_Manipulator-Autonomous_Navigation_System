@@ -2743,7 +2743,7 @@ private:
 
   void applyArucoJoint1Correction(
     const std::array<double, 4> & current,
-    std::array<double, 4> * target)
+    std::array<double, 4> * target) 
   {
     if (!target || !aruco_center_align_enabled_) {
       return;
@@ -2808,7 +2808,7 @@ private:
   std::array<double, 4> jointPregraspControllerStepTarget(
     const std::array<double, 4> & current,
     const std::array<double, 4> & final_target,
-    bool * joint3_step_active = nullptr) const
+    bool * joint3_step_active = nullptr) 
   {
     if (joint3_step_active) {
       *joint3_step_active = false;
@@ -4740,7 +4740,7 @@ private:
     return std::max(0.0, bbox.width) * std::max(0.0, bbox.height);
   }
 
-  std::optional<double> latestFreshFrontBboxArea()
+  std::optional<double> latestFreshFrontBboxArea() 
   {
     const auto stamp = now();
     std::lock_guard<std::mutex> lock(data_mutex_);
