@@ -347,6 +347,8 @@ private:
     aruco_joint1_align_gain_ = declare_parameter<double>("aruco_joint1_align_gain", 0.6);
     aruco_joint1_align_max_step_rad_ = declare_parameter<double>("aruco_joint1_align_max_step_rad", 0.020);
     aruco_joint1_align_sign_ = declare_parameter<double>("aruco_joint1_align_sign", -1.0);
+    aruco_center_lateral_gain_ = declare_parameter<double>("aruco_center_lateral_gain", 0.6);
+    aruco_center_max_linear_speed_ = declare_parameter<double>("aruco_center_max_linear_speed", 0.010);
     release_base_hold_after_handoff_ = declare_parameter<bool>("release_base_hold_after_handoff", true);
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
@@ -1264,7 +1266,11 @@ private:
           publishStop();
           publishBaseStop();
 
-          if (!arucoAlignedForClose()) {
+          // if (!arucoAlignedForClose()) {
+          //   return;
+          // }
+          if (!startMoveItServo()) {
+            publishStatus("waiting for MoveIt Servo start before handoff joint1 turn");
             return;
           }
 
@@ -1445,6 +1451,103 @@ private:
         "front bbox size object TF transform failed: %s", ex.what());
       return std::nullopt;
     }
+  }
+
+  std::optional<geometry_msgs::msg::PoseStamped> latestFreshArucoPose()
+  {
+    std::lock_guard<std::mutex> lock(data_mutex_);
+
+    if (!latest_aruco_pose_) {
+      return std::nullopt;
+    }
+
+    if (latest_aruco_pose_stamp_.nanoseconds() == 0 ||
+        (now() - latest_aruco_pose_stamp_).seconds() > aruco_center_pose_timeout_s_) {
+      return std::nullopt;
+    }
+
+    return latest_aruco_pose_;
+  }
+
+  bool alignEefToArucoX()
+  {
+    if (!aruco_center_align_enabled_) {
+      return true;
+    }
+
+    const auto aruco_pose = latestFreshArucoPose();
+    if (!aruco_pose) {
+      publishStop();
+      publishStatus("aruco x align: waiting for fresh /target/aruco_pose");
+      return false;
+    }
+
+    const double err_x =
+      aruco_pose->pose.position.x - aruco_gripper_center_x_offset_m_;
+
+    if (std::abs(err_x) <= aruco_center_x_tolerance_m_) {
+      publishStop();
+      publishStatus(
+        "aruco x align complete: error_x=" + std::to_string(err_x),
+        true);
+      return true;
+    }
+
+    const std::string camera_frame =
+      eef_camera_frame_override_.empty() ?
+      aruco_pose->header.frame_id :
+      eef_camera_frame_override_;
+
+    geometry_msgs::msg::TransformStamped camera_tf_msg;
+    try {
+      camera_tf_msg =
+        tf_buffer_.lookupTransform(target_frame_, camera_frame, tf2::TimePointZero);
+    } catch (const tf2::TransformException & ex) {
+      publishStop();
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "aruco x align TF unavailable: %s", ex.what());
+      return false;
+    }
+
+    tf2::Transform camera_to_target;
+    tf2::fromMsg(camera_tf_msg.transform, camera_to_target);
+
+    // EEF camera x-axis direction only. y/z correction disabled.
+    tf2::Vector3 linear_camera(
+      aruco_center_lateral_gain_ * err_x,
+      0.0,
+      0.0);
+
+    tf2::Vector3 linear_target = camera_to_target.getBasis() * linear_camera;
+
+    geometry_msgs::msg::TwistStamped cmd;
+    cmd.header.stamp = now();
+    cmd.header.frame_id = target_frame_;
+
+    cmd.twist.linear.x = clampValue(
+      linear_target.x(),
+      -aruco_center_max_linear_speed_,
+      aruco_center_max_linear_speed_);
+    cmd.twist.linear.y = clampValue(
+      linear_target.y(),
+      -aruco_center_max_linear_speed_,
+      aruco_center_max_linear_speed_);
+    cmd.twist.linear.z = clampValue(
+      linear_target.z(),
+      -aruco_center_max_linear_speed_,
+      aruco_center_max_linear_speed_);
+
+    twist_pub_->publish(cmd);
+
+    publishStatus(
+      "aruco x aligning: error_x=" + std::to_string(err_x) +
+      " cmd=(" +
+      std::to_string(cmd.twist.linear.x) + ", " +
+      std::to_string(cmd.twist.linear.y) + ", " +
+      std::to_string(cmd.twist.linear.z) + ")");
+
+    return false;
   }
 
   bool isFrontBboxCloseBySize()
@@ -5186,16 +5289,16 @@ private:
     const double joint1_error = normalizeAngle(target_joint1 - (*current)[0]);
     const double joint1_error_abs = std::abs(joint1_error);
 
-    // if (joint1_error_abs > handoff_joint1_center_tolerance_rad_) {
-    //   maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
-    //   publishStatus(
-    //     "handoff joint1 turn: waiting for joint1 target before gripper open"
-    //     " current=" + std::to_string((*current)[0]) +
-    //     " target=" + std::to_string(target_joint1) +
-    //     " error=" + std::to_string(joint1_error) +
-    //     " tolerance=" + std::to_string(handoff_joint1_center_tolerance_rad_));
-    //   return;
-    // }
+    if (joint1_error_abs > handoff_joint1_center_tolerance_rad_) {
+      maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
+      publishStatus(
+        "handoff joint1 turn: waiting for joint1 target before gripper open"
+        " current=" + std::to_string((*current)[0]) +
+        " target=" + std::to_string(target_joint1) +
+        " error=" + std::to_string(joint1_error) +
+        " tolerance=" + std::to_string(handoff_joint1_center_tolerance_rad_));
+      return;
+    }
 
     if (handoff_joint1_centering_) {
       handoff_joint1_centering_ = false;
