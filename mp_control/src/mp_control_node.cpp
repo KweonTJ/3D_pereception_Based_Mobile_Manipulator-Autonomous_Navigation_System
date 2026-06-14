@@ -333,7 +333,7 @@ private:
     eef_camera_fallback_height_px_ = declare_parameter<int>("eef_camera_fallback_height_px", 480);
     eef_camera_fallback_fx_ = declare_parameter<double>("eef_camera_fallback_fx", 554.0);
     eef_camera_fallback_fy_ = declare_parameter<double>("eef_camera_fallback_fy", 554.0);
-
+    release_base_hold_after_handoff_ = declare_parameter<bool>("release_base_hold_after_handoff", true);
     auto_start_ = declare_parameter<bool>("auto_start", false);
     auto_start_on_bbox_ = declare_parameter<bool>("auto_start_on_bbox", false);
     use_fallback_bbox_for_control_ = declare_parameter<bool>("use_fallback_bbox_for_control", false);
@@ -5633,6 +5633,7 @@ private:
 	  bool use_depthless_triangulation_{false};
 	  bool use_color_triangulation_after_min_depth_{false};
   bool require_close_range_ready_for_pregrasp_{true};
+  bool release_base_hold_on_handoff_{true};
 	  bool use_joint_pregrasp_{true};
 	  double command_rate_hz_{20.0};
   double max_target_age_s_{0.6};

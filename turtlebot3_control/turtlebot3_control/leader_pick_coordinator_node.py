@@ -21,7 +21,7 @@ class LeaderPickCoordinatorNode(Node):
         self.declare_parameter('aruco_visible_topic', '/target/aruco_visible')
         self.declare_parameter('mp_control_status_topic', '/mp_control/status')
         self.declare_parameter('mp_control_start_topic', '/mp_control/start')
-        # self.declare_parameter('mux_mode_topic', '/turtlebot3_control/mux_mode')
+        self.declare_parameter('mux_mode_topic', '/turtlebot3_control/mux_mode')
         self.declare_parameter('base_hold_topic', '/target/base_hold')
         self.declare_parameter('work_state_topic', '/leader/work_state')
         self.declare_parameter('completion_topic', '/leader/pick_place_done')
@@ -106,11 +106,11 @@ class LeaderPickCoordinatorNode(Node):
             str(self.get_parameter('mp_control_start_topic').value),
             10,
         )
-        # self.mode_pub = self.create_publisher(
-        #     String,
-        #     str(self.get_parameter('mux_mode_topic').value),
-        #     10,
-        # )
+        self.mode_pub = self.create_publisher(
+            String,
+            str(self.get_parameter('mux_mode_topic').value),
+            10,
+        )
         # self.status_pub = self.create_publisher(
         #     String,
         #     str(self.get_parameter('status_topic').value),
@@ -200,48 +200,58 @@ class LeaderPickCoordinatorNode(Node):
         # elif self.phase in ('DONE', 'ERROR'):
         #     self._publish_mode('HOLD')
         if self.phase == 'NAVIGATING':
-        self._publish_work_state('NAVIGATING')
-        self._publish_base_hold(False)
-
-        arrived = (
-            not self.wait_for_nav_arrival or
-            (nav_fresh and self.nav_state in self.arrived_states)
-        )
-        visible_ok = (not self.require_aruco_visible) or aruco_fresh
-
-        if arrived and visible_ok:
-            self.phase = 'PICKING'
-            self.start_sent = 0
-            self.last_start_time = 0.0
-            self.completion_sent = False
-            self._publish_work_state('PICKING')
-            self._publish_status(force=True)
-
-    elif self.phase == 'PICKING':
-        self._publish_work_state('PICKING')
-        self._maybe_publish_start(now)
-
-        status_lower = self.mp_status.lower()
-        if any(word.lower() in status_lower for word in self.done_status_keywords):
-            self.phase = 'DONE'
+            self._publish_mode('NAV')
+            self._publish_work_state('NAVIGATING')
             self._publish_base_hold(False)
+
+            arrived = (
+                not self.wait_for_nav_arrival or
+                (nav_fresh and self.nav_state in self.arrived_states)
+            )
+            visible_ok = (not self.require_aruco_visible) or aruco_fresh
+
+            if arrived and visible_ok:
+                self.phase = 'PICKING'
+                self.start_sent = 0
+                self.last_start_time = 0.0
+                self.completion_sent = False
+                self._publish_mode('PICK')
+                self._publish_work_state('PICKING')
+                self._publish_status(force=True)
+
+        elif self.phase == 'PICKING':
+            self._publish_mode('PICK')
+            self._publish_work_state('PICKING')
+            self._maybe_publish_start(now)
+
+            status_lower = self.mp_status.lower()
+
+            if any(word.lower() in status_lower for word in self.done_status_keywords):
+                self.phase = 'DONE'
+                self._publish_base_hold(False)
+                self._publish_mode('NAV')
+                self._publish_work_state('DONE')
+                self._publish_completion(True, self.mp_status)
+                self._publish_status(force=True)
+
+            elif any(word.lower() in status_lower for word in self.error_status_keywords):
+                self.phase = 'ERROR'
+                self._publish_base_hold(False)
+                self._publish_mode('NAV')
+                self._publish_work_state('ERROR')
+                self._publish_completion(False, self.mp_status)
+                self._publish_status(force=True)
+
+        elif self.phase == 'DONE':
+            self._publish_base_hold(False)
+            self._publish_mode('NAV')
             self._publish_work_state('DONE')
             self._publish_completion(True, self.mp_status)
-            self._publish_status(force=True)
 
-        elif any(word.lower() in status_lower for word in self.error_status_keywords):
-            self.phase = 'ERROR'
+        elif self.phase == 'ERROR':
+            self._publish_base_hold(False)
+            self._publish_mode('NAV')
             self._publish_work_state('ERROR')
-            self._publish_completion(False, self.mp_status)
-            self._publish_status(force=True)
-
-    elif self.phase == 'DONE':
-        self._publish_base_hold(False)
-        self._publish_work_state('DONE')
-        self._publish_completion(True, self.mp_status)
-
-    elif self.phase == 'ERROR':
-        self._publish_work_state('ERROR')
 
 
         self._publish_status(
