@@ -398,7 +398,7 @@ class RoverNavNode(Node):
         self.detail = f'routing {start_node}->{goal_node}'
         self._publish_feedback(force=True)
 
-        route_nodes = self._dijkstra(start_node, goal_node)
+        route_nodes = self._planned_route_nodes(start_node, goal_node)
         if not route_nodes:
             self._error(f'no route from {start_node} to {goal_node}')
             return
@@ -434,6 +434,28 @@ class RoverNavNode(Node):
         msg.target_node = self.current_target_node
         msg.node_ids = [int(node_id) for node_id in self.route_nodes]
         self.route_pub.publish(msg)
+
+    def _planned_route_nodes(self, start_node, goal_node):
+        forced_waypoints = {
+            (28, 29): [27, 7],
+            (28, 32): [27, 3],
+            (29, 28): [7, 36],
+            (29, 32): [7, 3],
+            (32, 28): [3, 36],
+            (32, 29): [3, 7],
+        }.get((start_node, goal_node), [])
+        if not forced_waypoints:
+            return self._dijkstra(start_node, goal_node)
+
+        route_nodes = []
+        segment_start = start_node
+        for waypoint_node in forced_waypoints + [goal_node]:
+            segment = self._dijkstra(segment_start, waypoint_node)
+            if not segment:
+                return []
+            route_nodes = self._merge_node_paths(route_nodes, segment)
+            segment_start = waypoint_node
+        return route_nodes
 
     def control_callback(self):
         if self.command_timeout_sec > 0.0 and self.command_stamp_sec > 0.0:
@@ -899,6 +921,17 @@ class RoverNavNode(Node):
                 best_node = node_id
                 best_dist = dist
         return best_node, best_dist
+
+    def _merge_node_paths(self, *paths):
+        merged = []
+        for path in paths:
+            if not path:
+                continue
+            if merged and merged[-1] == path[0]:
+                merged.extend(path[1:])
+            else:
+                merged.extend(path)
+        return merged
 
     def _dijkstra(self, start, goal):
         queue = [(0.0, start)]
