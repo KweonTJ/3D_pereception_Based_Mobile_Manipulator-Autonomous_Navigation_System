@@ -354,11 +354,20 @@ private:
       return;
     }
 
-    if (contains_any(event, {"LOADED", "LOAD_DONE", "PLACED"})) {
+    if (contains_any(event, {"LOADED", "LOAD_DONE"})) {
       publish_pnp_working(false);
       set_loaded_platooning_state();
       return;
     }
+
+    if (contains(event, "PLACED")) {
+      set_task_state("PLACING_ON_FOLLOWER");
+      set_cargo_state("LOADING");
+      set_follower_enable(true);
+      set_platoon_mode("STANDBY");
+      return;
+    }
+
 
     if (contains(event, "DELIVERED")) {
       set_cargo_state("DELIVERED");
