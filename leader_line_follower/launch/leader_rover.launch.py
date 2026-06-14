@@ -1,3 +1,18 @@
+"""Leader navigation: rover_nav -> base.
+
+Runs the leader mission-contract navigation and connects its velocity command
+straight to the base by default. The node subscribes /leader/target_cmd and
+/leader/global/position, plans over map.json, publishes /leader/nav_feedback and
+/leader/route, and sends velocity to cmd_vel_topic.
+
+Standalone default:
+    /leader/target_cmd + /leader/global/position
+        -> leader_rover_nav_node
+        -> /cmd_vel -> turtlebot3 base
+
+The integrated leader_runtime.launch.py overrides cmd_vel_topic back to
+/leader/cmd_vel so cmd_vel_mux can arbitrate nav, PnP, and startup alignment.
+"""
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -23,6 +38,8 @@ def generate_launch_description():
     xacro_path = LaunchConfiguration('xacro_path')
     use_sim = LaunchConfiguration('use_sim')
     command_timeout_sec = LaunchConfiguration('command_timeout_sec')
+    cmd_vel_topic = LaunchConfiguration('cmd_vel_topic')
+    invert_angular_z = LaunchConfiguration('invert_angular_z')
 
     leader_nav = Node(
         package='leader_line_follower',
@@ -34,6 +51,8 @@ def generate_launch_description():
             'map_path': map_path,
             'frame_id': frame_id,
             'command_timeout_sec': command_timeout_sec,
+            'cmd_vel_topic': cmd_vel_topic,
+            'invert_angular_z': invert_angular_z,
         }],
     )
 
@@ -76,6 +95,16 @@ def generate_launch_description():
             'command_timeout_sec',
             default_value='0.0',
             description='TargetCommand deadman timeout. 0 disables timeout.',
+        ),
+        DeclareLaunchArgument(
+            'cmd_vel_topic',
+            default_value='/cmd_vel',
+            description='Velocity output topic. Standalone default drives the base directly.',
+        ),
+        DeclareLaunchArgument(
+            'invert_angular_z',
+            default_value='true',
+            description='Invert angular.z output for the leader base/IMU heading sign convention.',
         ),
         DeclareLaunchArgument(
             'publish_description',

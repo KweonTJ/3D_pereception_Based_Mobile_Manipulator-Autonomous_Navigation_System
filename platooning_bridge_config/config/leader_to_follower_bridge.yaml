@@ -51,3 +51,10 @@ topics:
       reliability: best_effort
       durability: volatile
       depth: 5
+  leader/heading_aligned:
+    type: std_msgs/msg/Bool
+    qos:
+      reliability: reliable
+      durability: transient_local
+      depth: 1
+

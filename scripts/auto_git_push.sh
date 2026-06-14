@@ -1,60 +1,53 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-REPO_DIR="$HOME/turtlebot3_ws/src"
-OBSIDIAN_DIR="$HOME/Documents/Obsidian/2026/1학기/UROP/Project"
-DOCS_DIR="$REPO_DIR/docs"
-BRANCH="main"
-README_PATH="README.md"
+REPO_DIR="$(git rev-parse --show-toplevel)"
+cd "$REPO_DIR"
 
-sync_obsidian_docs() {
-    mkdir -p "$DOCS_DIR"
+REMOTE="origin"
+BRANCH="$(git branch --show-current)"
 
-    rsync -av --delete \
-        --include='*/' \
-        --include='*.md' \
-        --exclude='*' \
-        "$OBSIDIAN_DIR/" "$DOCS_DIR/"
-}
+SSH_REMOTE="git@github-kweontj:KweonTJ/3D_pereception_Based_Mobile_Manipulator-Autonomous_Navigation_System.git"
 
-cd "$REPO_DIR" || exit 1
+if [ -z "$BRANCH" ]; then
+  echo "[ERROR] detached HEAD 상태입니다."
+  exit 1
+fi
 
-echo "[auto-git] Watching:"
-echo "  repo     : $REPO_DIR"
-echo "  obsidian : $OBSIDIAN_DIR"
+echo "======================================"
+echo "[AUTO GIT PUSH]"
+echo "REPO   : $REPO_DIR"
+echo "BRANCH : $BRANCH"
+echo "REMOTE : $(git remote get-url "$REMOTE")"
+echo "======================================"
 
-while true; do
-    inotifywait -r -e modify,create,delete,move \
-        --exclude '(\.git|build|install|log|__pycache__|\.vscode|README\.md$|.*~|.*\.swp)' \
-        "$REPO_DIR" "$OBSIDIAN_DIR"
+echo "[1] remote를 KweonTJ SSH로 고정"
+git remote set-url "$REMOTE" "$SSH_REMOTE"
 
-    echo "[auto-git] Change detected. Waiting 3 seconds..."
-    sleep 3
+echo "[2] git pull 방식 설정"
+git config pull.rebase true
+git config rebase.autoStash true
 
-    sync_obsidian_docs
+echo "[3] 현재 상태 확인"
+git status --short
 
-    cd "$REPO_DIR" || exit 1
+echo "[4] 변경사항 자동 커밋"
+if [ -n "$(git status --porcelain)" ]; then
+  git add -A
+  git commit -m "auto: turtlebot update $(date '+%Y-%m-%d %H:%M:%S')"
+else
+  echo "commit할 변경사항 없음"
+fi
 
-    git restore --staged -- "$README_PATH" 2>/dev/null || true
+echo "[5] remote fetch"
+git fetch "$REMOTE"
 
-    if [[ -z "$(git status --porcelain --untracked-files=all -- . ":(exclude)$README_PATH")" ]]; then
-        echo "[auto-git] No meaningful changes outside $README_PATH."
-        continue
-    fi
+echo "[6] origin/$BRANCH 위로 rebase"
+git pull --rebase "$REMOTE" "$BRANCH"
 
-    git add -A -- . ":(exclude)$README_PATH"
-    git restore --staged -- "$README_PATH" 2>/dev/null || true
+echo "[7] push"
+git push -u "$REMOTE" "$BRANCH"
 
-    if git diff --cached --quiet; then
-        echo "[auto-git] No staged changes outside $README_PATH."
-        continue
-    fi
-
-    COMMIT_MSG="auto: update $(date '+%Y-%m-%d %H:%M:%S')"
-
-    if git commit -m "$COMMIT_MSG"; then
-        git push origin "$BRANCH"
-        echo "[auto-git] Pushed to origin/$BRANCH"
-    else
-        echo "[auto-git] Commit failed. Maybe no changes."
-    fi
-done
+echo "======================================"
+echo "[DONE] auto commit + rebase + push 완료"
+echo "======================================"
