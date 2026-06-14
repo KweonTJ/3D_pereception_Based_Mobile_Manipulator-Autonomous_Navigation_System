@@ -20,6 +20,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/empty.hpp"
 #include "std_msgs/msg/string.hpp"
 
 using namespace std::chrono_literals;
@@ -41,6 +42,9 @@ public:
     declare_parameter<std::string>("initial_task_state", "IDLE");
     declare_parameter<std::string>("initial_cargo_state", "EMPTY");
     declare_parameter<std::string>("initial_platoon_mode", "FOLLOW");
+    declare_parameter<std::string>("pnp_start_topic", "/pnp/start");
+    declare_parameter<std::string>("pnp_working_topic", "/pnp/working");
+    declare_parameter<std::string>("mp_control_start_topic", "/mp_control/start");
     declare_parameter<bool>("initial_follower_enable", true);
     declare_parameter<bool>("follow_while_idle", true);
     declare_parameter<bool>("resume_follow_after_loaded", false);
@@ -61,6 +65,18 @@ public:
       get_parameter("follower_enable_topic").as_string(), state_qos);
     platoon_mode_pub_ = create_publisher<std_msgs::msg::String>(
       get_parameter("platoon_mode_topic").as_string(), state_qos);
+    pnp_working_pub_ = create_publisher<std_msgs::msg::Bool>(
+      get_parameter("pnp_working_topic").as_string(),
+      rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local());
+    mp_control_start_pub_ = create_publisher<std_msgs::msg::Bool>(
+      get_parameter("mp_control_start_topic").as_string(), 10);
+    pnp_start_pub_ = create_subscriber<std_msgs::msg::Empty>(
+      get_parameter("pnp_start_topic").as_string(), 10,
+      [this](std_msgs::msg::Empty::SharedPtr) {
+        handle_pnp_start();
+      }
+    )
+    
 
     mp_control_status_sub_ = create_subscription<std_msgs::msg::String>(
       get_parameter("mp_control_status_topic").as_string(), 10,
@@ -139,6 +155,7 @@ private:
     const auto stage = status_stage(status);
 
     if (contains_any(stage, {"ERROR", "FAIL"})) {
+      publish_pnp_working(false);
       mp_control_active_ = false;
       set_task_state("ERROR");
       set_cargo_state("ERROR");
@@ -152,6 +169,7 @@ private:
         "SAFETY ABORT", "EEF FORWARD ABORTED",
         "START IGNORED AFTER EEF FORWARD SAFETY ABORT"}))
     {
+      publish_pnp_working(false);
       mp_control_active_ = false;
       set_task_state("ERROR");
       set_cargo_state("ERROR");
@@ -180,6 +198,7 @@ private:
       contains(stage, "COLOR TRIANGULATION APPROACH") ||
       contains(stage, "AFTER DEPTH LIMIT"))
     {
+      publish_pnp_working(true);
       mp_control_active_ = true;
       if (task_state_ == "PICKING") {
         set_task_state("PICKING");
@@ -194,6 +213,7 @@ private:
     if (
       contains_any(stage, {"WAITING FOR FRESH", "WAITING FOR VALID DEPTH", "WAITING FOR CAMERA INFO"}))
     {
+      publish_pnp_working(true); 
       if (mp_control_active_) {
         if (task_state_ == "PICKING" || contains_any(stage, {"END-EFFECTOR", "EEF"})) {
           set_task_state("PICKING");
@@ -259,6 +279,7 @@ private:
     }
 
     if (stage == "CARGO_LOADED" || contains_any(stage, {"PLACE_DONE", "LOAD_DONE", "LOADED"})) {
+      publish_pnp_working(false);
       set_loaded_platooning_state();
       return;
     }
@@ -335,6 +356,7 @@ private:
     }
 
     if (contains_any(event, {"LOADED", "LOAD_DONE", "PLACED"})) {
+      publish_pnp_working(false);
       set_loaded_platooning_state();
       return;
     }
@@ -428,6 +450,19 @@ private:
       follower_enable_ ? "true" : "false", value ? "true" : "false");
     follower_enable_ = value;
   }
+
+  void handle_pnp_start()
+  {
+    pup_active_ = true;
+    publish_pnp_working(true);
+
+    std_msgs::msg::Bool start_msg;
+    start_msg.data = true;
+    mp_control_start_pub_->publish(start_msg);
+
+    set_task_state("PICKING");
+  }
+
 
   std::string task_state_;
   std::string cargo_state_;

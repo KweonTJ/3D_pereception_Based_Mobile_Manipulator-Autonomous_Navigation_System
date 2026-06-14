@@ -1,6 +1,10 @@
 leader_task_manager:
   ros__parameters:
     publish_rate_hz: 10.0
+    
+    pnp_start_topic: "/pnp/start"
+    pnp_working_topic: "/pnp/working"
+    mp_control_start_topic: "/mp_control/start"
 
     mp_control_status_topic: "/mp_control/status"
     cargo_events_topic: "/cargo/events"
