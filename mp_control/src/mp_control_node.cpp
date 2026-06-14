@@ -2843,7 +2843,7 @@ private:
         *joint3_step_active = true;
       }
 
-      applyArucoJoint1Correction(current, &target);
+      // applyArucoJoint1Correction(current, &target);
 
       return clampJointPregraspTarget(target);
     }
@@ -2856,7 +2856,7 @@ private:
     target[3] = current[3] +
       clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
 
-    applyArucoJoint1Correction(current, &target);
+    // applyArucoJoint1Correction(current, &target);
 
     return clampJointPregraspTarget(target);
   }
@@ -3347,7 +3347,7 @@ private:
       controller_target[3] = (*current)[3];
     }
 
-    applyArucoJoint1Correction(*current, &controller_target);
+    // applyArucoJoint1Correction(*current, &controller_target);
 
     controller_target = clampJointPregraspTarget(controller_target);
     const std::string controller_monotonic_hold_reason =
@@ -5186,16 +5186,16 @@ private:
     const double joint1_error = normalizeAngle(target_joint1 - (*current)[0]);
     const double joint1_error_abs = std::abs(joint1_error);
 
-    if (joint1_error_abs > handoff_joint1_center_tolerance_rad_) {
-      maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
-      publishStatus(
-        "handoff joint1 turn: waiting for joint1 target before gripper open"
-        " current=" + std::to_string((*current)[0]) +
-        " target=" + std::to_string(target_joint1) +
-        " error=" + std::to_string(joint1_error) +
-        " tolerance=" + std::to_string(handoff_joint1_center_tolerance_rad_));
-      return;
-    }
+    // if (joint1_error_abs > handoff_joint1_center_tolerance_rad_) {
+    //   maybeRepublishHandoffJointTrajectory(handoff_lift_controller_target_, true);
+    //   publishStatus(
+    //     "handoff joint1 turn: waiting for joint1 target before gripper open"
+    //     " current=" + std::to_string((*current)[0]) +
+    //     " target=" + std::to_string(target_joint1) +
+    //     " error=" + std::to_string(joint1_error) +
+    //     " tolerance=" + std::to_string(handoff_joint1_center_tolerance_rad_));
+    //   return;
+    // }
 
     if (handoff_joint1_centering_) {
       handoff_joint1_centering_ = false;

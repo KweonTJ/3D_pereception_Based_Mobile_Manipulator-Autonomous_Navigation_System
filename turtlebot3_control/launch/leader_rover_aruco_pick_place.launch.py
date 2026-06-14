@@ -16,6 +16,7 @@ def generate_launch_description():
     start_aruco_bridge = LaunchConfiguration('start_aruco_bridge')
     start_mux = LaunchConfiguration('start_mux')
     start_coordinator = LaunchConfiguration('start_coordinator')
+    start_hardware = LaunchConfiguration('start_hardware')
 
     robot = LaunchConfiguration('robot')
     frame_id = LaunchConfiguration('frame_id')
@@ -76,6 +77,7 @@ def generate_launch_description():
             'start_mp_control': 'true',
             'start_servo': 'true',
             'start_joint_trajectory_transformer': 'true',
+            'start_hardware': start_hardware,
             'mp_control_config_file': mp_control_config_file,
             'aruco_config_file': aruco_config_file,
             'control_start_delay': control_start_delay,
@@ -127,7 +129,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        DeclareLaunchArgument('start_rover', default_value='true'),
+        DeclareLaunchArgument('start_rover', default_value='false'),
         DeclareLaunchArgument('start_pick_place', default_value='true'),
         DeclareLaunchArgument('start_aruco_bridge', default_value='true'),
         DeclareLaunchArgument('start_mux', default_value='true'),
@@ -187,6 +189,11 @@ def generate_launch_description():
                 'config',
                 'leader_pick_coordinator.yaml',
             ]),
+        ),
+        DeclareLaunchArgument(
+            'start_hardware',
+            default_value='true',
+            description='Start hardware, stay pose, and EEF camera from integrated launch.',
         ),
 
         DeclareLaunchArgument(

@@ -14,6 +14,7 @@ from launch.substitutions import FindExecutable
 
 
 def generate_launch_description():
+    start_hardware = LaunchConfiguration("start_hardware")
     start_camera = LaunchConfiguration("start_camera")
     start_eef_camera_driver = LaunchConfiguration("start_eef_camera_driver")
     start_aruco_tracker = LaunchConfiguration("start_aruco_tracker")
@@ -69,6 +70,7 @@ def generate_launch_description():
             "eef_camera_name": eef_camera_name,
             "eef_camera_info_url": eef_camera_info_url,
         }.items(),
+        condition=IfCondition(start_hardware),
     )
 
     joint_trajectory_transformer_node = Node(
@@ -149,6 +151,11 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            "start_hardware",
+            default_value="true",
+            description="Start turtlebot3_manipulation hardware bringup inside this launch.",
+        ),
         DeclareLaunchArgument(
             "start_camera",
             default_value="false",
