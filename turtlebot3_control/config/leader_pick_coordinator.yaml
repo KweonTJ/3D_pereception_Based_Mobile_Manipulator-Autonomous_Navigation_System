@@ -4,7 +4,11 @@ leader_pick_coordinator_node:
     aruco_visible_topic: /target/aruco_visible
     mp_control_status_topic: /mp_control/status
     mp_control_start_topic: /mp_control/start
-    mux_mode_topic: /turtlebot3_control/mux_mode
+    # mux_mode_topic: /turtlebot3_control/mux_mode
+    base_hold_topic: /target/base_hold
+    work_state_topic: /leader/work_state
+    completion_topic: /leader/pick_place_done
+    completion_status_topic: /leader/pick_place_result
     status_topic: /turtlebot3_control/coordinator_status
 
     # host PC가 준 목적지에 도착한 뒤에만 pick-place를 시작한다.
@@ -18,10 +22,11 @@ leader_pick_coordinator_node:
     nav_feedback_timeout_s: 2.0
 
     done_status_keywords:
-      - handoff release complete
-      - handoff stay complete
-      - pick place complete
-      - grasp complete
+      # - handoff release complete
+      # - handoff stay complete
+      # - pick place complete
+      # - grasp complete
+      - cargo_loaded
     error_status_keywords:
       - abort
       - ERROR

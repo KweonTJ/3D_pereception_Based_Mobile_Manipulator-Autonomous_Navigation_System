@@ -4,6 +4,9 @@ import time
 import rclpy
 from host_mission_interfaces.msg import NavFeedback
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy
+from rclpy.qos import QoSProfile
+from rclpy.qos import ReliabilityPolicy
 from std_msgs.msg import Bool
 from std_msgs.msg import String
 
@@ -18,7 +21,11 @@ class LeaderPickCoordinatorNode(Node):
         self.declare_parameter('aruco_visible_topic', '/target/aruco_visible')
         self.declare_parameter('mp_control_status_topic', '/mp_control/status')
         self.declare_parameter('mp_control_start_topic', '/mp_control/start')
-        self.declare_parameter('mux_mode_topic', '/turtlebot3_control/mux_mode')
+        # self.declare_parameter('mux_mode_topic', '/turtlebot3_control/mux_mode')
+        self.declare_parameter('base_hold_topic', '/target/base_hold')
+        self.declare_parameter('work_state_topic', '/leader/work_state')
+        self.declare_parameter('completion_topic', '/leader/pick_place_done')
+        self.declare_parameter('completion_status_topic', '/leader/pick_place_result')
         self.declare_parameter('status_topic', '/turtlebot3_control/coordinator_status')
         self.declare_parameter('wait_for_nav_arrival', True)
         self.declare_parameter('require_aruco_visible', True)
@@ -28,10 +35,11 @@ class LeaderPickCoordinatorNode(Node):
         self.declare_parameter('aruco_visible_timeout_s', 0.8)
         self.declare_parameter('nav_feedback_timeout_s', 2.0)
         self.declare_parameter('done_status_keywords', [
-            'handoff release complete',
-            'handoff stay complete',
-            'pick place complete',
-            'grasp complete',
+            # 'handoff release complete',
+            # 'handoff stay complete',
+            # 'pick place complete',
+            # 'grasp complete',
+            'carge_loaded',
         ])
         self.declare_parameter('error_status_keywords', [
             'abort',
@@ -70,6 +78,9 @@ class LeaderPickCoordinatorNode(Node):
         self.start_sent = 0
         self.last_start_time = 0.0
         self.last_status = ''
+        self.completion_sent = False
+        self.last_completion_publish_time = 0.0
+        self.last_work_state = ''
 
         self.create_subscription(
             NavFeedback,
@@ -95,10 +106,39 @@ class LeaderPickCoordinatorNode(Node):
             str(self.get_parameter('mp_control_start_topic').value),
             10,
         )
-        self.mode_pub = self.create_publisher(
-            String,
-            str(self.get_parameter('mux_mode_topic').value),
+        # self.mode_pub = self.create_publisher(
+        #     String,
+        #     str(self.get_parameter('mux_mode_topic').value),
+        #     10,
+        # )
+        # self.status_pub = self.create_publisher(
+        #     String,
+        #     str(self.get_parameter('status_topic').value),
+        #     10,
+        # )
+        latched_qos = QoSProfile(depth=1)
+        latched_qos.reliability = ReliabilityPolicy.RELIABLE
+        latched_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+
+        self.base_hold_pub = self.create_publisher(
+            Bool,
+            str(self.get_parameter('base_hold_topic').value),
             10,
+        )
+        self.work_state_pub = self.create_publisher(
+            String,
+            str(self.get_parameter('work_state_topic').value),
+            latched_qos,
+        )
+        self.completion_pub = self.create_publisher(
+            Bool,
+            str(self.get_parameter('completion_topic').value),
+            latched_qos,
+        )
+        self.completion_status_pub = self.create_publisher(
+            String,
+            str(self.get_parameter('completion_status_topic').value),
+            latched_qos,
         )
         self.status_pub = self.create_publisher(
             String,
@@ -133,32 +173,76 @@ class LeaderPickCoordinatorNode(Node):
             now - self.aruco_visible_time <= self.aruco_visible_timeout_s
         )
 
+        # if self.phase == 'NAVIGATING':
+        #     self._publish_mode('NAV')
+        #     arrived = (
+        #         not self.wait_for_nav_arrival or
+        #         (nav_fresh and self.nav_state in self.arrived_states)
+        #     )
+        #     visible_ok = (not self.require_aruco_visible) or aruco_fresh
+        #     if arrived and visible_ok:
+        #         self.phase = 'PICKING'
+        #         self.start_sent = 0
+        #         self.last_start_time = 0.0
+        #         self._publish_status(force=True)
+
+        # elif self.phase == 'PICKING':
+        #     self._publish_mode('PICK')
+        #     self._maybe_publish_start(now)
+        #     status_lower = self.mp_status.lower()
+        #     if any(word.lower() in status_lower for word in self.done_status_keywords):
+        #         self.phase = 'DONE'
+        #         self._publish_status(force=True)
+        #     elif any(word.lower() in status_lower for word in self.error_status_keywords):
+        #         self.phase = 'ERROR'
+        #         self._publish_status(force=True)
+
+        # elif self.phase in ('DONE', 'ERROR'):
+        #     self._publish_mode('HOLD')
         if self.phase == 'NAVIGATING':
-            self._publish_mode('NAV')
-            arrived = (
-                not self.wait_for_nav_arrival or
-                (nav_fresh and self.nav_state in self.arrived_states)
-            )
-            visible_ok = (not self.require_aruco_visible) or aruco_fresh
-            if arrived and visible_ok:
-                self.phase = 'PICKING'
-                self.start_sent = 0
-                self.last_start_time = 0.0
-                self._publish_status(force=True)
+        self._publish_work_state('NAVIGATING')
+        self._publish_base_hold(False)
 
-        elif self.phase == 'PICKING':
-            self._publish_mode('PICK')
-            self._maybe_publish_start(now)
-            status_lower = self.mp_status.lower()
-            if any(word.lower() in status_lower for word in self.done_status_keywords):
-                self.phase = 'DONE'
-                self._publish_status(force=True)
-            elif any(word.lower() in status_lower for word in self.error_status_keywords):
-                self.phase = 'ERROR'
-                self._publish_status(force=True)
+        arrived = (
+            not self.wait_for_nav_arrival or
+            (nav_fresh and self.nav_state in self.arrived_states)
+        )
+        visible_ok = (not self.require_aruco_visible) or aruco_fresh
 
-        elif self.phase in ('DONE', 'ERROR'):
-            self._publish_mode('HOLD')
+        if arrived and visible_ok:
+            self.phase = 'PICKING'
+            self.start_sent = 0
+            self.last_start_time = 0.0
+            self.completion_sent = False
+            self._publish_work_state('PICKING')
+            self._publish_status(force=True)
+
+    elif self.phase == 'PICKING':
+        self._publish_work_state('PICKING')
+        self._maybe_publish_start(now)
+
+        status_lower = self.mp_status.lower()
+        if any(word.lower() in status_lower for word in self.done_status_keywords):
+            self.phase = 'DONE'
+            self._publish_base_hold(False)
+            self._publish_work_state('DONE')
+            self._publish_completion(True, self.mp_status)
+            self._publish_status(force=True)
+
+        elif any(word.lower() in status_lower for word in self.error_status_keywords):
+            self.phase = 'ERROR'
+            self._publish_work_state('ERROR')
+            self._publish_completion(False, self.mp_status)
+            self._publish_status(force=True)
+
+    elif self.phase == 'DONE':
+        self._publish_base_hold(False)
+        self._publish_work_state('DONE')
+        self._publish_completion(True, self.mp_status)
+
+    elif self.phase == 'ERROR':
+        self._publish_work_state('ERROR')
+
 
         self._publish_status(
             nav_fresh=nav_fresh,
@@ -197,6 +281,38 @@ class LeaderPickCoordinatorNode(Node):
         msg.data = text
         self.status_pub.publish(msg)
 
+    def _publish_base_hold(self, hold):
+        msg = Bool()
+        msg.data = bool(hold)
+        self.base_hold_pub.publish(msg)
+
+    def _publish_work_state(self, state):
+        state = str(state).strip().upper()
+        if state == self.last_work_state:
+            return
+
+        self.last_work_state = state
+        msg = String()
+        msg.data = state
+        self.work_state_pub.publish(msg)
+
+    def _publish_completion(self, success, detail):
+        now = time.monotonic()
+
+        # 성공 완료는 latched + 주기 재발행으로 host 수신 안정성 확보
+        if self.completion_sent and now - self.last_completion_publish_time < 1.0:
+            return
+
+        done_msg = Bool()
+        done_msg.data = bool(success)
+        self.completion_pub.publish(done_msg)
+
+        status_msg = String()
+        status_msg.data = str(detail)
+        self.completion_status_pub.publish(status_msg)
+
+        self.completion_sent = True
+        self.last_completion_publish_time = now
 
 def main(args=None):
     rclpy.init(args=args)

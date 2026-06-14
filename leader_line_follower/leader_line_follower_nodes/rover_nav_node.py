@@ -56,6 +56,12 @@ class RoverNavNode(Node):
     DEFAULT_SLOWDOWN_AT_INTERMEDIATE_WAYPOINTS = True
     DEFAULT_ALIGN_START_ANGLE_DEG = 50.0
     DEFAULT_ALIGN_FINISH_ANGLE_DEG = 5.0
+    DEFAULT_COMPRESS_COLLINEAR_WAYPOINTS = False
+    DEFAULT_COLLINEAR_ANGLE_TOLERANCE_DEG = 5.0
+    DEFAULT_FINAL_ALIGN_ENABLED = False
+    DEFAULT_FINAL_ALIGN_TARGET_NODE = -1
+    DEFAULT_FINAL_ALIGN_REFERENCE_NODE = -1
+    DEFAULT_FINAL_ALIGN_TOLERANCE_DEG = 5.0
 
     def __init__(self):
         super().__init__('rover_nav_node')
@@ -118,6 +124,26 @@ class RoverNavNode(Node):
         )
         self.declare_parameter(
             'align_finish_angle_deg', self.DEFAULT_ALIGN_FINISH_ANGLE_DEG
+        )
+        self.declare_parameter(
+            'compress_collinear_waypoints',
+            self.DEFAULT_COMPRESS_COLLINEAR_WAYPOINTS,
+        )
+        self.declare_parameter(
+            'collinear_angle_tolerance_deg',
+            self.DEFAULT_COLLINEAR_ANGLE_TOLERANCE_DEG,
+        )
+        self.declare_parameter(
+            'final_align_enabled', self.DEFAULT_FINAL_ALIGN_ENABLED
+        )
+        self.declare_parameter(
+            'final_align_target_node', self.DEFAULT_FINAL_ALIGN_TARGET_NODE
+        )
+        self.declare_parameter(
+            'final_align_reference_node', self.DEFAULT_FINAL_ALIGN_REFERENCE_NODE
+        )
+        self.declare_parameter(
+            'final_align_tolerance_deg', self.DEFAULT_FINAL_ALIGN_TOLERANCE_DEG
         )
 
         self.robot = str(self.get_parameter('robot').value)
@@ -182,6 +208,28 @@ class RoverNavNode(Node):
         )
         self.align_start_angle = math.radians(self.align_start_angle_deg)
         self.align_finish_angle = math.radians(self.align_finish_angle_deg)
+        self.compress_collinear_waypoints = bool(
+            self.get_parameter('compress_collinear_waypoints').value
+        )
+        self.collinear_angle_tolerance_deg = float(
+            self.get_parameter('collinear_angle_tolerance_deg').value
+        )
+        self.collinear_angle_tolerance = math.radians(
+            self.collinear_angle_tolerance_deg
+        )
+        self.final_align_enabled = bool(
+            self.get_parameter('final_align_enabled').value
+        )
+        self.final_align_target_node = int(
+            self.get_parameter('final_align_target_node').value
+        )
+        self.final_align_reference_node = int(
+            self.get_parameter('final_align_reference_node').value
+        )
+        self.final_align_tolerance_deg = float(
+            self.get_parameter('final_align_tolerance_deg').value
+        )
+        self.final_align_tolerance = math.radians(self.final_align_tolerance_deg)
 
         self.nodes = {}
         self.graph = {}
@@ -235,6 +283,7 @@ class RoverNavNode(Node):
         self.waypoint_index = 0
         self.route_start_xy = None
         self.aligning_to_target = False
+        self.final_align_started = False
         self.stop_and_hold = True
         self.speed_cap = self.default_speed_cap
         self.command_stamp_sec = 0.0
@@ -355,6 +404,7 @@ class RoverNavNode(Node):
             return
 
         waypoints = [self.nodes[node_id] for node_id in route_nodes]
+        waypoints = self._compress_collinear_waypoints(route_nodes, waypoints)
         if exact_goal is not None and self._distance(waypoints[-1], exact_goal) > 0.03:
             waypoints.append(exact_goal)
 
@@ -364,6 +414,7 @@ class RoverNavNode(Node):
         self._planned_cmd_id = self.current_cmd_id
         self.route_start_xy = self.current_xy
         self.aligning_to_target = False
+        self.final_align_started = False
         self.log_counter = 0
         self.state = 'TRACKING'
         self.detail = 'route=' + '->'.join(str(node_id) for node_id in route_nodes)
@@ -394,6 +445,10 @@ class RoverNavNode(Node):
         if self.state in ('IDLE', 'STOPPED', 'HOLDING', 'ERROR'):
             self._publish_stop()
             self._publish_feedback()
+            return
+
+        if self.state == 'FINAL_ALIGNING':
+            self._control_final_align()
             return
 
         if self.state != 'TRACKING':
@@ -480,7 +535,7 @@ class RoverNavNode(Node):
 
         twist = Twist()
         mode = 'pp'
-        lookahead = self._lookahead_distance()
+        lookahead = self._lookahead_distance(final_waypoint, distance_to_goal)
         target_along = 0.0
         target_angle = 0.0
         curvature = 0.0
@@ -574,6 +629,76 @@ class RoverNavNode(Node):
             )
 
     def _arrive(self):
+        if self._should_start_final_align():
+            self._start_final_align()
+            return
+        self._complete_arrival()
+
+    def _should_start_final_align(self):
+        return (
+            self.final_align_enabled
+            and not self.final_align_started
+            and self.current_target_node == self.final_align_target_node
+            and self.final_align_target_node in self.nodes
+            and self.final_align_reference_node in self.nodes
+        )
+
+    def _start_final_align(self):
+        self.final_align_started = True
+        self.waypoint_index = len(self.waypoints)
+        self.state = 'FINAL_ALIGNING'
+        self.detail = (
+            f'final aligning target_node={self.current_target_node} '
+            f'toward_node={self.final_align_reference_node}'
+        )
+        self._publish_stop()
+        self._publish_feedback(force=True)
+        self.get_logger().info(self.detail)
+
+    def _control_final_align(self):
+        if self.current_yaw is None:
+            self._publish_stop()
+            self.detail = 'final aligning; waiting for heading'
+            self._publish_feedback()
+            return
+
+        desired_yaw = self._final_align_target_yaw()
+        heading_error = self._normalize_angle(desired_yaw - self.current_yaw)
+        if abs(heading_error) <= self.final_align_tolerance:
+            self._publish_stop()
+            self.detail = (
+                f'final aligned target_node={self.current_target_node} '
+                f'heading_error={math.degrees(heading_error):.1f}deg'
+            )
+            self._publish_feedback(force=True)
+            self._complete_arrival()
+            return
+
+        twist = Twist()
+        twist.angular.z = self._clamp(
+            self.rotate_to_lookahead_gain * heading_error,
+            -self.max_angular_speed,
+            self.max_angular_speed,
+        )
+        if self.invert_angular_z:
+            twist.angular.z *= -1.0
+        self.cmd_pub.publish(twist)
+        self.detail = (
+            f'final-align target_node={self.current_target_node} '
+            f'toward_node={self.final_align_reference_node} '
+            f'heading_error={math.degrees(heading_error):.1f}deg'
+        )
+        self._publish_feedback()
+
+    def _final_align_target_yaw(self):
+        target_xy = self.nodes[self.final_align_target_node]
+        reference_xy = self.nodes[self.final_align_reference_node]
+        return math.atan2(
+            reference_xy[1] - target_xy[1],
+            reference_xy[0] - target_xy[0],
+        )
+
+    def _complete_arrival(self):
         self._publish_stop()
         self.waypoint_index = len(self.waypoints)
         self.detail = f'arrived target_node={self.current_target_node}'
@@ -603,19 +728,69 @@ class RoverNavNode(Node):
         self.waypoint_index = 0
         self.route_start_xy = None
         self.aligning_to_target = False
+        self.final_align_started = False
 
     def _segment_start_xy(self):
         if self.waypoint_index <= 0:
             return self.route_start_xy or self.current_xy
         return self.waypoints[self.waypoint_index - 1]
 
-    def _lookahead_distance(self):
-        base_v = min(self.normal_linear_x, self.speed_cap, self.max_linear_speed)
-        if self.use_adaptive_lookahead:
-            lookahead = self.lookahead_time * abs(base_v)
-            lookahead = max(self.min_lookahead_distance, lookahead)
-            return min(self.max_lookahead_distance, lookahead)
-        return self.lookahead_distance
+    def _compress_collinear_waypoints(self, route_nodes, waypoints):
+        if not self.compress_collinear_waypoints or len(waypoints) < 3:
+            return waypoints
+
+        compressed = [waypoints[0]]
+        skipped_nodes = []
+        for index in range(1, len(waypoints) - 1):
+            previous_xy = compressed[-1]
+            current_xy = waypoints[index]
+            next_xy = waypoints[index + 1]
+            if self._is_forward_collinear(previous_xy, current_xy, next_xy):
+                skipped_nodes.append(route_nodes[index])
+                continue
+            compressed.append(current_xy)
+        compressed.append(waypoints[-1])
+
+        if skipped_nodes:
+            self.get_logger().info(
+                'compressed straight route waypoints; skipped nodes='
+                + '->'.join(str(node_id) for node_id in skipped_nodes)
+            )
+        return compressed
+
+    def _is_forward_collinear(self, a, b, c):
+        ab_x = float(b[0]) - float(a[0])
+        ab_y = float(b[1]) - float(a[1])
+        bc_x = float(c[0]) - float(b[0])
+        bc_y = float(c[1]) - float(b[1])
+        ab_len = math.hypot(ab_x, ab_y)
+        bc_len = math.hypot(bc_x, bc_y)
+        if ab_len <= 1e-6 or bc_len <= 1e-6:
+            return False
+
+        dot = ab_x * bc_x + ab_y * bc_y
+        if dot <= 0.0:
+            return False
+        cos_angle = self._clamp(dot / (ab_len * bc_len), -1.0, 1.0)
+        angle = math.acos(cos_angle)
+        return angle <= self.collinear_angle_tolerance
+
+    def _lookahead_distance(self, final_waypoint=False, distance_to_goal=None):
+        if not self.use_adaptive_lookahead or not final_waypoint:
+            return self.lookahead_distance
+
+        effective_v = min(self.normal_linear_x, self.speed_cap, self.max_linear_speed)
+        if (
+            distance_to_goal is not None
+            and self.goal_slowdown_distance > 1e-6
+            and distance_to_goal < self.goal_slowdown_distance
+        ):
+            ratio = max(0.0, min(distance_to_goal / self.goal_slowdown_distance, 1.0))
+            effective_v *= ratio
+
+        lookahead = self.lookahead_time * abs(effective_v)
+        lookahead = max(self.min_lookahead_distance, lookahead)
+        return min(self.max_lookahead_distance, lookahead)
 
     def _publish_stop(self):
         self.cmd_pub.publish(Twist())

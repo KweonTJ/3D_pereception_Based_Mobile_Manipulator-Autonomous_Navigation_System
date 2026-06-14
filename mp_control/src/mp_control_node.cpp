@@ -18,6 +18,7 @@
 #include <builtin_interfaces/msg/duration.hpp>
 #include <control_msgs/action/gripper_command.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -304,12 +305,10 @@ private:
     depth_topic_ = declare_parameter<std::string>("depth_topic", "/camera/depth/image_raw");
     camera_info_topic_ = declare_parameter<std::string>("camera_info_topic", "/camera/color/camera_info");
     eef_camera_info_topic_ = declare_parameter<std::string>("eef_camera_info_topic", "/eef_camera/camera_info");
-    eef_auto_init_enable_topic_ = 
-      declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
+    eef_auto_init_enable_topic_ = declare_parameter<std::string>("eef_auto_init_enable_topic", "/target/eef_auto_init_enable");
 	    base_hold_topic_ = declare_parameter<std::string>("base_hold_topic", "/target/base_hold");
     close_range_ready_topic_ = declare_parameter<std::string>("close_range_ready_topic", "/target/close_range_ready");
-    stable_object_topic_ =
-      declare_parameter<std::string>("stable_object_topic", "/target/object_in_base");
+    stable_object_topic_ = declare_parameter<std::string>("stable_object_topic", "/target/object_in_base");
 	    twist_topic_ = declare_parameter<std::string>("twist_topic", "/servo_node/delta_twist_cmds");
 	    base_cmd_vel_topic_ = declare_parameter<std::string>("base_cmd_vel_topic", "/cmd_vel");
 	    joint_state_topic_ = declare_parameter<std::string>("joint_state_topic", "/joint_states");
@@ -452,24 +451,11 @@ private:
     eef_forward_ik_iterations_ = declare_parameter<int>("eef_forward_ik_iterations", 16);
     eef_forward_bezier_total_duration_s_ = declare_parameter<double>("eef_forward_bezier_total_duration_s", 5.0);
     eef_forward_bezier_progress_step_ = declare_parameter<double>("eef_forward_bezier_progress_step", 0.08);
-    eef_forward_bezier_joint2_total_delta_rad_ =
-      declare_parameter<double>("eef_forward_bezier_joint2_total_delta_rad", std::abs(eef_forward_joint2_delta_rad_) * 5.0);
-    eef_forward_bezier_joint3_total_delta_rad_ =
-      declare_parameter<double>(
-      "eef_forward_bezier_joint3_total_delta_rad",
-      eef_forward_joint3_complete_delta_rad_);
-    eef_forward_bezier_joint2_max_step_rad_ =
-      declare_parameter<double>(
-      "eef_forward_bezier_joint2_max_step_rad",
-      std::max(0.005, std::abs(eef_forward_joint2_delta_rad_)));
-    eef_forward_bezier_joint3_max_step_rad_ =
-      declare_parameter<double>(
-      "eef_forward_bezier_joint3_max_step_rad",
-      std::max(0.005, std::min(0.020, std::abs(eef_forward_joint3_delta_rad_))));
-    eef_forward_bezier_joint4_max_step_rad_ =
-      declare_parameter<double>(
-      "eef_forward_bezier_joint4_max_step_rad",
-      std::max(0.0, eef_forward_joint4_max_delta_rad_));
+    eef_forward_bezier_joint2_total_delta_rad_ = declare_parameter<double>("eef_forward_bezier_joint2_total_delta_rad", std::abs(eef_forward_joint2_delta_rad_) * 5.0);
+    eef_forward_bezier_joint3_total_delta_rad_ = declare_parameter<double>("eef_forward_bezier_joint3_total_delta_rad", eef_forward_joint3_complete_delta_rad_);
+    eef_forward_bezier_joint2_max_step_rad_ = declare_parameter<double>("eef_forward_bezier_joint2_max_step_rad", std::max(0.005, std::abs(eef_forward_joint2_delta_rad_)));
+    eef_forward_bezier_joint3_max_step_rad_ = declare_parameter<double>("eef_forward_bezier_joint3_max_step_rad", std::max(0.005, std::min(0.020, std::abs(eef_forward_joint3_delta_rad_))));
+    eef_forward_bezier_joint4_max_step_rad_ = declare_parameter<double>("eef_forward_bezier_joint4_max_step_rad", std::max(0.0, eef_forward_joint4_max_delta_rad_));
     eef_forward_bezier_preserve_roll_ = declare_parameter<bool>("eef_forward_bezier_preserve_roll", true);
     eef_forward_roll_joint2_weight_ = declare_parameter<double>("eef_forward_roll_joint2_weight", 0.0);
     eef_forward_roll_joint3_weight_ = declare_parameter<double>("eef_forward_roll_joint3_weight", 1.0);
