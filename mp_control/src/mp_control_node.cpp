@@ -864,6 +864,7 @@ private:
     object_pregrasp_horizontal_done_ = false;
     joint_pregrasp_sent_ = false;
     joint_pregrasp_done_ = false;
+    initial_aruco_joint1_aligned_ = false;
     joint_pregrasp_target_.reset();
     joint_pregrasp_controller_target_.reset();
     joint_pregrasp_controller_step_target_.reset();
@@ -924,6 +925,7 @@ private:
     object_pregrasp_horizontal_done_ = false;
     joint_pregrasp_sent_ = false;
     joint_pregrasp_done_ = false;
+    initial_aruco_joint1_aligned_ = false;
     joint_pregrasp_target_.reset();
     joint_pregrasp_controller_target_.reset();
     joint_pregrasp_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -1256,6 +1258,18 @@ private:
       }
 	      publishBaseHold(true);
 	      publishBaseStop();
+
+        if (use_joint_pregrasp_ && !initial_aruco_joint1_aligned_) {
+          publishStop();
+          publishBaseStop();
+
+          if (!updateArucoJoint1OnlyAlignment()) {
+            return;
+          }
+
+          initial_aruco_joint1_aligned_ = true;
+        }
+
 	      const bool joint_pregrasp_ready =
 	        !use_joint_pregrasp_ || updateJointPregrasp();
 	      if (!joint_pregrasp_ready) {
@@ -1269,13 +1283,13 @@ private:
           // if (!arucoAlignedForClose()) {
           //   return;
           // }
-          if (!updateArucoJoint1OnlyAlignment()) {
-            return;
-          }
+          // if (!updateArucoJoint1OnlyAlignment()) {
+          //   return;
+          // }
 
-          if (!arucoAlignedForClose()) {
-            return;
-          }
+          // if (!arucoAlignedForClose()) {
+          //   return;
+          // }
 
           if (!startMoveItServo()) {
             publishStatus("waiting for MoveIt Servo start before handoff joint1 turn");
@@ -5906,6 +5920,7 @@ private:
 	  bool use_color_triangulation_after_min_depth_{false};
   bool require_close_range_ready_for_pregrasp_{true};
   bool aruco_center_align_enabled_{true};
+  bool initial_aruco_joint1_aligned_{false};
   bool aruco_require_center_before_grasp_{true};
   bool release_base_hold_after_handoff_{true};
 	  bool use_joint_pregrasp_{true};

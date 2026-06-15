@@ -29,4 +29,4 @@ aruco_to_mp_control_bridge:
     start_publish_period_s: 0.2
     continuous_start_publish: false
     publish_close_range_ready: true
-    lock_on_first_detection: true
+    # lock_on_first_detection: false

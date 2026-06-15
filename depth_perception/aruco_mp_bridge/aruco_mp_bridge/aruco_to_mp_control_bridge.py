@@ -24,6 +24,15 @@ class ArucoToMpControlBridge(Node):
             "aruco_visible_topic", "/target/aruco_visible").value
         self.cargo_event_topic = self.declare_parameter(
             "cargo_event_topic", "/target/cargo_event").value
+        self.reset_topic = self.declare_parameter(
+            "reset_topic", "/target/aruco_bridge_reset").value
+        self.mp_control_status_topic = self.declare_parameter(
+            "mp_control_status_topic", "/mp_control/status").value
+
+        self.reset_on_mp_control_start = bool(
+            self.declare_parameter("reset_on_mp_control_start", True).value)
+        self.reset_on_mp_control_error = bool(
+            self.declare_parameter("reset_on_mp_control_error", True).value)
         self.object_topic = self.declare_parameter(
             "object_topic", "/target/object_in_base").value
         self.close_range_ready_topic = self.declare_parameter(
@@ -76,6 +85,11 @@ class ArucoToMpControlBridge(Node):
             Bool, self.aruco_visible_topic, self.on_visible, 10)
         self.cargo_event_sub = self.create_subscription(
             String, self.cargo_event_topic, self.on_cargo_event, 10)
+        self.reset_sub = self.create_subscription(
+            Bool, self.reset_topic, self.on_reset, 10)
+
+        self.mp_status_sub = self.create_subscription(
+            String, self.mp_control_status_topic, self.on_mp_control_status, 10)
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -114,6 +128,29 @@ class ArucoToMpControlBridge(Node):
             return
 
         self.reset_for_next_object("cargo loaded")
+
+    def on_reset(self, msg):
+        if bool(msg.data):
+            self.reset_for_next_object("external reset topic")
+
+    def on_mp_control_status(self, msg):
+        text = str(msg.data).lower()
+
+        if self.reset_on_mp_control_start and "grasp sequence started" in text:
+            self.reset_for_next_object("mp_control new sequence started")
+            return
+
+        if self.reset_on_mp_control_error:
+            error_keywords = [
+                "abort",
+                "failed",
+                "error",
+                "cancel",
+                "start ignored after",
+            ]
+            if any(keyword in text for keyword in error_keywords):
+                self.reset_for_next_object("mp_control error/cancel status")
+                return
 
 
     def reset_for_next_object(self, reason):
