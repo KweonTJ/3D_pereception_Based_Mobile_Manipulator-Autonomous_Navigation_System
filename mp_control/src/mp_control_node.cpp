@@ -1269,6 +1269,9 @@ private:
           // if (!arucoAlignedForClose()) {
           //   return;
           // }
+          if (!arucoAlignedForClose()) {
+            return;
+          }
           if (!startMoveItServo()) {
             publishStatus("waiting for MoveIt Servo start before handoff joint1 turn");
             return;
@@ -2906,6 +2909,62 @@ private:
     }
 
     return true;
+  }
+
+  bool updateArucoJoint1OnlyAlignment()
+  {
+    if (!aruco_center_align_enabled_) {
+      return true;
+    }
+
+    const auto error_x_opt = latestArucoCenterXError();
+    if (!error_x_opt) {
+      publishStatus("aruco joint1-only align: waiting for fresh /target/aruco_pose");
+      return false;
+    }
+
+    const double error_x = *error_x_opt;
+
+    if (std::abs(error_x) <= aruco_center_x_tolerance_m_) {
+      publishStatus(
+        "aruco joint1-only align complete: error_x=" + std::to_string(error_x),
+        true);
+      return true;
+    }
+
+    const auto current = latestArmJointPositions();
+    if (!current) {
+      publishStatus("aruco joint1-only align: waiting for joint_states");
+      return false;
+    }
+
+    std::array<double, 4> target = *current;
+
+    const double raw_delta =
+      aruco_joint1_align_sign_ * aruco_joint1_align_gain_ * error_x;
+
+    const double joint1_delta =
+      clampStep(raw_delta, aruco_joint1_align_max_step_rad_);
+
+    target[0] = clampValue(
+      (*current)[0] + joint1_delta,
+      joint_pregrasp_min_positions_[0],
+      joint_pregrasp_max_positions_[0]);
+
+    trajectory_msgs::msg::JointTrajectory msg;
+    msg.header.stamp = now();
+    msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
+
+    // 핵심: joint2, joint3, joint4는 현재값 그대로 유지
+    appendJointTrajectoryPoint(msg, target, 0.35);
+    joint_trajectory_pub_->publish(msg);
+
+    publishStatus(
+      "aruco joint1-only aligning: error_x=" + std::to_string(error_x) +
+      " current=" + formatJointArray(*current) +
+      " target=" + formatJointArray(target));
+
+    return false;
   }
 
   std::array<double, 4> jointPregraspControllerStepTarget(

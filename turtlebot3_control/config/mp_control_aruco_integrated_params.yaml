@@ -113,7 +113,7 @@ mp_control_node:
     # Keep final-forward enabled, but joint4 is never a completion gate.
     eef_forward_after_align: true
     eef_forward_distance_m: 0.08
-    eef_forward_speed_mps: 0.028
+    eef_forward_speed_mps: 0.045
     eef_forward_fixed_duration_s: 0.0
     eef_forward_min_advance_before_close_m: 0.0
     eef_forward_gate_timeout_s: 25.0
@@ -137,13 +137,13 @@ mp_control_node:
     eef_forward_ik_pitch_weight: 0.35
     eef_forward_ik_damping: 0.03
     eef_forward_ik_iterations: 16
-    eef_forward_bezier_total_duration_s: 5.0
-    eef_forward_bezier_progress_step: 0.08
+    eef_forward_bezier_total_duration_s: 3.2
+    eef_forward_bezier_progress_step: 0.12
     eef_forward_bezier_joint2_total_delta_rad: 0.30
     eef_forward_bezier_joint3_total_delta_rad: 0.05
-    eef_forward_bezier_joint2_max_step_rad: 0.070
-    eef_forward_bezier_joint3_max_step_rad: 0.090
-    eef_forward_bezier_joint4_max_step_rad: 0.090
+    eef_forward_bezier_joint2_max_step_rad: 0.090
+    eef_forward_bezier_joint3_max_step_rad: 0.120
+    eef_forward_bezier_joint4_max_step_rad: 0.110
     eef_forward_bezier_preserve_roll: true
     eef_forward_roll_joint2_weight: 1.0
     eef_forward_roll_joint3_weight: 1.0
