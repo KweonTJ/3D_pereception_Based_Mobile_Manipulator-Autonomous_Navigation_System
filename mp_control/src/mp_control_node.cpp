@@ -2977,7 +2977,7 @@ private:
     msg.joint_names.assign(arm_joint_names_.begin(), arm_joint_names_.end());
 
     // 핵심: joint2, joint3, joint4는 현재값 그대로 유지
-    appendJointTrajectoryPoint(msg, target, 0.35);
+    appendJointTrajectoryPoint(msg, target, 0.13);
     joint_trajectory_pub_->publish(msg);
 
     publishStatus(
