@@ -1269,9 +1269,14 @@ private:
           // if (!arucoAlignedForClose()) {
           //   return;
           // }
+          if (!updateArucoAlignmentForClose()) {
+            return;
+          }
+
           if (!arucoAlignedForClose()) {
             return;
           }
+          
           if (!startMoveItServo()) {
             publishStatus("waiting for MoveIt Servo start before handoff joint1 turn");
             return;
