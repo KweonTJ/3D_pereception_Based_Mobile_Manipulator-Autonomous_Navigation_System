@@ -136,9 +136,9 @@ class ArucoToMpControlBridge(Node):
     def on_mp_control_status(self, msg):
         text = str(msg.data).lower()
 
-        if self.reset_on_mp_control_start and "grasp sequence started" in text:
-            self.reset_for_next_object("mp_control new sequence started")
-            return
+        # if self.reset_on_mp_control_start and "grasp sequence started" in text:
+        #     self.reset_for_next_object("mp_control new sequence started")
+        #     return
 
         if self.reset_on_mp_control_error:
             error_keywords = [

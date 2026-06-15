@@ -2807,6 +2807,8 @@ private:
     for (std::size_t i = 0; i < target.size(); ++i) {
       target[i] = joint_pregrasp_ready_positions_[i];
     }
+    target[0] = current[0];
+
     const double desired_tool_pitch = pregraspToolPitchTargetRad();
     const double desired_joint4 =
       joint4ForPregraspToolPitch(target, desired_tool_pitch);
@@ -3025,6 +3027,7 @@ private:
       }
 
       // applyArucoJoint1Correction(current, &target);
+      target[0] = current[0]; // ignore aruco correction during joint3 step for smoother motion
 
       return clampJointPregraspTarget(target);
     }
@@ -3038,6 +3041,7 @@ private:
       clampStep(desired_joint4 - current[3], joint_pregrasp_joint4_max_step_rad_);
 
     // applyArucoJoint1Correction(current, &target);
+    target[0] = current[0]; // ignore aruco correction during joint2 step for smoother motion
 
     return clampJointPregraspTarget(target);
   }
