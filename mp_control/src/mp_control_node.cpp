@@ -896,7 +896,7 @@ private:
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
-    handoff_pick_sequence_index += 1;
+    handoff_pick_sequence_index_ += 1;
     assignCargoId();
     publishCargoEvent("assigned", true);
     if (open_gripper_on_start_) {
