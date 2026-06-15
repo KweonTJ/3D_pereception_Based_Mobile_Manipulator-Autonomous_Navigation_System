@@ -285,6 +285,25 @@ class LeaderPickCoordinatorNode(Node):
             self._publish_mode('NAV')
             self._publish_work_state('ERROR')
 
+            visible_ok = (not self.require_aruco_visible) or aruco_fresh
+            arrived = (
+                not self.wait_for_nav_arrival or
+                (nav_fresh and self.nav_state in self.arrived_states)
+            )
+
+            if self.auto_repeat_pick_place and arrived and visible_ok:
+                self.phase = 'PICKING'
+                self.start_sent = 0
+                self.last_start_time = 0.0
+                self.completion_sent = False
+                self._publish_mode('PICK')
+                self._publish_work_state('PICKING')
+                self._publish_status(
+                    nav_fresh=nav_fresh,
+                    aruco_fresh=aruco_fresh,
+                    force=True)
+                return
+
 
         self._publish_status(
             nav_fresh=nav_fresh,
