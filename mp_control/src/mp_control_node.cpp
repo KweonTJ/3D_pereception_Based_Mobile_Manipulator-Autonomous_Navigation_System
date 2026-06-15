@@ -497,6 +497,10 @@ private:
     handoff_joint_settle_s_ = declare_parameter<double>("handoff_joint_settle_s", 0.4);
     handoff_republish_period_s_ = declare_parameter<double>("handoff_republish_period_s", 0.25);
     handoff_rotate_angle_rad_ = declare_parameter<double>("handoff_rotate_angle_rad", 3.14159265358979323846);
+    handoff_rotate_odd_angle_deg_ =
+      declare_parameter<double>("handoff_rotate_odd_angle_deg", -130.0);
+    handoff_rotate_even_angle_deg_ =
+      declare_parameter<double>("handoff_rotate_even_angle_deg", -80.0);
     handoff_center_joint1_before_rotate_ = declare_parameter<bool>("handoff_center_joint1_before_rotate", true);
     handoff_joint1_center_target_rad_ = declare_parameter<double>("handoff_joint1_center_target_rad", 0.0);
     handoff_joint1_center_tolerance_rad_ = declare_parameter<double>("handoff_joint1_center_tolerance_rad", 0.03);
@@ -892,6 +896,7 @@ private:
     last_eef_init_bbox_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     stable_cycles_ = 0;
     stage_ = GraspStage::DEPTH_APPROACH;
+    handoff_pick_sequence_index += 1;
     assignCargoId();
     publishCargoEvent("assigned", true);
     if (open_gripper_on_start_) {
@@ -5147,13 +5152,36 @@ private:
     publishHandoffJointTrajectory(*controller_target, preserve_current_non_joint1, duration_override_s);
   }
 
+  double handoffRotateAngleForCurrentPick() const
+  {
+    const bool odd_pick = (handoff_pick_sequence_index_ % 2) == 1;
+    const double angle_deg = odd_pick ?
+      handoff_rotate_odd_angle_deg_ :
+      handoff_rotate_even_angle_deg_;
+
+    return angle_deg * M_PI / 180.0;
+  }
+
+  // double chooseHandoffJoint1Target(double current_joint1) const
+  // {
+  //   const double min_joint1 = joint_pregrasp_min_positions_[0];
+  //   const double max_joint1 = joint_pregrasp_max_positions_[0];
+  //   const double rotate_base =
+  //     handoff_center_joint1_before_rotate_ ? handoff_joint1_center_target_rad_ : current_joint1;
+  //   return clampValue(rotate_base + handoff_rotate_angle_rad_, min_joint1, max_joint1);
+  // }
   double chooseHandoffJoint1Target(double current_joint1) const
   {
     const double min_joint1 = joint_pregrasp_min_positions_[0];
     const double max_joint1 = joint_pregrasp_max_positions_[0];
     const double rotate_base =
-      handoff_center_joint1_before_rotate_ ? handoff_joint1_center_target_rad_ : current_joint1;
-    return clampValue(rotate_base + handoff_rotate_angle_rad_, min_joint1, max_joint1);
+      handoff_center_joint1_before_rotate_ ?
+      handoff_joint1_center_target_rad_ :
+      current_joint1;
+
+    const double rotate_angle = handoffRotateAngleForCurrentPick();
+
+    return clampValue(rotate_base + rotate_angle, min_joint1, max_joint1);
   }
 
   // void updateHandoffLift()
@@ -5315,9 +5343,20 @@ private:
       handoff_stage_start_stamp_ = stamp;
       const double planned_delta = (*handoff_lift_controller_target_)[0] - initial_joint1;
       const double planned_delta_deg = planned_delta * 180.0 / M_PI;
+      const double selected_rotate_deg = handoffRotateAngleForCurrentPick() * 180.0 / M_PI;
+      const bool odd_pick = (handoff_pick_sequence_index_ % 2) == 1;
+      // publishStatus(
+      //   "handoff joint1 turn: rotating manipulator joint1 toward follower; target=" +
+      //   formatJointArray(*handoff_lift_controller_target_) +
+      //   " joint1_delta_deg=" + std::to_string(planned_delta_deg),
+      //   true);
+      // return;
       publishStatus(
-        "handoff joint1 turn: rotating manipulator joint1 toward follower; target=" +
-        formatJointArray(*handoff_lift_controller_target_) +
+        "handoff joint1 turn: rotating manipulator joint1 toward follower; pick_index=" +
+        std::to_string(handoff_pick_sequence_index_) +
+        " parity=" + std::string(odd_pick ? "odd" : "even") +
+        " selected_rotate_deg=" + std::to_string(selected_rotate_deg) +
+        " target=" + formatJointArray(*handoff_lift_controller_target_) +
         " joint1_delta_deg=" + std::to_string(planned_delta_deg),
         true);
       return;
@@ -6072,6 +6111,9 @@ private:
   double handoff_joint_settle_s_{0.4};
   double handoff_republish_period_s_{0.25};
   double handoff_rotate_angle_rad_{3.14159265358979323846};
+  double handoff_rotate_odd_angle_deg_{-130.0};
+  double handoff_rotate_even_angle_deg_{-80.0};
+  int handoff_pick_sequence_index_{0};
   bool handoff_center_joint1_before_rotate_{true};
   double handoff_joint1_center_target_rad_{0.0};
   double handoff_joint1_center_tolerance_rad_{0.03};
