@@ -6,6 +6,11 @@ aruco_to_mp_control_bridge:
     close_range_ready_topic: /target/close_range_ready
     start_topic: /mp_control/start
     status_topic: /target/aruco_mp_bridge_status
+    cargo_event_topic: /cargo/events
+    
+    reset_on_cargo_loaded: true
+    reacquire_after_reset_delay_s: 1.0
+    lock_on_first_detection: true
 
     target_frame: base_link
     visible_timeout_s: 0.5

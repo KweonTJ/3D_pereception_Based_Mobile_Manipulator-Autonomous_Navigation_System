@@ -5889,6 +5889,8 @@ private:
   double aruco_joint1_align_gain_{0.6};
   double aruco_joint1_align_max_step_rad_{0.020};
   double aruco_joint1_align_sign_{-1.0};
+  double aruco_center_lateral_gain_{0.6};
+  double aruco_center_max_linear_speed_{0.010};
   double object_pregrasp_standoff_m_{0.08};
   double object_pregrasp_min_z_m_{0.50};
 	  double object_pregrasp_lower_standoff_m_{0.02};

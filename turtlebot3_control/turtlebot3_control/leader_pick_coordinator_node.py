@@ -34,6 +34,8 @@ class LeaderPickCoordinatorNode(Node):
         self.declare_parameter('start_publish_period_s', 0.2)
         self.declare_parameter('aruco_visible_timeout_s', 0.8)
         self.declare_parameter('nav_feedback_timeout_s', 2.0)
+        self.declare_parameter('auto_repeat_pick_place', True)
+        self.declare_parameter('repeat_start_delay_s', 2.0)
         self.declare_parameter('done_status_keywords', [
             # 'handoff release complete',
             # 'handoff stay complete',
@@ -62,6 +64,10 @@ class LeaderPickCoordinatorNode(Node):
             self.get_parameter('aruco_visible_timeout_s').value)
         self.nav_feedback_timeout_s = float(
             self.get_parameter('nav_feedback_timeout_s').value)
+        self.auto_repeat_pick_place = bool(
+            self.get_parameter('auto_repeat_pick_place').value)
+        self.repeat_start_delay_s = float(
+            self.get_parameter('repeat_start_delay_s').value)
         self.done_status_keywords = [
             str(word) for word in self.get_parameter('done_status_keywords').value
         ]
@@ -81,6 +87,7 @@ class LeaderPickCoordinatorNode(Node):
         self.completion_sent = False
         self.last_completion_publish_time = 0.0
         self.last_work_state = ''
+        self.done_time = 0.0
 
         self.create_subscription(
             NavFeedback,
@@ -228,6 +235,7 @@ class LeaderPickCoordinatorNode(Node):
 
             if any(word.lower() in status_lower for word in self.done_status_keywords):
                 self.phase = 'DONE'
+                self.done_time = now
                 self._publish_base_hold(False)
                 self._publish_mode('NAV')
                 self._publish_work_state('DONE')
@@ -245,8 +253,32 @@ class LeaderPickCoordinatorNode(Node):
         elif self.phase == 'DONE':
             self._publish_base_hold(False)
             self._publish_mode('NAV')
-            self._publish_work_state('DONE')
-            self._publish_completion(True, self.mp_status)
+            # self._publish_work_state('DONE')
+            # self._publish_completion(True, self.mp_status)
+            repeat_delay_ok = (
+                self.done_time > 0.0 and
+                now - self.done_time >= self.repeat_start_delay_s
+            )
+            arrived = (
+                not self.wait_for_nav_arrival or
+                (nav_fresh and self.nav_state in self.arrived_states)
+            )
+            visible_ok = (not self.require_aruco_visible) or aruco_fresh
+
+            if self.auto_repeat_pick_place and repeat_delay_ok and arrived and visible_ok:
+                self.phase = 'PICKING'
+                self.start_sent = 0
+                self.last_start_time = 0.0
+                self.completion_sent = False
+                self._publish_mode('PICK')
+                self._publish_work_state('PICKING')
+                self._publish_status(
+                    nav_fresh=nav_fresh,
+                    aruco_fresh=aruco_fresh,
+                    force=True)
+                return
+
+            self._publish_work_state('WAITING_NEXT_OBJECT')
 
         elif self.phase == 'ERROR':
             self._publish_base_hold(False)

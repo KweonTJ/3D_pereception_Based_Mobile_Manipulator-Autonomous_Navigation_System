@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+import time
 
 import rclpy
 from rclpy.duration import Duration
@@ -21,6 +22,8 @@ class ArucoToMpControlBridge(Node):
             "aruco_pose_topic", "/target/aruco_pose").value
         self.aruco_visible_topic = self.declare_parameter(
             "aruco_visible_topic", "/target/aruco_visible").value
+        self.cargo_event_topic = self.declare_parameter(
+            "cargo_event_topic", "/target/cargo_event").value
         self.object_topic = self.declare_parameter(
             "object_topic", "/target/object_in_base").value
         self.close_range_ready_topic = self.declare_parameter(
@@ -47,8 +50,13 @@ class ArucoToMpControlBridge(Node):
             self.declare_parameter("publish_close_range_ready", True).value)
         self.lock_on_first_detection = bool(
             self.declare_parameter("lock_on_first_detection", True).value)
+        self.reset_on_cargo_loaded = bool(
+            self.declare_parameter("reset_on_cargo_loaded", True).value)
+        self.reacquire_after_reset_delay_s = float(
+            self.declare_parameter("reacquire_after_reset_delay_s", 1.0).value)    
         self.locked_object_xyz = None
         self.start_sent_once = False
+        self.last_reset_time = 0.0
 
         latched_qos = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -66,6 +74,8 @@ class ArucoToMpControlBridge(Node):
             PoseStamped, self.aruco_pose_topic, self.on_pose, 10)
         self.visible_sub = self.create_subscription(
             Bool, self.aruco_visible_topic, self.on_visible, 10)
+        self.cargo_event_sub = self.create_subscription(
+            String, self.cargo_event_topic, self.on_cargo_event, 10)
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -92,6 +102,29 @@ class ArucoToMpControlBridge(Node):
         self.latest_visible_time = self.get_clock().now()
         if not self.visible and self.locked_object_xyz is None:
             self.start_published = 0
+
+    def on_cargo_event(self, msg):
+        if not self.reset_on_cargo_loaded:
+            return
+
+        text = str(msg.data).lower()
+
+        # mp_control publishCargoEvent("loaded") 기준
+        if '"event":"loaded"' not in text and "loaded" not in text:
+            return
+
+        self.reset_for_next_object("cargo loaded")
+
+
+    def reset_for_next_object(self, reason):
+        self.locked_object_xyz = None
+        self.start_sent_once = False
+        self.start_published = 0
+        self.last_start_time = self.get_clock().now()
+        self.last_reset_time = time.monotonic()
+
+        self.publish_ready(False)
+        self.publish_status(f"aruco bridge reset for next object: {reason}")
 
     def fresh(self, stamp, timeout_s):
         return (self.get_clock().now() - stamp).nanoseconds * 1.0e-9 <= timeout_s
@@ -185,6 +218,15 @@ class ArucoToMpControlBridge(Node):
     #     self.publish_status(
     #         f"aruco object ready: xyz=({point.point.x:.3f}, {point.point.y:.3f}, {point.point.z:.3f}) frame={point.header.frame_id}")
     def on_timer(self):
+        if (
+            self.locked_object_xyz is None and
+            self.last_reset_time > 0.0 and
+            time.monotonic() - self.last_reset_time < self.reacquire_after_reset_delay_s
+        ):
+            self.publish_ready(False)
+            self.publish_status("waiting before next aruco lock after cargo loaded")
+            return
+            
         if self.locked_object_xyz is not None:
             point = PointStamped()
             point.header.stamp = self.get_clock().now().to_msg()

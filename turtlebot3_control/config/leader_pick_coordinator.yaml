@@ -21,6 +21,9 @@ leader_pick_coordinator_node:
     aruco_visible_timeout_s: 0.8
     nav_feedback_timeout_s: 2.0
 
+    auto_repeat_pick_place: true
+    repeat_start_delay_s: 2.0
+
     done_status_keywords:
       # - handoff release complete
       # - handoff stay complete

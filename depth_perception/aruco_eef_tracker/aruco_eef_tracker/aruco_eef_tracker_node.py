@@ -74,6 +74,9 @@ class ArucoEefTracker(Node):
         self.marker_id = int(self.declare_parameter("marker_id", 0).value)
         self.accept_any_marker = bool(
             self.declare_parameter("accept_any_marker", False).value)
+        allowed_marker_ids_param = self.declare_parameter(
+            "allowed_marker_ids", [0, 1]).value
+        self.allowed_marker_ids = sorted(set(int(x) for x in allowed_marker_ids_param))
         self.marker_size_m = float(self.declare_parameter("marker_size_m", 0.05).value)
         self.dictionary_name = str(
             self.declare_parameter("dictionary", "DICT_4X4_50").value)
@@ -191,16 +194,37 @@ class ArucoEefTracker(Node):
         pts = corner.reshape((4, 2))
         return float(sum(np.linalg.norm(pts[(i + 1) % 4] - pts[i]) for i in range(4)))
 
+    # def select_marker(self, corners, ids):
+    #     ids_flat = ids.flatten().tolist()
+    #     candidates = []
+    #     for index, marker in enumerate(ids_flat):
+    #         if self.accept_any_marker or marker == self.marker_id:
+    #             perimeter = self.marker_perimeter(corners[index])
+    #             if perimeter >= self.min_marker_perimeter_px:
+    #                 candidates.append((perimeter, index, marker))
+    #     if not candidates:
+    #         return None, ids_flat
+    #     candidates.sort(reverse=True)
+    #     _, index, marker = candidates[0]
+    #     return (index, marker), ids_flat
     def select_marker(self, corners, ids):
         ids_flat = ids.flatten().tolist()
         candidates = []
+
         for index, marker in enumerate(ids_flat):
-            if self.accept_any_marker or marker == self.marker_id:
-                perimeter = self.marker_perimeter(corners[index])
-                if perimeter >= self.min_marker_perimeter_px:
-                    candidates.append((perimeter, index, marker))
+            marker = int(marker)
+
+            # ID 0, 1만 허용
+            if marker not in self.allowed_marker_ids:
+                continue
+
+            perimeter = self.marker_perimeter(corners[index])
+            if perimeter >= self.min_marker_perimeter_px:
+                candidates.append((perimeter, index, marker))
+
         if not candidates:
             return None, ids_flat
+
         candidates.sort(reverse=True)
         _, index, marker = candidates[0]
         return (index, marker), ids_flat
@@ -242,7 +266,8 @@ class ArucoEefTracker(Node):
             self.publish_visible(False)
             self.publish_debug(frame, msg.header.stamp, f"aruco: rejected ids={ids_flat}", corners, ids)
             self.publish_status(
-                f"aruco marker id {self.marker_id} not usable; detected={ids_flat}, min_perimeter={self.min_marker_perimeter_px:.1f}px")
+                # f"aruco marker id {self.marker_id} not usable; detected={ids_flat}, min_perimeter={self.min_marker_perimeter_px:.1f}px")
+                f"aruco marker not usable; allowed={self.allowed_marker_ids}, detected={ids_flat}, min_perimeter={self.min_marker_perimeter_px:.1f}px")
             return
 
         marker_index, selected_id = selected

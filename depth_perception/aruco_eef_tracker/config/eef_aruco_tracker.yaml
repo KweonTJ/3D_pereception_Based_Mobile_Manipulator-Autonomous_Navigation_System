@@ -9,7 +9,8 @@ aruco_eef_tracker_node:
     debug_image_topic: /target/aruco_debug_image
 
     marker_id: 0
-    accept_any_marker: true
+    accept_any_marker: false
+    allowable_marker_ids: [0, 1]
     marker_size_m: 0.05
     dictionary: DICT_APRILTAG_36h11
 
