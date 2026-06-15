@@ -129,7 +129,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        DeclareLaunchArgument('start_rover', default_value='false'),
+        DeclareLaunchArgument('start_rover', default_value='true'),
         DeclareLaunchArgument('start_pick_place', default_value='true'),
         DeclareLaunchArgument('start_aruco_bridge', default_value='true'),
         DeclareLaunchArgument('start_mux', default_value='true'),
@@ -192,7 +192,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'start_hardware',
-            default_value='true',
+            default_value='false',
             description='Start hardware, stay pose, and EEF camera from integrated launch.',
         ),
 
