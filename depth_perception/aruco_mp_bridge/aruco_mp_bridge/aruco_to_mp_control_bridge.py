@@ -144,17 +144,18 @@ class ArucoToMpControlBridge(Node):
             self.reset_for_next_object("mp_control status cargo loaded")
             return
 
-        # if self.reset_on_mp_control_start and "grasp sequence started" in text:
-        #     self.reset_for_next_object("mp_control new sequence started")
-        #     return
 
         if self.reset_on_mp_control_error:
             error_keywords = [
-                "abort",
-                "failed",
-                "error",
-                "cancel",
-                "start ignored after",
+                # "abort",
+                # "failed",
+                # "error",
+                # "cancel",
+                # "start ignored after",
+                "eef forward aborted",
+                "gripper goal rejected",
+                "gripper goal failed",
+                "hardware failed",
             ]
             if any(keyword in text for keyword in error_keywords):
                 self.reset_for_next_object("mp_control error/cancel status")
@@ -243,25 +244,6 @@ class ArucoToMpControlBridge(Node):
 
         return point, None
 
-    # def on_timer(self):
-    #     visible_ready = self.visible and self.fresh(
-    #         self.latest_visible_time, self.visible_timeout_s)
-    #     if not visible_ready:
-    #         self.publish_ready(False)
-    #         self.publish_status("waiting for visible aruco marker")
-    #         return
-
-    #     point, reason = self.transformed_object_point()
-    #     if point is None:
-    #         self.publish_ready(False)
-    #         self.publish_status(reason)
-    #         return
-
-    #     self.object_pub.publish(point)
-    #     self.publish_ready(True)
-    #     self.maybe_publish_start()
-    #     self.publish_status(
-    #         f"aruco object ready: xyz=({point.point.x:.3f}, {point.point.y:.3f}, {point.point.z:.3f}) frame={point.header.frame_id}")
     def on_timer(self):
         if (
             self.locked_object_xyz is None and

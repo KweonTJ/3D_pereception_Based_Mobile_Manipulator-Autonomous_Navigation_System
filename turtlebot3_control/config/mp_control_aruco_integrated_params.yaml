@@ -51,7 +51,7 @@ mp_control_node:
     aruco_gripper_center_y_offset_m: 0.0
 
     # Close is blocked until the ArUco center is within these tolerances.
-    aruco_center_x_tolerance_m: 0.005
+    aruco_center_x_tolerance_m: 0.025
     aruco_center_y_tolerance_m: 0.015
     aruco_require_center_before_grasp: false
 
