@@ -5500,6 +5500,10 @@ private:
       return;
     }
 
+    // publishCargoEvent("loaded", true);
+    // publishBaseHold(false);
+    // publishStatus("cargo_loaded: gripper released on follower side; host may resume", true);
+
     stage_ = GraspStage::HANDOFF_PLACE;
     handoff_stage_start_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     handoff_last_publish_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);

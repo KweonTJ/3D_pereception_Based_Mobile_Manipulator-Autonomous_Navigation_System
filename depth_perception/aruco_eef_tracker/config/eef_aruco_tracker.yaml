@@ -11,7 +11,7 @@ aruco_eef_tracker_node:
     marker_id: 0
     accept_any_marker: false
     allowed_marker_ids: [0, 1]
-    marker_size_m: 0.05
+    marker_size_m: 0.04
     dictionary: DICT_APRILTAG_36h11
 
     publish_debug_image: true
