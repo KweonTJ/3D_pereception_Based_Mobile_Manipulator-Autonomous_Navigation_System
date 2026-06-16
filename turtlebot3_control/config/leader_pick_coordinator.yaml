@@ -12,7 +12,7 @@ leader_pick_coordinator_node:
     status_topic: /turtlebot3_control/coordinator_status
 
     # host PC가 준 목적지에 도착한 뒤에만 pick-place를 시작한다.
-    wait_for_nav_arrival: false
+    wait_for_nav_arrival: true
     require_aruco_visible: true
     arrived_states: [ARRIVED, HOLDING]
 
